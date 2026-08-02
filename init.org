@@ -555,27 +555,34 @@ Verticoは、ミニバッファの補完候補を縦方向に表示します。
 (use-package vterm
   :ensure t
   :commands vterm
+
   :hook
   (vterm-mode . (lambda ()
-                  (display-line-numbers-mode -1))))
+                  ;; ターミナルでは行番号を表示しない。
+                  (display-line-numbers-mode -1)))
+
+  :bind
+  (:map vterm-mode-map
+        ;; vterm内でもCmd+jでエディタへ戻る。
+        ("s-j" . vterm-toggle))
+
+  :config
+  ;; C-yをEmacsで処理せず、ターミナル側へ送る。
+  (keymap-set vterm-mode-map "C-y" #'vterm--self-insert))
 #+end_src
 
 ** Vterm Toggle
 
-=Cmd+j= で、エディタと全画面vtermを切り替えます。
-
 #+begin_src emacs-lisp
 (use-package vterm-toggle
   :ensure t
-  :after vterm
 
-  ;; vterm-toggleをまだ読み込んでいなくても、
-  ;; コマンドを呼び出せるようにAutoloadを用意する。
+  ;; vterm-toggleを遅延読み込み可能なコマンドとして登録する。
   :commands vterm-toggle
 
-  :init
   ;; Emacs起動直後からCmd+jを使えるようにする。
-  (keymap-global-set "s-j" #'vterm-toggle)
+  :bind
+  (("s-j" . vterm-toggle))
 
   :custom
   ;; vtermを全画面で表示する。
@@ -588,12 +595,8 @@ Verticoは、ミニバッファの補完候補を縦方向に表示します。
   ;; プロジェクトごとにvtermを管理する。
   (vterm-toggle-scope 'project)
 
-  ;; プロジェクトルートでvtermを起動する。
-  (vterm-toggle-project-root t)
-
-  :config
-  ;; vterm表示中も同じCmd+jで戻れるようにする。
-  (keymap-set vterm-mode-map "s-j" #'vterm-toggle))
+  ;; 新しいvtermをプロジェクトルートで起動する。
+  (vterm-toggle-project-root t))
 #+end_src
 
 * Git
