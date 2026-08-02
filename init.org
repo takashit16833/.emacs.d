@@ -238,13 +238,28 @@ Emacs上のバッファも自動的に更新します。
 
 画面分割を含む作業画面全体を、タブとして切り替えます。
 
+| キー | 操作 |
+|------+------|
+| =C-PageDown= | 右隣のTab Barへ移動 |
+| =C-PageUp= | 左隣のTab Barへ移動 |
+
+どちらも端まで移動すると、反対側へ戻って循環します。
+
 #+begin_src emacs-lisp
 (use-package tab-bar
   :ensure nil
 
   :config
   ;; Emacs標準のTab Barを有効にする。
-  (tab-bar-mode 1))
+  (tab-bar-mode 1)
+
+  ;; Ctrl+PageDown：右隣のTab Barへ移動する。
+  ;; 右端では左端へ戻り、循環する。
+  (keymap-global-set "C-<next>" #'tab-next)
+
+  ;; Ctrl+PageUp：左隣のTab Barへ移動する。
+  ;; 左端では右端へ戻り、循環する。
+  (keymap-global-set "C-<prior>" #'tab-previous))
 #+end_src
 
 ** Tab Line
@@ -252,6 +267,16 @@ Emacs上のバッファも自動的に更新します。
 各ウィンドウで表示したバッファを、タブとして切り替えます。
 
 =*scratch*= とvtermのバッファは、Tab Lineに表示しません。
+
+| キー | 操作 |
+|------+------|
+| =Cmd+Option+←= | 左隣のTab Lineへ移動 |
+| =Cmd+Option+→= | 右隣のTab Lineへ移動 |
+
+どちらも端まで移動すると、反対側へ戻って循環します。
+
+Tab Lineのバッファ名は並び順を維持し、
+新しく表示したバッファだけを右端へ追加します。
 
 #+begin_src emacs-lisp
 (use-package tab-line
@@ -281,18 +306,66 @@ Emacs上のバッファも自動的に更新します。
         (derived-mode-p 'vterm-mode)))))
 
   (defun my/tab-line-tabs ()
-    "不要なバッファを除外したTab Lineの一覧を返す。"
-    (seq-filter
-     #'my/tab-line-buffer-visible-p
-     (tab-line-tabs-window-buffers)))
+    "不要なバッファを除外し、固定順でTab Lineへ表示する。"
+    (let* (;; このウィンドウで保存している、前回までの並び順。
+           (old-buffers
+            (seq-filter
+             #'my/tab-line-buffer-visible-p
+             (window-parameter nil 'tab-line-buffers)))
+
+           ;; 現在、このウィンドウに関連付いているバッファ。
+           (current-buffers
+            (seq-filter
+             #'my/tab-line-buffer-visible-p
+             (tab-line-tabs-window-buffers)))
+
+           ;; 以前からあるバッファは、保存済みの順番を維持する。
+           (kept-buffers
+            (seq-filter
+             (lambda (buffer)
+               (memq buffer current-buffers))
+             old-buffers))
+
+           ;; 新しく表示されたバッファは、右端へ追加する。
+           (added-buffers
+            (seq-remove
+             (lambda (buffer)
+               (memq buffer kept-buffers))
+             current-buffers))
+
+           (buffers
+            (append kept-buffers added-buffers)))
+
+      ;; ウィンドウごとのTab Lineの並び順として保存する。
+      (set-window-parameter nil 'tab-line-buffers buffers)
+
+      buffers))
+
+  ;; Tab Barを切り替えても、ウィンドウごとの並び順を保持する。
+  (add-to-list
+   'window-persistent-parameters
+   '(tab-line-buffers . t))
 
   :custom
   ;; Tab Lineへ表示するバッファを独自に絞り込む。
   (tab-line-tabs-function #'my/tab-line-tabs)
 
+  ;; 右端・左端へ到達したら、反対側へ戻って循環する。
+  (tab-line-switch-cycling t)
+
   :config
   ;; すべてのウィンドウでTab Lineを有効にする。
-  (global-tab-line-mode 1))
+  (global-tab-line-mode 1)
+
+  ;; Cmd+Option+←：左隣のTab Lineへ移動する。
+  (keymap-global-set
+   "M-s-<left>"
+   #'tab-line-switch-to-prev-tab)
+
+  ;; Cmd+Option+→：右隣のTab Lineへ移動する。
+  (keymap-global-set
+   "M-s-<right>"
+   #'tab-line-switch-to-next-tab))
 #+end_src
 
 * Org mode
