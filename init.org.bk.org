@@ -232,69 +232,6 @@ Emacs上のバッファも自動的に更新します。
   (global-auto-revert-mode 1))
 #+end_src
 
-* タブ
-
-** Tab Bar
-
-画面分割を含む作業画面全体を、タブとして切り替えます。
-
-#+begin_src emacs-lisp
-(use-package tab-bar
-  :ensure nil
-
-  :config
-  ;; Emacs標準のTab Barを有効にする。
-  (tab-bar-mode 1))
-#+end_src
-
-** Tab Line
-
-各ウィンドウで表示したバッファを、タブとして切り替えます。
-
-=*scratch*= とvtermのバッファは、Tab Lineに表示しません。
-
-#+begin_src emacs-lisp
-(use-package tab-line
-  :ensure nil
-
-  :init
-  (require 'seq)
-
-  ;; Tab Lineに表示しないバッファ名。
-  (defconst my/tab-line-excluded-buffer-names
-    '("*scratch*")
-    "Tab Lineに表示しないバッファ名の一覧。")
-
-  (defun my/tab-line-buffer-visible-p (buffer)
-    "BUFFERをTab Lineに表示するとき、非nilを返す。"
-    (and
-     ;; 削除済みのバッファは表示しない。
-     (buffer-live-p buffer)
-
-     ;; 指定した名前のバッファを表示しない。
-     (not (member (buffer-name buffer)
-                  my/tab-line-excluded-buffer-names))
-
-     ;; vterm-modeと、その派生モードのバッファを表示しない。
-     (not
-      (with-current-buffer buffer
-        (derived-mode-p 'vterm-mode)))))
-
-  (defun my/tab-line-tabs ()
-    "不要なバッファを除外したTab Lineの一覧を返す。"
-    (seq-filter
-     #'my/tab-line-buffer-visible-p
-     (tab-line-tabs-window-buffers)))
-
-  :custom
-  ;; Tab Lineへ表示するバッファを独自に絞り込む。
-  (tab-line-tabs-function #'my/tab-line-tabs)
-
-  :config
-  ;; すべてのウィンドウでTab Lineを有効にする。
-  (global-tab-line-mode 1))
-#+end_src
-
 * Org mode
 
 ** RAGScope Orgコックピットのファイル
