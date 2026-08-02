@@ -565,28 +565,62 @@ VS CodeのRetro Hacker Blueを元にしたカラーテーマを使用します�
 (load-theme 'retro-hacker-blue t)
 #+end_src
 
-* キーバインド
+* 行操作
 
-=C-c= から始まるキーは、ユーザーが独自に設定するために用意されている領域です。
+VS Codeに近い行単位の操作を追加します。
+
+- =Cmd+Shift+k=: カーソル行を削除する
+- =Cmd+l=: カーソル行を選択する
+- =Cmd+l=を続けて押す: 選択を次の行へ広げる
 
 #+begin_src emacs-lisp
-;; init.orgを開く。
-(keymap-global-set "C-c e i" #'my/open-init-org)
+(defun my/delete-current-line ()
+  "カーソルのある行を、Kill Ringへ入れずに削除する。"
+  (interactive)
+  (delete-region
+   (line-beginning-position)
+   (line-beginning-position 2)))
 
-;; init.orgからinit.elを生成する。
-(keymap-global-set "C-c e t" #'my/tangle-init-org)
+(defun my/select-current-line ()
+  "カーソル行全体を選択し、カーソルを次の行頭へ移動する。
 
-;; init.elを再読み込みする。
-(keymap-global-set "C-c e r" #'my/reload-init-file)
+続けて実行すると、選択範囲を次の行まで広げる。"
+  (interactive)
+  (if (and (region-active-p)
+           (eq last-command 'my/select-current-line))
+      (goto-char (line-beginning-position 2))
+
+    (let ((start (line-beginning-position)))
+      (goto-char (line-beginning-position 2))
+      (set-mark start)
+      (activate-mark))))
+
+(keymap-global-set "s-K" #'my/delete-current-line)
+(keymap-global-set "s-l" #'my/select-current-line)
+#+end_src
+
+* キーバインド
+
+#+begin_src emacs-lisp
+;; C-c eをEmacs設定操作用のプレフィックスキーにする。
+(defvar-keymap my/emacs-config-map
+  :doc "Emacs設定ファイルを操作するキーマップ。"
+  "i" #'my/open-init-org
+  "t" #'my/tangle-init-org
+  "r" #'my/reload-init-file)
+
+(keymap-global-set "C-c e" my/emacs-config-map)
 
 ;; Org Captureを開く。
 (keymap-global-set "C-c c" #'org-capture)
 
 ;; Org Agendaを開く。
 (keymap-global-set "C-c a" #'org-agenda)
+#+end_src
 
 ** macOS風のキーバインド
 
+#+begin_src emacs-lisp
 ;; macOS風の保存。
 (keymap-global-set "s-s" #'save-buffer)
 
@@ -611,7 +645,6 @@ VS CodeのRetro Hacker Blueを元にしたカラーテーマを使用します�
 ;; macOS風のRedo。
 (keymap-global-set "s-Z" #'undo-redo)
 #+end_src
-
 * ファイルフッター
 
 #+begin_src emacs-lisp
