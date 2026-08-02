@@ -1,0 +1,418 @@
+#+title: Emacs Configuration
+#+startup: overview
+#+property: header-args:emacs-lisp :tangle init.el :results silent :comments no
+
+* このファイルについて
+
+このファイルがEmacs設定の原本です。
+
+- 編集するファイル: =init.org=
+- 自動生成されるファイル: =init.el=
+- =init.el= は直接編集しない
+- 設定はOrgの見出し単位で整理する
+
+初回のみ、次のコマンドで =init.el= を生成します。
+
+#+begin_example
+M-x org-babel-tangle
+#+end_example
+
+以降は、このファイルを保存すると自動的に =init.el= を生成します。
+
+* ファイルヘッダー
+
+生成される =init.el= の先頭部分です。
+
+#+begin_src emacs-lisp
+;;; init.el --- Generated from init.org -*- lexical-binding: t; -*-
+
+;;; Commentary:
+;; このファイルは init.org から自動生成されています。
+;; 直接編集せず、init.org を編集してください。
+
+;;; Code:
+#+end_src
+
+* use-package
+
+Emacs 29以降では =use-package= が標準搭載されています。
+
+#+begin_src emacs-lisp
+(require 'use-package)
+(require 'use-package-ensure)
+#+end_src
+
+** use-packageの基本形
+
+今後、パッケージの設定は基本的に次の形で追加します。
+
+#+begin_example
+(use-package package-name
+  :ensure t
+  :init
+  ;; パッケージが読み込まれる前の設定
+  :custom
+  ;; Customize変数の設定
+  :bind
+  ;; キーバインド
+  :hook
+  ;; フック
+  :config
+  ;; パッケージが読み込まれた後の設定
+  )
+#+end_example
+
+* Emacs本体
+
+Emacsそのものに関する設定です。
+
+=emacs= というパッケージを読み込むわけではなく、
+Emacs本体の設定を =use-package= 形式で整理するために使用しています。
+
+#+begin_src emacs-lisp
+(use-package emacs
+  :ensure nil
+
+  :init
+  ;; Customizeが生成した設定をinit.elへ直接書き込ませない。
+  ;; init.elはinit.orgから再生成されるため、別ファイルへ分離する。
+  (setq custom-file
+        (expand-file-name "custom.el" user-emacs-directory))
+
+  (load custom-file t t)
+
+  ;; バックアップファイルと自動保存ファイルを専用ディレクトリへ置く。
+  (let ((backup-directory
+         (expand-file-name "backups/" user-emacs-directory))
+        (auto-save-directory
+         (expand-file-name "auto-save/" user-emacs-directory)))
+
+    (make-directory backup-directory t)
+    (make-directory auto-save-directory t)
+
+    (setq backup-directory-alist
+          `(("." . ,backup-directory))
+
+          auto-save-file-name-transforms
+          `((".*" ,auto-save-directory t))))
+
+  :custom
+  ;; 起動画面を表示しない。
+  (inhibit-startup-screen t)
+
+  ;; *scratch*バッファの初期メッセージを表示しない。
+  (initial-scratch-message nil)
+
+  ;; yes/noではなくy/nで答えられるようにする。
+  (use-short-answers t)
+
+  ;; ビープ音を鳴らさない。
+  (ring-bell-function #'ignore)
+
+  ;; ファイル末尾に改行を入れる。
+  (require-final-newline t)
+
+  :config
+  ;; 選択範囲がある状態で入力すると、選択範囲を置換する。
+  (delete-selection-mode 1)
+
+  ;; 括弧を自動的に補完する。
+  (electric-pair-mode 1)
+
+  ;; 対応する括弧を強調表示する。
+  (show-paren-mode 1)
+
+  ;; 行番号と列番号を表示する。
+  (global-display-line-numbers-mode 1)
+  (column-number-mode 1)
+
+  ;; GUIのツールバーとスクロールバーを非表示にする。
+  ;; メニューバーはEmacsを覚えるのに役立つため残す。
+  (when (fboundp 'tool-bar-mode)
+    (tool-bar-mode -1))
+
+  (when (fboundp 'scroll-bar-mode)
+    (scroll-bar-mode -1)))
+#+end_src
+
+* macOS
+
+** シェル環境の読み込み
+
+GUI版Emacsから、ターミナルと同じPATHを利用できるようにします。
+
+#+begin_src emacs-lisp
+(use-package exec-path-from-shell
+  :ensure t
+  :if (eq window-system 'mac)
+
+  :init
+  (exec-path-from-shell-initialize))
+#+end_src
+
+* 履歴
+
+** ミニバッファの履歴
+
+検索履歴や実行したコマンドなどを、Emacs終了後も保存します。
+
+#+begin_src emacs-lisp
+(use-package savehist
+  :ensure nil
+
+  :custom
+  (history-length 200)
+
+  :init
+  (savehist-mode 1))
+#+end_src
+
+** 最近開いたファイル
+
+#+begin_src emacs-lisp
+(use-package recentf
+  :ensure nil
+
+  :custom
+  (recentf-max-saved-items 100)
+
+  :init
+  (recentf-mode 1))
+#+end_src
+
+** カーソル位置
+
+ファイルを開き直したとき、前回のカーソル位置へ戻ります。
+
+#+begin_src emacs-lisp
+(use-package saveplace
+  :ensure nil
+
+  :init
+  (save-place-mode 1))
+#+end_src
+
+* ファイルの自動更新
+
+外部プログラムやGitなどによってファイルが変更されたとき、
+Emacs上のバッファも自動的に更新します。
+
+#+begin_src emacs-lisp
+(use-package autorevert
+  :ensure nil
+
+  :custom
+  (global-auto-revert-non-file-buffers t)
+
+  :init
+  (global-auto-revert-mode 1))
+#+end_src
+
+* Org mode
+
+** init.orgの操作
+
+=init.org= を開くコマンド、=init.el= を生成するコマンド、
+生成した設定を再読み込みするコマンドを定義します。
+
+- =C-c e i=: init.orgを開く
+- =C-c e t=: init.orgからinit.elを生成する
+- =C-c e r=: init.elを再読み込みする
+
+#+begin_src emacs-lisp
+(defconst my/init-org-file
+  (expand-file-name "init.org" user-emacs-directory)
+  "Emacs設定の原本となるOrgファイル。")
+
+(defconst my/init-el-file
+  (expand-file-name "init.el" user-emacs-directory)
+  "init.orgから生成されるEmacs Lispファイル。")
+
+(defun my/open-init-org ()
+  "Emacs設定ファイルinit.orgを開く。"
+  (interactive)
+  (find-file my/init-org-file))
+
+(defun my/tangle-init-org ()
+  "init.orgからinit.elを生成する。"
+  (interactive)
+  (require 'org)
+  (require 'ob-tangle)
+
+  (org-babel-tangle-file
+   my/init-org-file
+   my/init-el-file
+   "emacs-lisp")
+
+  (message "init.orgからinit.elを生成しました"))
+
+(defun my/reload-init-file ()
+  "生成済みのinit.elを再読み込みする。"
+  (interactive)
+  (if (file-exists-p my/init-el-file)
+      (progn
+        (load-file my/init-el-file)
+        (message "init.elを再読み込みしました"))
+    (user-error
+     "init.elが存在しません。先にC-c e tで生成してください")))
+#+end_src
+
+** Org modeの設定
+
+#+begin_src emacs-lisp
+(use-package org
+  :ensure nil
+  :defer t
+
+  :custom
+  ;; Orgファイルを開いたとき、見出しを折りたたんで表示する。
+  (org-startup-folded 'content)
+
+  ;; アウトラインレベルに応じて視覚的にインデントする。
+  (org-startup-indented t))
+#+end_src
+
+** Org Modern
+
+Org modeの見た目を整えます。
+
+テーブルの表示はvalignに任せるため、
+org-modernによるテーブル装飾は無効にします。
+
+#+begin_src emacs-lisp
+(use-package org-modern
+  :ensure t
+  :after org
+
+  :hook
+  (org-mode . org-modern-mode)
+
+  :custom
+  (org-modern-table nil))
+#+end_src
+
+** Valign
+
+日本語を含むOrgテーブルを視覚的に整列します。
+
+#+begin_src emacs-lisp
+(use-package valign
+  :ensure t
+  :after org
+
+  :hook
+  (org-mode . valign-mode))
+#+end_src
+
+* キーバインド
+
+=C-c= から始まるキーは、ユーザーが独自に設定するために用意されている領域です。
+
+#+begin_src emacs-lisp
+;; init.orgを開く。
+(keymap-global-set "C-c e i" #'my/open-init-org)
+
+;; init.orgからinit.elを生成する。
+(keymap-global-set "C-c e t" #'my/tangle-init-org)
+
+;; init.elを再読み込みする。
+(keymap-global-set "C-c e r" #'my/reload-init-file)
+#+end_src
+
+#+begin_src emacs-lisp
+;; 例:
+;;
+;; (global-set-key (kbd "C-c e") #'eval-buffer)
+#+end_src
+
+* 補完
+
+** Vertico
+
+Verticoは、ミニバッファの補完候補を縦方向に表示します。
+
+#+begin_src emacs-lisp
+(use-package vertico
+  :ensure t
+
+  :init
+  (vertico-mode 1))
+#+end_src
+
+** Marginalia
+
+ミニバッファの補完候補に説明を表示します。
+
+#+begin_src emacs-lisp
+(use-package marginalia
+  :ensure t
+
+  :init
+  (marginalia-mode 1))
+#+end_src
+
+** Orderless
+
+スペースで区切った複数の文字列を使って、
+補完候補を柔軟に絞り込みます。
+
+#+begin_src emacs-lisp
+(use-package orderless
+  :ensure t
+
+  :custom
+  (completion-styles '(orderless basic))
+
+  ;; ファイル名では、ディレクトリの部分入力を使いやすくする。
+  (completion-category-overrides
+   '((file (styles partial-completion)))))
+#+end_src
+
+* Undo・Redo
+
+Emacs標準のUndo・Redoを、一般的なエディタに近いキーで使用します。
+
+- =C-z=: Undo
+- =C-S-z=: Redo
+
+#+begin_src emacs-lisp
+(keymap-global-set "C-z" #'undo-only)
+(keymap-global-set "C-S-z" #'undo-redo)
+#+end_src
+
+* Git
+
+** Magit
+
+Emacs上でGitを操作します。
+
+#+begin_src emacs-lisp
+(use-package magit
+  :ensure t
+  :commands magit-status
+  :bind
+  ("C-x g" . magit-status))
+#+end_src
+
+* テーマ
+
+** Retro Hacker Blue
+
+VS CodeのRetro Hacker Blueを元にしたカラーテーマを使用します。
+
+#+begin_src emacs-lisp
+(add-to-list
+ 'custom-theme-load-path
+ (expand-file-name "themes/" user-emacs-directory))
+
+;; 複数テーマが重なって有効になるのを防ぐ。
+(mapc #'disable-theme custom-enabled-themes)
+
+(load-theme 'retro-hacker-blue t)
+#+end_src
+
+* ファイルフッター
+
+#+begin_src emacs-lisp
+;;; init.el ends here
+#+end_src
