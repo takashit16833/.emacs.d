@@ -302,6 +302,14 @@ RAGScopeの個人作業状態を管理するOrgファイルの場所を定義し
   :ensure nil
   :defer t
 
+  :init
+  ;; Org modeでもShift+矢印による範囲選択を使用する。
+  ;;
+  ;; org-replace-disputed-keysはOrgのShift+矢印操作を別キーへ移すため、
+  ;; Orgが読み込まれる前に設定する。
+  (setq org-support-shift-select t
+        org-replace-disputed-keys t)
+
   :custom
   ;; Orgファイルを開いたとき、見出しを折りたたんで表示する。
   (org-startup-folded 'content)
@@ -570,8 +578,6 @@ VS CodeのRetro Hacker Blueを元にしたカラーテーマを使用します�
 VS Codeに近い行単位の操作を追加します。
 
 - =Cmd+Shift+k=: カーソル行を削除する
-- =Cmd+l=: カーソル行を選択する
-- =Cmd+l=を続けて押す: 選択を次の行へ広げる
 
 #+begin_src emacs-lisp
 (defun my/delete-current-line ()
@@ -581,22 +587,7 @@ VS Codeに近い行単位の操作を追加します。
    (line-beginning-position)
    (line-beginning-position 2)))
 
-(defun my/select-current-line ()
-  "カーソル行全体を選択し、カーソルを次の行頭へ移動する。
-
-続けて実行すると、選択範囲を次の行まで広げる。"
-  (interactive)
-  (if (and (region-active-p)
-           (eq last-command 'my/select-current-line))
-      (goto-char (line-beginning-position 2))
-
-    (let ((start (line-beginning-position)))
-      (goto-char (line-beginning-position 2))
-      (set-mark start)
-      (activate-mark))))
-
 (keymap-global-set "s-K" #'my/delete-current-line)
-(keymap-global-set "s-l" #'my/select-current-line)
 #+end_src
 
 * キーバインド
@@ -644,6 +635,18 @@ VS Codeに近い行単位の操作を追加します。
 
 ;; macOS風のRedo。
 (keymap-global-set "s-Z" #'undo-redo)
+
+;; Cmd+←：行頭へ移動する。
+(keymap-global-set "s-<left>" #'move-beginning-of-line)
+
+;; Cmd+→：行末へ移動する。
+(keymap-global-set "s-<right>" #'move-end-of-line)
+
+;; Cmd+↑：バッファの先頭へ移動する。
+(keymap-global-set "s-<up>" #'beginning-of-buffer)
+
+;; Cmd+↓：バッファの末尾へ移動する。
+(keymap-global-set "s-<down>" #'end-of-buffer)
 #+end_src
 * ファイルフッター
 
