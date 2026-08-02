@@ -70,69 +70,72 @@ Emacsそのものに関する設定です。
 Emacs本体の設定を =use-package= 形式で整理するために使用しています。
 
 #+begin_src emacs-lisp
-(use-package emacs
-  :ensure nil
+  (use-package emacs
+    :ensure nil
 
-  :init
-  ;; Customizeが生成した設定をinit.elへ直接書き込ませない。
-  ;; init.elはinit.orgから再生成されるため、別ファイルへ分離する。
-  (setq custom-file
-        (expand-file-name "custom.el" user-emacs-directory))
+    :init
+    ;; Customizeが生成した設定をinit.elへ直接書き込ませない。
+    ;; init.elはinit.orgから再生成されるため、別ファイルへ分離する。
+    (setq custom-file
+          (expand-file-name "custom.el" user-emacs-directory))
 
-  (load custom-file t t)
+    (load custom-file t t)
 
-  ;; バックアップファイルと自動保存ファイルを専用ディレクトリへ置く。
-  (let ((backup-directory
-         (expand-file-name "backups/" user-emacs-directory))
-        (auto-save-directory
-         (expand-file-name "auto-save/" user-emacs-directory)))
+    ;; バックアップファイルと自動保存ファイルを専用ディレクトリへ置く。
+    (let ((backup-directory
+           (expand-file-name "backups/" user-emacs-directory))
+          (auto-save-directory
+           (expand-file-name "auto-save/" user-emacs-directory)))
 
-    (make-directory backup-directory t)
-    (make-directory auto-save-directory t)
+      (make-directory backup-directory t)
+      (make-directory auto-save-directory t)
 
-    (setq backup-directory-alist
-          `(("." . ,backup-directory))
+      (setq backup-directory-alist
+            `(("." . ,backup-directory))
 
-          auto-save-file-name-transforms
-          `((".*" ,auto-save-directory t))))
+            auto-save-file-name-transforms
+            `((".*" ,auto-save-directory t))))
 
-  :custom
-  ;; 起動画面を表示しない。
-  (inhibit-startup-screen t)
+    :custom
+    ;; 起動画面を表示しない。
+    (inhibit-startup-screen t)
 
-  ;; *scratch*バッファの初期メッセージを表示しない。
-  (initial-scratch-message nil)
+    ;; *scratch*バッファの初期メッセージを表示しない。
+    (initial-scratch-message nil)
 
-  ;; yes/noではなくy/nで答えられるようにする。
-  (use-short-answers t)
+    ;; yes/noではなくy/nで答えられるようにする。
+    (use-short-answers t)
 
-  ;; ビープ音を鳴らさない。
-  (ring-bell-function #'ignore)
+    ;; ビープ音を鳴らさない。
+    (ring-bell-function #'ignore)
 
-  ;; ファイル末尾に改行を入れる。
-  (require-final-newline t)
+    ;; ファイル末尾に改行を入れる。
+    (require-final-newline t)
 
-  :config
-  ;; 選択範囲がある状態で入力すると、選択範囲を置換する。
-  (delete-selection-mode 1)
+    ;; カーソル移動によるスクロールを1行ずつにする。
+    (scroll-conservatively most-positive-fixnum)
 
-  ;; 括弧を自動的に補完する。
-  (electric-pair-mode 1)
+    :config
+    ;; 選択範囲がある状態で入力すると、選択範囲を置換する。
+    (delete-selection-mode 1)
 
-  ;; 対応する括弧を強調表示する。
-  (show-paren-mode 1)
+    ;; 括弧を自動的に補完する。
+    (electric-pair-mode 1)
 
-  ;; 行番号と列番号を表示する。
-  (global-display-line-numbers-mode 1)
-  (column-number-mode 1)
+    ;; 対応する括弧を強調表示する。
+    (show-paren-mode 1)
 
-  ;; GUIのツールバーとスクロールバーを非表示にする。
-  ;; メニューバーはEmacsを覚えるのに役立つため残す。
-  (when (fboundp 'tool-bar-mode)
-    (tool-bar-mode -1))
+    ;; 行番号と列番号を表示する。
+    (global-display-line-numbers-mode 1)
+    (column-number-mode 1)
 
-  (when (fboundp 'scroll-bar-mode)
-    (scroll-bar-mode -1)))
+    ;; GUIのツールバーとスクロールバーを非表示にする。
+    ;; メニューバーはEmacsを覚えるのに役立つため残す。
+    (when (fboundp 'tool-bar-mode)
+      (tool-bar-mode -1))
+
+    (when (fboundp 'scroll-bar-mode)
+      (scroll-bar-mode -1)))
 #+end_src
 
 * macOS
@@ -210,6 +213,27 @@ Emacs上のバッファも自動的に更新します。
 
 * Org mode
 
+** RAGScope Orgコックピットのファイル
+
+RAGScopeの個人作業状態を管理するOrgファイルの場所を定義します。
+
+- =inbox.org=: 未整理の気づきや疑問
+- =cockpit.org=: 状態を持つ作業項目
+
+#+begin_src emacs-lisp
+(defconst my/ragscope-org-directory
+  (expand-file-name "~/org/ragscope/")
+  "RAGScope Orgコックピットを保存するディレクトリ。")
+
+(defconst my/ragscope-inbox-file
+  (expand-file-name "inbox.org" my/ragscope-org-directory)
+  "未整理の気づきを保存するOrgファイル。")
+
+(defconst my/ragscope-cockpit-file
+  (expand-file-name "cockpit.org" my/ragscope-org-directory)
+  "状態を持つ作業項目を保存するOrgファイル。")
+#+end_src
+
 ** init.orgの操作
 
 =init.org= を開くコマンド、=init.el= を生成するコマンド、
@@ -269,7 +293,156 @@ Emacs上のバッファも自動的に更新します。
   (org-startup-folded 'content)
 
   ;; アウトラインレベルに応じて視覚的にインデントする。
-  (org-startup-indented t))
+  (org-startup-indented t)
+
+  ;; RAGScopeコックピットで使用する作業状態。
+  ;;
+  ;; TODO   : 作業候補
+  ;; NEXT   : 次に着手できる
+  ;; DOING  : 現在作業中
+  ;; HOLD   : 差し込みなどによる中断
+  ;; WAIT   : 外部条件や回答待ち
+  ;; DONE   : 完了
+  ;; DROP   : 対応しない
+  (org-todo-keywords
+   '((sequence
+      "TODO(t)"
+      "NEXT(n)"
+      "DOING(d)"
+      "HOLD(h)"
+      "WAIT(w)"
+      "|"
+      "DONE(x)"
+      "DROP(k)")))
+
+  ;; DONEへ変更した日時を記録する。
+  (org-log-done 'time)
+
+  :config
+  ;; InboxとCockpitをAgendaの検索対象にする。
+  (setq org-agenda-files
+        (list my/ragscope-inbox-file
+              my/ragscope-cockpit-file)))
+#+end_src
+
+** RAGScope Org Capture
+
+未整理の気づきは =inbox.org= へ追加します。
+
+作業状態として管理する項目は =cockpit.org= へ追加します。
+
+=C-c c= でCaptureメニューを開きます。
+
+| 操作 | 追加先 | 初期状態 |
+|---|---|---|
+| =i= | =inbox.org= | =TODO= |
+| =c t= | =cockpit.org= | =TODO= |
+| =c n= | =cockpit.org= | =NEXT= |
+| =c d= | =cockpit.org= | =DOING= |
+| =c h= | =cockpit.org= | =HOLD= |
+| =c w= | =cockpit.org= | =WAIT= |
+
+#+begin_src emacs-lisp
+(use-package org-capture
+  :ensure nil
+  :after org
+
+  :config
+  (setq org-capture-templates
+        `(
+          ;; 未整理の気づきをInboxへ追加する。
+          ("i" "RAGScope Inbox" entry
+           (file+headline ,my/ragscope-inbox-file "Inbox")
+           "* TODO %?\n:PROPERTIES:\n:CAPTURED: %U\n:END:\n%a")
+
+          ;; Cockpit用テンプレートのグループ。
+          ("c" "RAGScope Cockpit")
+
+          ;; まだ着手順を決めていない作業項目。
+          ("ct" "TODO" entry
+           (file+headline ,my/ragscope-cockpit-file "Work Items")
+           "* TODO %?\n- 次: \n%a")
+
+          ;; 次に着手できる作業項目。
+          ("cn" "NEXT" entry
+           (file+headline ,my/ragscope-cockpit-file "Work Items")
+           "* NEXT %?\n- 次: \n%a")
+
+          ;; 現在作業中の項目。
+          ("cd" "DOING" entry
+           (file+headline ,my/ragscope-cockpit-file "Work Items")
+           "* DOING %?\n- 今: \n- 次: \n%a")
+
+          ;; 差し込みなどで中断する項目。
+          ("ch" "HOLD" entry
+           (file+headline ,my/ragscope-cockpit-file "Work Items")
+           "* HOLD %?\n- 中断地点: \n- 再開時の一手: \n- 中断理由: \n%a")
+
+          ;; 外部条件や回答を待つ項目。
+          ("cw" "WAIT" entry
+           (file+headline ,my/ragscope-cockpit-file "Work Items")
+           "* WAIT %?\n- 待っているもの: \n- 解除条件: \n- 次に確認する時点: \n- 解除後の一手: \n%a"))))
+#+end_src
+
+** RAGScope Cockpit Agenda
+
+=C-c a r= で、RAGScopeコックピットの状態を一覧表示します。
+
+表示上の分類はTODO状態から自動生成します。
+
+| 表示 | 対象状態 |
+|---|---|
+| Active | =DOING= |
+| Next | =NEXT= |
+| Suspended | =HOLD= |
+| Waiting | =WAIT= |
+| Planned | =TODO=のCockpit項目 |
+| Inbox | =TODO=のInbox項目 |
+
+#+begin_src emacs-lisp
+(use-package org-agenda
+  :ensure nil
+  :after org
+
+  :config
+  (setq org-agenda-custom-commands
+        `(("r" "RAGScope Cockpit"
+           (
+            ;; 現在作業中。
+            (todo "DOING"
+                  ((org-agenda-overriding-header "Active")
+                   (org-agenda-files
+                    '(,my/ragscope-cockpit-file))))
+
+            ;; 次に着手できる作業。
+            (todo "NEXT"
+                  ((org-agenda-overriding-header "Next")
+                   (org-agenda-files
+                    '(,my/ragscope-cockpit-file))))
+
+            ;; 中断中の作業。
+            (todo "HOLD"
+                  ((org-agenda-overriding-header "Suspended")
+                   (org-agenda-files
+                    '(,my/ragscope-cockpit-file))))
+
+            ;; 外部条件や回答待ち。
+            (todo "WAIT"
+                  ((org-agenda-overriding-header "Waiting")
+                   (org-agenda-files
+                    '(,my/ragscope-cockpit-file))))
+
+            ;; Cockpitへ登録済みだが、まだ着手順を決めていない作業。
+            (todo "TODO"
+                  ((org-agenda-overriding-header "Planned")
+                   (org-agenda-files
+                    '(,my/ragscope-cockpit-file))))
+
+            ;; 未整理の気づき。
+            (todo "TODO"
+                  ((org-agenda-overriding-header "Inbox")
+                   (org-agenda-files
+                    '(,my/ragscope-inbox-file)))))))))
 #+end_src
 
 ** Org Modern
@@ -317,6 +490,12 @@ org-modernによるテーブル装飾は無効にします。
 
 ;; init.elを再読み込みする。
 (keymap-global-set "C-c e r" #'my/reload-init-file)
+
+;; Org Captureを開く。
+(keymap-global-set "C-c c" #'org-capture)
+
+;; Org Agendaを開く。
+(keymap-global-set "C-c a" #'org-agenda)
 #+end_src
 
 #+begin_src emacs-lisp
