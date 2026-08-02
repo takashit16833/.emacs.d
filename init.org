@@ -140,6 +140,20 @@ Emacs本体の設定を =use-package= 形式で整理するために使用して
 
 * macOS
 
+** 修飾キー
+
+OptionキーをEmacsのMetaキーとして使用します。
+CommandキーはSuperキーとして使用し、macOS風のショートカットへ割り当てます。
+
+#+begin_src emacs-lisp
+(when (eq window-system 'mac)
+  ;; OptionをMetaとして使う。
+  (setq mac-option-modifier 'meta)
+
+  ;; Commandを独立したSuper修飾キーとして使う。
+  (setq mac-command-modifier 'super))
+#+end_src
+
 ** シェル環境の読み込み
 
 GUI版Emacsから、ターミナルと同じPATHを利用できるようにします。
@@ -477,33 +491,6 @@ org-modernによるテーブル装飾は無効にします。
   (org-mode . valign-mode))
 #+end_src
 
-* キーバインド
-
-=C-c= から始まるキーは、ユーザーが独自に設定するために用意されている領域です。
-
-#+begin_src emacs-lisp
-;; init.orgを開く。
-(keymap-global-set "C-c e i" #'my/open-init-org)
-
-;; init.orgからinit.elを生成する。
-(keymap-global-set "C-c e t" #'my/tangle-init-org)
-
-;; init.elを再読み込みする。
-(keymap-global-set "C-c e r" #'my/reload-init-file)
-
-;; Org Captureを開く。
-(keymap-global-set "C-c c" #'org-capture)
-
-;; Org Agendaを開く。
-(keymap-global-set "C-c a" #'org-agenda)
-#+end_src
-
-#+begin_src emacs-lisp
-;; 例:
-;;
-;; (global-set-key (kbd "C-c e") #'eval-buffer)
-#+end_src
-
 * 補完
 
 ** Vertico
@@ -547,18 +534,6 @@ Verticoは、ミニバッファの補完候補を縦方向に表示します。
    '((file (styles partial-completion)))))
 #+end_src
 
-* Undo・Redo
-
-Emacs標準のUndo・Redoを、一般的なエディタに近いキーで使用します。
-
-- =C-z=: Undo
-- =C-S-z=: Redo
-
-#+begin_src emacs-lisp
-(keymap-global-set "C-z" #'undo-only)
-(keymap-global-set "C-S-z" #'undo-redo)
-#+end_src
-
 * Git
 
 ** Magit
@@ -588,6 +563,53 @@ VS CodeのRetro Hacker Blueを元にしたカラーテーマを使用します�
 (mapc #'disable-theme custom-enabled-themes)
 
 (load-theme 'retro-hacker-blue t)
+#+end_src
+
+* キーバインド
+
+=C-c= から始まるキーは、ユーザーが独自に設定するために用意されている領域です。
+
+#+begin_src emacs-lisp
+;; init.orgを開く。
+(keymap-global-set "C-c e i" #'my/open-init-org)
+
+;; init.orgからinit.elを生成する。
+(keymap-global-set "C-c e t" #'my/tangle-init-org)
+
+;; init.elを再読み込みする。
+(keymap-global-set "C-c e r" #'my/reload-init-file)
+
+;; Org Captureを開く。
+(keymap-global-set "C-c c" #'org-capture)
+
+;; Org Agendaを開く。
+(keymap-global-set "C-c a" #'org-agenda)
+
+** macOS風のキーバインド
+
+;; macOS風の保存。
+(keymap-global-set "s-s" #'save-buffer)
+
+;; macOS風の全選択。
+(keymap-global-set "s-a" #'mark-whole-buffer)
+
+;; macOS風のコピー。
+(keymap-global-set "s-c" #'kill-ring-save)
+
+;; macOS風の切り取り。
+(keymap-global-set "s-x" #'kill-region)
+
+;; macOS風の貼り付け。
+(keymap-global-set "s-v" #'yank)
+
+;; macOS風に現在の文書・バッファを閉じる。
+(keymap-global-set "s-w" #'kill-current-buffer)
+
+;; macOS風のUndo。
+(keymap-global-set "s-z" #'undo-only)
+
+;; macOS風のRedo。
+(keymap-global-set "s-Z" #'undo-redo)
 #+end_src
 
 * ファイルフッター
