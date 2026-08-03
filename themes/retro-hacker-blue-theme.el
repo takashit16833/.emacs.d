@@ -193,6 +193,8 @@
    `(font-lock-function-call-face ((,class (:foreground ,sky))))
    `(font-lock-type-face
      ((,class (:foreground ,fg-pale :weight bold))))
+   `(haskell-constructor-face
+     ((,class (:foreground ,gold :weight bold))))
    `(font-lock-variable-name-face ((,class (:foreground ,fg-light))))
    `(font-lock-variable-use-face ((,class (:foreground ,fg-pale))))
    `(font-lock-property-name-face ((,class (:foreground ,fg-pale))))
