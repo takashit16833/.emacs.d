@@ -1002,34 +1002,35 @@ Emacs標準のXref操作を優先します。
 | =M-?= | カーソル位置の識別子の参照箇所を表示 |
 
 #+begin_src emacs-lisp
-(use-package haskell-mode
-  :ensure t
+  (use-package haskell-mode
+    :ensure t
 
-  :mode
-  (("\\.hs\\'" . haskell-mode)
-   ("\\.lhs\\'" . literate-haskell-mode)
-   ("\\.cabal\\'" . haskell-cabal-mode))
+    :mode
+    (("\\.hs\\'" . haskell-mode)
+     ("\\.lhs\\'" . literate-haskell-mode)
+     ("\\.cabal\\'" . haskell-cabal-mode))
 
-  :config
-  ;; Haskell ModeとInteractive Haskell Modeの独自ジャンプを、
-  ;; Eglotと連携するEmacs標準Xrefへ統一する。
-  (keymap-set
-   haskell-mode-map
-   "M-."
-   #'xref-find-definitions)
-  (keymap-set
-   haskell-mode-map
-   "M-?"
-   #'xref-find-references)
-  (keymap-set
-   interactive-haskell-mode-map
-   "M-."
-   #'xref-find-definitions)
-  (keymap-set
-   interactive-haskell-mode-map
-   "M-?"
-   #'xref-find-references))
-#+end_src
+    :config
+    ;; Haskell ModeとInteractive Haskell Modeの独自ジャンプを、
+    ;; Eglotと連携するEmacs標準Xrefへ統一する。
+    (with-eval-after-load 'haskell
+      (keymap-set
+       haskell-mode-map
+       "M-."
+       #'xref-find-definitions)
+      (keymap-set
+       haskell-mode-map
+       "M-?"
+       #'xref-find-references)
+      (keymap-set
+       interactive-haskell-mode-map
+       "M-."
+       #'xref-find-definitions)
+      (keymap-set
+       interactive-haskell-mode-map
+       "M-?"
+       #'xref-find-references)))
+    #+end_src
 
 *** Eglot
 
