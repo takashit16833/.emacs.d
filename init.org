@@ -808,16 +808,22 @@ Gitリポジトリ内に =cabal.project= がある場合は、
 - =Cmd+p=: 現在のプロジェクト内のファイルを開く
 
 #+begin_src emacs-lisp
-(use-package project
-  :ensure nil
+  (use-package project
+    :ensure nil
 
-  :bind
-  (("s-p" . project-find-file))
+    :bind
+    (("s-p" . project-find-file))
 
-  :config
-  (add-to-list
-   'project-vc-extra-root-markers
-   "cabal.project"))
+    :custom
+    ;; Gitバックエンドを持たない分割プロジェクトでも、
+    ;; Haskellのビルド生成物を候補から除外する。
+    (project-vc-ignores
+     '("dist-newstyle/"))
+
+    :config
+    (add-to-list
+     'project-vc-extra-root-markers
+     "cabal.project"))
 #+end_src
 
 *** TRAMP
