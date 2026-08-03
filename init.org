@@ -4,12 +4,12 @@
 
 * このファイルについて
 
-このファイルがEmacs設定の原本です。
+このファイルは、Emacs設定の原本となるLiterate Configurationです。
 
 - 編集するファイル: =init.org=
 - 自動生成されるファイル: =init.el=
 - =init.el= は直接編集しない
-- 設定はOrgの見出し単位で整理する
+- 設定は役割ごとの見出しに追加する
 
 初回のみ、次のコマンドで =init.el= を生成します。
 
@@ -19,10 +19,31 @@ M-x org-babel-tangle
 
 以降は、このファイルを保存すると自動的に =init.el= を生成します。
 
-* ファイルヘッダー
+** 設定を追加するときの目安
+
+新しい設定は、対象の役割に最も近い見出しへ追加します。
+
+| 追加する設定 | 追加先 |
+|--------------+--------|
+| Emacs標準の基本動作 | [[*Emacs本体の基本設定][Emacs本体の基本設定]] |
+| macOS固有の設定 | [[*macOSとの連携][macOSとの連携]] |
+| 履歴・復元・自動更新 | [[*状態の保存とファイル同期][状態の保存とファイル同期]] |
+| ウィンドウ・バッファ移動 | [[*ウィンドウとバッファの移動][ウィンドウとバッファの移動]] |
+| Org mode関連 | [[*Org mode][Org mode]] |
+| ミニバッファ補完 | [[*ミニバッファ補完][ミニバッファ補完]] |
+| ターミナル・Gitなど | [[*開発ツール][開発ツール]] |
+| テーマ・表示 | [[*外観][外観]] |
+| 編集コマンド・キー割り当て | [[*編集操作とキーバインド][編集操作とキーバインド]] |
+
+パッケージを追加するときは、原則として1パッケージにつき1つの小見出しと
+1つの =use-package= ブロックを作成します。
+* 起動と設定基盤
+
+Emacsの起動時に必要となる、生成ファイルの形式とパッケージ設定の基盤です。
+
+** 生成されるinit.elのヘッダー
 
 生成される =init.el= の先頭部分です。
-
 #+begin_src emacs-lisp
 ;;; init.el --- Generated from init.org -*- lexical-binding: t; -*-
 
@@ -32,11 +53,10 @@ M-x org-babel-tangle
 
 ;;; Code:
 #+end_src
-
-* use-package
+** パッケージ管理とuse-package
 
 Emacs 29以降では =use-package= が標準搭載されています。
-
+MELPAをパッケージ取得先へ追加し、=use-package= の自動インストール機能を有効にします。
 #+begin_src emacs-lisp
 (require 'package)
 
@@ -48,8 +68,7 @@ Emacs 29以降では =use-package= が標準搭載されています。
 (require 'use-package)
 (require 'use-package-ensure)
 #+end_src
-
-** use-packageの基本形
+*** use-packageの追加テンプレート
 
 今後、パッケージの設定は基本的に次の形で追加します。
 
@@ -69,13 +88,12 @@ Emacs 29以降では =use-package= が標準搭載されています。
   )
 #+end_example
 
-* Emacs本体
+** Emacs本体の基本設定
 
-Emacsそのものに関する設定です。
+Emacs標準の基本動作、ファイル保護、表示、編集支援をまとめて設定します。
 
 =emacs= というパッケージを読み込むわけではなく、
 Emacs本体の設定を =use-package= 形式で整理するために使用しています。
-
 #+begin_src emacs-lisp
   (use-package emacs
     :ensure nil
@@ -144,14 +162,14 @@ Emacs本体の設定を =use-package= 形式で整理するために使用して
     (when (fboundp 'scroll-bar-mode)
       (scroll-bar-mode -1)))
 #+end_src
+* macOSとの連携
 
-* macOS
+macOS版Emacs固有の修飾キーと、GUI起動時のシェル環境を設定します。
 
 ** 修飾キー
 
 OptionキーをEmacsのMetaキーとして使用します。
 CommandキーはSuperキーとして使用し、macOS風のショートカットへ割り当てます。
-
 #+begin_src emacs-lisp
 (when (eq window-system 'mac)
   ;; OptionをMetaとして使う。
@@ -160,11 +178,9 @@ CommandキーはSuperキーとして使用し、macOS風のショートカット
   ;; Commandを独立したSuper修飾キーとして使う。
   (setq mac-command-modifier 'super))
 #+end_src
-
 ** シェル環境の読み込み
 
 GUI版Emacsから、ターミナルと同じPATHを利用できるようにします。
-
 #+begin_src emacs-lisp
 (use-package exec-path-from-shell
   :ensure t
@@ -173,13 +189,15 @@ GUI版Emacsから、ターミナルと同じPATHを利用できるようにし�
   :init
   (exec-path-from-shell-initialize))
 #+end_src
+* 状態の保存とファイル同期
 
-* 履歴
+Emacsを終了・再起動しても引き継ぎたい状態と、外部で変更されたファイルの同期を設定します。
 
-** ミニバッファの履歴
+** セッションをまたいで保存する状態
+
+*** ミニバッファの履歴
 
 検索履歴や実行したコマンドなどを、Emacs終了後も保存します。
-
 #+begin_src emacs-lisp
 (use-package savehist
   :ensure nil
@@ -190,9 +208,9 @@ GUI版Emacsから、ターミナルと同じPATHを利用できるようにし�
   :init
   (savehist-mode 1))
 #+end_src
+*** 最近開いたファイル
 
-** 最近開いたファイル
-
+最近開いたファイルの一覧を保存します。
 #+begin_src emacs-lisp
 (use-package recentf
   :ensure nil
@@ -203,11 +221,9 @@ GUI版Emacsから、ターミナルと同じPATHを利用できるようにし�
   :init
   (recentf-mode 1))
 #+end_src
-
-** カーソル位置
+*** カーソル位置
 
 ファイルを開き直したとき、前回のカーソル位置へ戻ります。
-
 #+begin_src emacs-lisp
 (use-package saveplace
   :ensure nil
@@ -215,12 +231,10 @@ GUI版Emacsから、ターミナルと同じPATHを利用できるようにし�
   :init
   (save-place-mode 1))
 #+end_src
-
-* ファイルの自動更新
+** 外部変更の自動反映
 
 外部プログラムやGitなどによってファイルが変更されたとき、
 Emacs上のバッファも自動的に更新します。
-
 #+begin_src emacs-lisp
 (use-package autorevert
   :ensure nil
@@ -231,10 +245,11 @@ Emacs上のバッファも自動的に更新します。
   :init
   (global-auto-revert-mode 1))
 #+end_src
+* ウィンドウとバッファの移動
 
-* タブ
+作業画面全体と、各ウィンドウ内のバッファをタブとして切り替える設定です。
 
-** Tab Bar
+** Tab Bar：作業画面全体の切り替え
 
 画面分割を含む作業画面全体を、タブとして切り替えます。
 
@@ -244,7 +259,6 @@ Emacs上のバッファも自動的に更新します。
 | =C-PageUp= | 左隣のTab Barへ移動 |
 
 どちらも端まで移動すると、反対側へ戻って循環します。
-
 #+begin_src emacs-lisp
 (use-package tab-bar
   :ensure nil
@@ -261,8 +275,7 @@ Emacs上のバッファも自動的に更新します。
   ;; 左端では右端へ戻り、循環する。
   (keymap-global-set "C-<prior>" #'tab-previous))
 #+end_src
-
-** Tab Line
+** Tab Line：ウィンドウ内のバッファ切り替え
 
 各ウィンドウで表示したバッファを、タブとして切り替えます。
 
@@ -277,7 +290,6 @@ Emacs上のバッファも自動的に更新します。
 
 Tab Lineのバッファ名は並び順を維持し、
 新しく表示したバッファだけを右端へ追加します。
-
 #+begin_src emacs-lisp
 (use-package tab-line
   :ensure nil
@@ -367,16 +379,20 @@ Tab Lineのバッファ名は並び順を維持し、
    "M-s-<right>"
    #'tab-line-switch-to-next-tab))
 #+end_src
-
 * Org mode
 
-** RAGScope Orgコックピットのファイル
+Org mode本体、Capture、Agenda、表示補助をまとめます。
+
+** 管理対象ファイル
+
+Org関連の設定やコマンドから参照するファイルパスを定義します。
+
+*** RAGScope作業管理ファイル
 
 RAGScopeの個人作業状態を管理するOrgファイルの場所を定義します。
 
 - =inbox.org=: 未整理の気づきや疑問
 - =cockpit.org=: 状態を持つ作業項目
-
 #+begin_src emacs-lisp
 (defconst my/ragscope-org-directory
   (expand-file-name "~/org/ragscope/")
@@ -390,8 +406,7 @@ RAGScopeの個人作業状態を管理するOrgファイルの場所を定義し
   (expand-file-name "cockpit.org" my/ragscope-org-directory)
   "状態を持つ作業項目を保存するOrgファイル。")
 #+end_src
-
-** init.orgの操作
+*** Emacs設定ファイル
 
 =init.org= を開くコマンド、=init.el= を生成するコマンド、
 生成した設定を再読み込みするコマンドを定義します。
@@ -399,7 +414,6 @@ RAGScopeの個人作業状態を管理するOrgファイルの場所を定義し
 - =C-c e i=: init.orgを開く
 - =C-c e t=: init.orgからinit.elを生成する
 - =C-c e r=: init.elを再読み込みする
-
 #+begin_src emacs-lisp
 (defconst my/init-org-file
   (expand-file-name "init.org" user-emacs-directory)
@@ -437,9 +451,9 @@ RAGScopeの個人作業状態を管理するOrgファイルの場所を定義し
     (user-error
      "init.elが存在しません。先にC-c e tで生成してください")))
 #+end_src
+** Org mode本体の設定
 
-** Org modeの設定
-
+Orgファイルの初期表示、TODO状態、Agenda対象ファイルを設定します。
 #+begin_src emacs-lisp
 (use-package org
   :ensure nil
@@ -489,24 +503,23 @@ RAGScopeの個人作業状態を管理するOrgファイルの場所を定義し
         (list my/ragscope-inbox-file
               my/ragscope-cockpit-file)))
 #+end_src
+** 作業項目の登録
 
-** RAGScope Org Capture
+*** RAGScope Org Capture
 
 未整理の気づきは =inbox.org= へ追加します。
-
 作業状態として管理する項目は =cockpit.org= へ追加します。
 
 =C-c c= でCaptureメニューを開きます。
 
 | 操作 | 追加先 | 初期状態 |
-|---|---|---|
+|------+--------+----------|
 | =i= | =inbox.org= | =TODO= |
 | =c t= | =cockpit.org= | =TODO= |
 | =c n= | =cockpit.org= | =NEXT= |
 | =c d= | =cockpit.org= | =DOING= |
 | =c h= | =cockpit.org= | =HOLD= |
 | =c w= | =cockpit.org= | =WAIT= |
-
 #+begin_src emacs-lisp
 (use-package org-capture
   :ensure nil
@@ -548,22 +561,21 @@ RAGScopeの個人作業状態を管理するOrgファイルの場所を定義し
            (file+headline ,my/ragscope-cockpit-file "Work Items")
            "* WAIT %?\n- 待っているもの: \n- 解除条件: \n- 次に確認する時点: \n- 解除後の一手: \n%a"))))
 #+end_src
+** 作業状態の一覧表示
 
-** RAGScope Cockpit Agenda
+*** RAGScope Cockpit Agenda
 
 =C-c a r= で、RAGScopeコックピットの状態を一覧表示します。
-
 表示上の分類はTODO状態から自動生成します。
 
 | 表示 | 対象状態 |
-|---|---|
+|------+----------|
 | Active | =DOING= |
 | Next | =NEXT= |
 | Suspended | =HOLD= |
 | Waiting | =WAIT= |
 | Planned | =TODO=のCockpit項目 |
 | Inbox | =TODO=のInbox項目 |
-
 #+begin_src emacs-lisp
 (use-package org-agenda
   :ensure nil
@@ -609,8 +621,11 @@ RAGScopeの個人作業状態を管理するOrgファイルの場所を定義し
                    (org-agenda-files
                     '(,my/ragscope-inbox-file)))))))))
 #+end_src
+** Org modeの表示
 
-** Org Modern
+Orgファイルの見出しやテーブルを読みやすく表示するための設定です。
+
+*** Org Modern
 
 Org modeの見た目を整えます。
 
@@ -626,13 +641,27 @@ org-modernによるテーブル装飾は無効にします。
   (org-mode . org-modern-mode)
 
   :custom
-  (org-modern-table nil))
+  ;; テーブルの表示はvalignへ任せる。
+  (org-modern-table nil)
+
+  ;; 見出しの先頭に折りたたみ状態を示す記号を表示する。
+  (org-modern-star 'fold)
+
+  ;; 折りたたみ中は「▸」、展開中は「▾」。
+  ;; 1組だけ指定すると、すべての見出しレベルで共通して使用される。
+  (org-modern-fold-stars
+   '(("▸" . "▾")))
+
+  :config
+  ;; Org Modernの記号にはNerd Fontを明示的に使用する。
+  (set-face-attribute
+   'org-modern-symbol nil
+   :family "SauceCodePro Nerd Font Mono"))
 #+end_src
 
-** Valign
+*** Valign
 
 日本語を含むOrgテーブルを視覚的に整列します。
-
 #+begin_src emacs-lisp
 (use-package valign
   :ensure t
@@ -641,13 +670,13 @@ org-modernによるテーブル装飾は無効にします。
   :hook
   (org-mode . valign-mode))
 #+end_src
+* ミニバッファ補完
 
-* 補完
+ミニバッファの候補表示、補足情報、絞り込み方法を設定します。
 
-** Vertico
+** Vertico：候補の縦表示
 
 Verticoは、ミニバッファの補完候補を縦方向に表示します。
-
 #+begin_src emacs-lisp
 (use-package vertico
   :ensure t
@@ -655,11 +684,9 @@ Verticoは、ミニバッファの補完候補を縦方向に表示します。
   :init
   (vertico-mode 1))
 #+end_src
-
-** Marginalia
+** Marginalia：候補の補足情報
 
 ミニバッファの補完候補に説明を表示します。
-
 #+begin_src emacs-lisp
 (use-package marginalia
   :ensure t
@@ -667,12 +694,10 @@ Verticoは、ミニバッファの補完候補を縦方向に表示します。
   :init
   (marginalia-mode 1))
 #+end_src
-
-** Orderless
+** Orderless：柔軟な絞り込み
 
 スペースで区切った複数の文字列を使って、
 補完候補を柔軟に絞り込みます。
-
 #+begin_src emacs-lisp
 (use-package orderless
   :ensure t
@@ -684,9 +709,15 @@ Verticoは、ミニバッファの補完候補を縦方向に表示します。
   (completion-category-overrides
    '((file (styles partial-completion)))))
 #+end_src
+* 開発ツール
 
-* vterm
+ターミナルやバージョン管理など、開発作業で利用するパッケージをまとめます。
 
+** ターミナル
+
+*** Vterm
+
+Emacs内で高速なターミナルを利用します。
 #+begin_src emacs-lisp
 (use-package vterm
   :ensure t
@@ -706,9 +737,9 @@ Verticoは、ミニバッファの補完候補を縦方向に表示します。
   ;; C-yをEmacsで処理せず、ターミナル側へ送る。
   (keymap-set vterm-mode-map "C-y" #'vterm--self-insert))
 #+end_src
+*** Vterm Toggle
 
-** Vterm Toggle
-
+Cmd+jでプロジェクト単位のvtermを全画面表示・非表示にします。
 #+begin_src emacs-lisp
 (use-package vterm-toggle
   :ensure t
@@ -735,12 +766,11 @@ Verticoは、ミニバッファの補完候補を縦方向に表示します。
   (vterm-toggle-project-root t))
 #+end_src
 
-* Git
+** バージョン管理
 
-** Magit
+*** Magit
 
 Emacs上でGitを操作します。
-
 #+begin_src emacs-lisp
 (use-package magit
   :ensure t
@@ -749,12 +779,64 @@ Emacs上でGitを操作します。
   ("C-x g" . magit-status))
 #+end_src
 
-* テーマ
+*** Diff HL：変更行の表示
 
-** Retro Hacker Blue
+Gitで追加・変更・削除された行を、ウィンドウ左端のフリンジへ表示します。
+保存前の変更も少し待つと自動的に反映されます。
+
+| 表示 | 意味 |
+|------+------|
+| 緑 | 追加された行 |
+| 黄 | 変更された行 |
+| 赤 | 削除された行 |
+
+#+begin_src emacs-lisp
+(use-package diff-hl
+  :ensure t
+
+  :init
+  ;; Gitなどのバージョン管理下にあるファイルで自動的に有効化する。
+  (global-diff-hl-mode 1)
+
+  :config
+  ;; 保存を待たず、編集中の差分も自動的に更新する。
+  (diff-hl-flydiff-mode 1)
+
+  ;; Magitでステージ・コミットなどを行った後に表示を更新する。
+  (with-eval-after-load 'magit
+    (add-hook 'magit-post-refresh-hook
+              #'diff-hl-magit-post-refresh)))
+#+end_src
+
+* 外観
+
+Emacs全体のフォント、テーマ、配色に関する設定をまとめます。
+
+** フォント
+
+GUI版Emacsで使用する等幅フォントを設定します。
+
+#+begin_src emacs-lisp
+(defun my/apply-default-font (&optional frame)
+  "FRAMEで標準フォントを設定する。"
+  (with-selected-frame (or frame (selected-frame))
+    (when (display-graphic-p)
+      (set-face-attribute
+       'default
+       (selected-frame)
+       :family "SauceCodePro Nerd Font Mono"
+       :height 140))))
+
+;; 現在のフレームへ適用する。
+(my/apply-default-font)
+
+;; Emacsデーモンなどで後から作られたフレームにも適用する。
+(add-hook 'after-make-frame-functions #'my/apply-default-font)
+#+end_src
+
+** Retro Hacker Blueテーマ
 
 VS CodeのRetro Hacker Blueを元にしたカラーテーマを使用します。
-
 #+begin_src emacs-lisp
 (add-to-list
  'custom-theme-load-path
@@ -765,13 +847,17 @@ VS CodeのRetro Hacker Blueを元にしたカラーテーマを使用します�
 
 (load-theme 'retro-hacker-blue t)
 #+end_src
+* 編集操作とキーバインド
 
-* 行操作
+独自の編集コマンドと、Emacs全体で使用するキー割り当てをまとめます。
+
+** 独自の編集コマンド
+
+*** 現在行の削除
 
 VS Codeに近い行単位の操作を追加します。
 
 - =Cmd+Shift+k=: カーソル行を削除する
-
 #+begin_src emacs-lisp
 (defun my/delete-current-line ()
   "カーソルのある行を、Kill Ringへ入れずに削除する。"
@@ -782,9 +868,11 @@ VS Codeに近い行単位の操作を追加します。
 
 (keymap-global-set "s-K" #'my/delete-current-line)
 #+end_src
+** グローバルキーバインド
 
-* キーバインド
+*** Emacs設定・Orgコマンド
 
+Emacs設定操作、Org Capture、Org Agendaの入口となるキーを設定します。
 #+begin_src emacs-lisp
 ;; C-c eをEmacs設定操作用のプレフィックスキーにする。
 (defvar-keymap my/emacs-config-map
@@ -801,9 +889,9 @@ VS Codeに近い行単位の操作を追加します。
 ;; Org Agendaを開く。
 (keymap-global-set "C-c a" #'org-agenda)
 #+end_src
+*** macOS風の基本操作
 
-** macOS風のキーバインド
-
+保存、選択、クリップボード、Undo、カーソル移動をmacOS風のキーへ割り当てます。
 #+begin_src emacs-lisp
 ;; macOS風の保存。
 (keymap-global-set "s-s" #'save-buffer)
@@ -841,8 +929,9 @@ VS Codeに近い行単位の操作を追加します。
 ;; Cmd+↓：バッファの末尾へ移動する。
 (keymap-global-set "s-<down>" #'end-of-buffer)
 #+end_src
-* ファイルフッター
+* 生成ファイルのフッター
 
+生成される =init.el= の末尾部分です。
 #+begin_src emacs-lisp
 ;;; init.el ends here
 #+end_src
