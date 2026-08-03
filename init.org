@@ -990,9 +990,40 @@ Gitで追加・変更・削除された行を、ウィンドウ左端のフリ�
 Haskellの編集、HLSとの接続、保存時整形、シンボル検索を設定します。
 設定はHaskell全般を対象とし、特定のリポジトリ名やディレクトリには依存しません。
 
+*** Haskell TS Mode
+
+通常のHaskellソース（=.hs=）では、Tree-sitterを利用した
+=haskell-ts-mode= を既定のメジャーモードとして使用します。
+
+構文ハイライトは最高レベルを使用します。
+インデント機能は安定性を優先して無効にし、保存時のFourmolu整形へ任せます。
+
+#+begin_src emacs-lisp
+(use-package haskell-ts-mode
+  :ensure t
+
+  :mode
+  (("\\.hs\\'" . haskell-ts-mode))
+
+  :custom
+  ;; Tree-sitterによる構文ハイライトを最高レベルで使用する。
+  (haskell-ts-font-lock-level 4)
+
+  ;; haskell-ts-modeのインデントは使用せず、Fourmoluへ任せる。
+  (haskell-ts-use-indent nil)
+
+  :config
+  ;; MacホストへインストールするHaskell grammarの取得元。
+  (add-to-list
+   'treesit-language-source-alist
+   '(haskell
+     "https://github.com/tree-sitter/tree-sitter-haskell"
+     "v0.23.1")))
+#+end_src
+
 *** Haskell Mode
 
-HaskellソースとCabalファイルのメジャーモードを提供します。
+Literate HaskellソースとCabalファイルのメジャーモードを提供します。
 EglotのXrefバックエンドを使用するため、Haskell Mode独自の定義ジャンプより
 Emacs標準のXref操作を優先します。
 
@@ -1006,8 +1037,7 @@ Emacs標準のXref操作を優先します。
     :ensure t
 
     :mode
-    (("\\.hs\\'" . haskell-mode)
-     ("\\.lhs\\'" . literate-haskell-mode)
+    (("\\.lhs\\'" . literate-haskell-mode)
      ("\\.cabal\\'" . haskell-cabal-mode))
 
     :config
@@ -1064,10 +1094,11 @@ Emacs標準のLSPクライアントからHaskell Language Serverへ接続しま�
 
 (use-package eglot
   :ensure nil
-  :after haskell-mode
+  :after (haskell-mode haskell-ts-mode)
 
   :hook
-  (haskell-mode . my/haskell-eglot-setup)
+  ((haskell-mode . my/haskell-eglot-setup)
+   (haskell-ts-mode . my/haskell-eglot-setup))
 
   :custom
   ;; 最後の管理対象バッファを閉じたとき、HLSも終了する。
@@ -1084,7 +1115,7 @@ Emacs標準のLSPクライアントからHaskell Language Serverへ接続しま�
   ;; どちらでも同じ設定を使用できる。
   (add-to-list
    'eglot-server-programs
-   '((haskell-mode literate-haskell-mode)
+   '((haskell-mode literate-haskell-mode haskell-ts-mode)
      . ("haskell-language-server-wrapper" "--lsp")))
 
   ;; Haskellプロジェクト全体で使用するformatterの既定値。
