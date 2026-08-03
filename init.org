@@ -23,17 +23,17 @@ M-x org-babel-tangle
 
 新しい設定は、対象の役割に最も近い見出しへ追加します。
 
-| 追加する設定 | 追加先 |
-|--------------+--------|
-| Emacs標準の基本動作 | [[*Emacs本体の基本設定][Emacs本体の基本設定]] |
-| macOS固有の設定 | [[*macOSとの連携][macOSとの連携]] |
-| 履歴・復元・自動更新 | [[*状態の保存とファイル同期][状態の保存とファイル同期]] |
-| ウィンドウ・バッファ移動 | [[*ウィンドウとバッファの移動][ウィンドウとバッファの移動]] |
-| Org mode関連 | [[*Org mode][Org mode]] |
-| ミニバッファ補完 | [[*ミニバッファ補完][ミニバッファ補完]] |
-| ターミナル・Gitなど | [[*開発ツール][開発ツール]] |
-| テーマ・表示 | [[*外観][外観]] |
-| 編集コマンド・キー割り当て | [[*編集操作とキーバインド][編集操作とキーバインド]] |
+| 追加する設定               | 追加先                     |
+|----------------------------+----------------------------|
+| Emacs標準の基本動作        | [[*Emacs本体の基本設定][Emacs本体の基本設定]]        |
+| macOS固有の設定            | [[*macOSとの連携][macOSとの連携]]              |
+| 履歴・復元・自動更新       | [[*状態の保存とファイル同期][状態の保存とファイル同期]]   |
+| ウィンドウ・バッファ移動   | [[*ウィンドウとバッファの移動][ウィンドウとバッファの移動]] |
+| Org mode関連               | [[*Org mode][Org mode]]                   |
+| ミニバッファ補完           | [[*ミニバッファ補完][ミニバッファ補完]]           |
+| ターミナル・Gitなど        | [[*開発ツール][開発ツール]]                 |
+| テーマ・表示               | [[*外観][外観]]                       |
+| 編集コマンド・キー割り当て | [[*編集操作とキーバインド][編集操作とキーバインド]]     |
 
 パッケージを追加するときは、原則として1パッケージにつき1つの小見出しと
 1つの =use-package= ブロックを作成します。
@@ -281,8 +281,8 @@ Emacs上のバッファも自動的に更新します。
 
 =*scratch*= とvtermのバッファは、Tab Lineに表示しません。
 
-| キー | 操作 |
-|------+------|
+| キー          | 操作                |
+|--------------+--------------------|
 | =Cmd+Option+←= | 左隣のTab Lineへ移動 |
 | =Cmd+Option+→= | 右隣のTab Lineへ移動 |
 
@@ -291,93 +291,96 @@ Emacs上のバッファも自動的に更新します。
 Tab Lineのバッファ名は並び順を維持し、
 新しく表示したバッファだけを右端へ追加します。
 #+begin_src emacs-lisp
-(use-package tab-line
-  :ensure nil
+  (use-package tab-line
+    :ensure nil
 
-  :init
-  (require 'seq)
+    :init
+    (require 'seq)
 
-  ;; Tab Lineに表示しないバッファ名。
-  (defconst my/tab-line-excluded-buffer-names
-    '("*scratch*")
-    "Tab Lineに表示しないバッファ名の一覧。")
+    ;; Tab Lineに表示しないバッファ名。
+    (defconst my/tab-line-excluded-buffer-names
+      '("*scratch*")
+      "Tab Lineに表示しないバッファ名の一覧。")
 
-  (defun my/tab-line-buffer-visible-p (buffer)
-    "BUFFERをTab Lineに表示するとき、非nilを返す。"
-    (and
-     ;; 削除済みのバッファは表示しない。
-     (buffer-live-p buffer)
+    (defun my/tab-line-buffer-visible-p (buffer)
+      "BUFFERをTab Lineに表示するとき、非nilを返す。"
+      (and
+       ;; 削除済みのバッファは表示しない。
+       (buffer-live-p buffer)
 
-     ;; 指定した名前のバッファを表示しない。
-     (not (member (buffer-name buffer)
-                  my/tab-line-excluded-buffer-names))
+       ;; 指定した名前のバッファを表示しない。
+       (not (member (buffer-name buffer)
+                    my/tab-line-excluded-buffer-names))
 
-     ;; vterm-modeと、その派生モードのバッファを表示しない。
-     (not
-      (with-current-buffer buffer
-        (derived-mode-p 'vterm-mode)))))
+       ;; vterm-modeと、その派生モードのバッファを表示しない。
+       (not
+        (with-current-buffer buffer
+          (derived-mode-p 'vterm-mode)))))
 
-  (defun my/tab-line-tabs ()
-    "不要なバッファを除外し、固定順でTab Lineへ表示する。"
-    (let* (;; このウィンドウで保存している、前回までの並び順。
-           (old-buffers
-            (seq-filter
-             #'my/tab-line-buffer-visible-p
-             (window-parameter nil 'tab-line-buffers)))
+    (defun my/tab-line-tabs ()
+      "不要なバッファを除外し、固定順でTab Lineへ表示する。"
+      (let* (;; このウィンドウで保存している、前回までの並び順。
+             (old-buffers
+              (seq-filter
+               #'my/tab-line-buffer-visible-p
+               (window-parameter nil 'tab-line-buffers)))
 
-           ;; 現在、このウィンドウに関連付いているバッファ。
-           (current-buffers
-            (seq-filter
-             #'my/tab-line-buffer-visible-p
-             (tab-line-tabs-window-buffers)))
+             ;; 現在、このウィンドウに関連付いているバッファ。
+             (current-buffers
+              (seq-filter
+               #'my/tab-line-buffer-visible-p
+               (tab-line-tabs-window-buffers)))
 
-           ;; 以前からあるバッファは、保存済みの順番を維持する。
-           (kept-buffers
-            (seq-filter
-             (lambda (buffer)
-               (memq buffer current-buffers))
-             old-buffers))
+             ;; 以前からあるバッファは、保存済みの順番を維持する。
+             (kept-buffers
+              (seq-filter
+               (lambda (buffer)
+                 (memq buffer current-buffers))
+               old-buffers))
 
-           ;; 新しく表示されたバッファは、右端へ追加する。
-           (added-buffers
-            (seq-remove
-             (lambda (buffer)
-               (memq buffer kept-buffers))
-             current-buffers))
+             ;; 新しく表示されたバッファは、右端へ追加する。
+             (added-buffers
+              (seq-remove
+               (lambda (buffer)
+                 (memq buffer kept-buffers))
+               current-buffers))
 
-           (buffers
-            (append kept-buffers added-buffers)))
+             (buffers
+              (append kept-buffers added-buffers)))
 
-      ;; ウィンドウごとのTab Lineの並び順として保存する。
-      (set-window-parameter nil 'tab-line-buffers buffers)
+        ;; ウィンドウごとのTab Lineの並び順として保存する。
+        (set-window-parameter nil 'tab-line-buffers buffers)
 
-      buffers))
+        buffers))
 
-  ;; Tab Barを切り替えても、ウィンドウごとの並び順を保持する。
-  (add-to-list
-   'window-persistent-parameters
-   '(tab-line-buffers . t))
+    ;; Tab Barを切り替えても、ウィンドウごとの並び順を保持する。
+    (add-to-list
+     'window-persistent-parameters
+     '(tab-line-buffers . t))
 
-  :custom
-  ;; Tab Lineへ表示するバッファを独自に絞り込む。
-  (tab-line-tabs-function #'my/tab-line-tabs)
+    :custom
+    ;; Tab Lineへ表示するバッファを独自に絞り込む。
+    (tab-line-tabs-function #'my/tab-line-tabs)
 
-  ;; 右端・左端へ到達したら、反対側へ戻って循環する。
-  (tab-line-switch-cycling t)
+    ;; 右端・左端へ到達したら、反対側へ戻って循環する。
+    (tab-line-switch-cycling t)
 
-  :config
-  ;; すべてのウィンドウでTab Lineを有効にする。
-  (global-tab-line-mode 1)
+    ;; 各タブの閉じるボタンを表示しない。
+    (tab-line-close-button-show nil)
 
-  ;; Cmd+Option+←：左隣のTab Lineへ移動する。
-  (keymap-global-set
-   "M-s-<left>"
-   #'tab-line-switch-to-prev-tab)
+    :config
+    ;; すべてのウィンドウでTab Lineを有効にする。
+    (global-tab-line-mode 1)
 
-  ;; Cmd+Option+→：右隣のTab Lineへ移動する。
-  (keymap-global-set
-   "M-s-<right>"
-   #'tab-line-switch-to-next-tab))
+    ;; Cmd+Option+←：左隣のTab Lineへ移動する。
+    (keymap-global-set
+     "M-s-<left>"
+     #'tab-line-switch-to-prev-tab)
+
+    ;; Cmd+Option+→：右隣のTab Lineへ移動する。
+    (keymap-global-set
+     "M-s-<right>"
+     #'tab-line-switch-to-next-tab))
 #+end_src
 * Org mode
 
@@ -675,7 +678,7 @@ org-modernによるテーブル装飾は無効にします。
     (org-mode . org-modern-mode)
 
     :custom
-    (org-modern-table t)
+    (org-modern-table nil)
 
     ;; 見出しの先頭に折りたたみ状態を示す記号を表示する。
     (org-modern-star 'fold)
@@ -878,7 +881,8 @@ GUI版Emacsで使用する等幅フォントを設定します。
         (set-face-attribute
          'default
          (selected-frame)
-         :family "SauceCodePro Nerd Font Mono"
+;         :family "SauceCodePro Nerd Font Mono"
+         :family "UDEV Gothic NF"
          :height 140))))
 
   (defun my/apply-org-font ()
@@ -899,7 +903,7 @@ GUI版Emacsで使用する等幅フォントを設定します。
      :family "UDEV Gothic NF"))
 
   ;; 標準行高の25%を行間として追加する。
-  (setq-default line-spacing 0.15)
+  (setq-default line-spacing 0.25)
 
   ;; 現在のフレームへ通常フォントを適用する。
   (my/apply-default-font)
