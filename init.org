@@ -667,43 +667,34 @@ Org modeの見た目を整えます。
 org-modernによるテーブル装飾は無効にします。
 
 #+begin_src emacs-lisp
-(use-package org-modern
-  :ensure t
-  :after org
+  (use-package org-modern
+    :ensure t
+    :after org
 
-  :hook
-  (org-mode . org-modern-mode)
+    :hook
+    (org-mode . org-modern-mode)
 
-  :custom
-  ;; テーブルの表示はvalignへ任せる。
-  (org-modern-table nil)
+    :custom
+    (org-modern-table t)
 
-  ;; 見出しの先頭に折りたたみ状態を示す記号を表示する。
-  (org-modern-star 'fold)
+    ;; 見出しの先頭に折りたたみ状態を示す記号を表示する。
+    (org-modern-star 'fold)
 
-  ;; 折りたたみ中は「▸」、展開中は「▾」。
-  ;; 1組だけ指定すると、すべての見出しレベルで共通して使用される。
-  (org-modern-fold-stars
-   '(("▸" . "▾")))
+    ;; 折りたたみ中は「▸」、展開中は「▾」。
+    ;; 1組だけ指定すると、すべての見出しレベルで共通して使用される。
+    (org-modern-fold-stars
+     '(("▸" . "▾")))
 
-  :config
-  ;; Org Modernの記号にはNerd Fontを明示的に使用する。
-  (set-face-attribute
-   'org-modern-symbol nil
-   :family "SauceCodePro Nerd Font Mono"))
+    ;; テーブルの縦線を1pxにする
+    (org-modern-table-vertical 1)
+  
+    :config
+    ;; Org Modernの記号にはNerd Fontを明示的に使用する。
+    (set-face-attribute
+     'org-modern-symbol nil
+     :family "SauceCodePro Nerd Font Mono"))
 #+end_src
 
-*** Valign
-
-日本語を含むOrgテーブルを視覚的に整列します。
-#+begin_src emacs-lisp
-(use-package valign
-  :ensure t
-  :after org
-
-  :hook
-  (org-mode . valign-mode))
-#+end_src
 * ミニバッファ補完
 
 ミニバッファの候補表示、補足情報、絞り込み方法を設定します。
@@ -880,21 +871,48 @@ Emacs全体のフォント、テーマ、配色に関する設定をまとめま
 GUI版Emacsで使用する等幅フォントを設定します。
 
 #+begin_src emacs-lisp
-(defun my/apply-default-font (&optional frame)
-  "FRAMEで標準フォントを設定する。"
-  (with-selected-frame (or frame (selected-frame))
-    (when (display-graphic-p)
-      (set-face-attribute
-       'default
-       (selected-frame)
-       :family "SauceCodePro Nerd Font Mono"
-       :height 140))))
+  (defun my/apply-default-font (&optional frame)
+    "FRAMEへ通常バッファ用の標準フォントを設定する。"
+    (with-selected-frame (or frame (selected-frame))
+      (when (display-graphic-p)
+        (set-face-attribute
+         'default
+         (selected-frame)
+         :family "SauceCodePro Nerd Font Mono"
+         :height 140))))
 
-;; 現在のフレームへ適用する。
-(my/apply-default-font)
+  (defun my/apply-org-font ()
+    "現在のOrgバッファへUDEV Gothic NFを適用する。"
+    ;; Org本文や通常テキスト。
+    (face-remap-add-relative
+     'default
+     :family "UDEV Gothic NF")
 
-;; Emacsデーモンなどで後から作られたフレームにも適用する。
-(add-hook 'after-make-frame-functions #'my/apply-default-font)
+    ;; Orgテーブル、コード、verbatimなどで使われることがある。
+    (face-remap-add-relative
+     'fixed-pitch
+     :family "UDEV Gothic NF")
+
+    ;; 見出しなどがvariable-pitchを継承していてもUDEVへ統一する。
+    (face-remap-add-relative
+     'variable-pitch
+     :family "UDEV Gothic NF"))
+
+  ;; 標準行高の25%を行間として追加する。
+  (setq-default line-spacing 0.15)
+
+  ;; 現在のフレームへ通常フォントを適用する。
+  (my/apply-default-font)
+
+  ;; 後から作られたフレームにも通常フォントを適用する。
+  (add-hook
+   'after-make-frame-functions
+   #'my/apply-default-font)
+
+  ;; OrgバッファだけUDEV Gothic NFへ変更する。
+  (add-hook
+   'org-mode-hook
+   #'my/apply-org-font)
 #+end_src
 
 ** Retro Hacker Blueテーマ
