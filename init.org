@@ -514,26 +514,6 @@ Orgファイルの初期表示、TODO状態、Agenda対象ファイルを設定�
   ;; =などを非表示にする
   (org-hide-emphasis-markers t)
 
-  ;; 個人の作業管理で使用する作業状態。
-  ;;
-  ;; TODO   : 作業候補
-  ;; NEXT   : 次に着手できる
-  ;; DOING  : 現在作業中
-  ;; HOLD   : 差し込みなどによる中断
-  ;; WAIT   : 外部条件や回答待ち
-  ;; DONE   : 完了
-  ;; DROP   : 対応しない
-  (org-todo-keywords
-   '((sequence
-      "TODO(t)"
-      "NEXT(n)"
-      "DOING(d)"
-      "HOLD(h)"
-      "WAIT(w)"
-      "|"
-      "DONE(x)"
-      "DROP(k)")))
-
   ;; DONEへ変更した日時を記録する。
   (org-log-done 'time)
 
@@ -552,14 +532,14 @@ Orgファイルの初期表示、TODO状態、Agenda対象ファイルを設定�
 
 =C-c c= でCaptureメニューを開きます。
 
-| 操作 | 追加先 | 初期状態 |
-|------+--------+----------|
-| =i= | =inbox.org= | =TODO= |
-| =c t= | =cockpit.org= | =TODO= |
-| =c n= | =cockpit.org= | =NEXT= |
-| =c d= | =cockpit.org= | =DOING= |
-| =c h= | =cockpit.org= | =HOLD= |
-| =c w= | =cockpit.org= | =WAIT= |
+| 操作 | 追加先      | 初期状態 |
+|------+-------------+----------|
+| =i=    | =inbox.org=   | =TODO=     |
+| =c t=  | =cockpit.org= | =TODO=     |
+| =c n=  | =cockpit.org= | =NEXT=     |
+| =c d=  | =cockpit.org= | =DOING=    |
+| =c h=  | =cockpit.org= | =HOLD=     |
+| =c w=  | =cockpit.org= | =WAIT=     |
 #+begin_src emacs-lisp
 (use-package org-capture
   :ensure nil
@@ -608,14 +588,14 @@ Orgファイルの初期表示、TODO状態、Agenda対象ファイルを設定�
 =C-c a c= で、Cockpitの作業状態を一覧表示します。
 表示上の分類はTODO状態から自動生成します。
 
-| 表示 | 対象状態 |
-|------+----------|
-| Active | =DOING= |
-| Next | =NEXT= |
-| Suspended | =HOLD= |
-| Waiting | =WAIT= |
-| Planned | =TODO=のCockpit項目 |
-| Inbox | =TODO=のInbox項目 |
+| 表示      | 対象状態            |
+|-----------+---------------------|
+| Active    | =DOING=               |
+| Next      | =NEXT=                |
+| Suspended | =HOLD=                |
+| Waiting   | =WAIT=                |
+| Planned   | =TODO=のCockpit項目 |
+| Inbox     | =TODO=のInbox項目   |
 #+begin_src emacs-lisp
 (use-package org-agenda
   :ensure nil
