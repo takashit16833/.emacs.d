@@ -793,6 +793,56 @@ Verticoは、ミニバッファの補完候補を縦方向に表示します。
 ターミナル、バージョン管理、コード補完、言語サーバーなど、
 開発作業で利用するパッケージをまとめます。
 
+** プロジェクトとリモート開発
+
+*** Project
+
+Emacs標準のプロジェクト管理機能を使用します。
+Gitリポジトリ内に =cabal.project= がある場合は、
+そのディレクトリを独立したプロジェクトルートとして認識します。
+
+- =Cmd+p=: 現在のプロジェクト内のファイルを開く
+
+#+begin_src emacs-lisp
+(use-package project
+  :ensure nil
+
+  :bind
+  (("s-p" . project-find-file))
+
+  :config
+  (add-to-list
+   'project-vc-extra-root-markers
+   "cabal.project"))
+#+end_src
+
+*** TRAMP
+
+TRAMP接続先の通常PATHに加えて、GHCupとユーザー単位の
+実行ファイル置き場をリモートプログラムの検索対象にします。
+特定のプロジェクト名、コンテナ名、接続先ユーザーには依存しません。
+
+#+begin_src emacs-lisp
+(use-package tramp
+  :ensure nil
+
+  :config
+  ;; 接続先ユーザー自身のPATHを取り込む。
+  (add-to-list
+   'tramp-remote-path
+   'tramp-own-remote-path)
+
+  ;; GHCupで導入したGHC、Cabal、HLSなど。
+  (add-to-list
+   'tramp-remote-path
+   "~/.ghcup/bin")
+
+  ;; cabal installなどでユーザー単位に導入したコマンド。
+  (add-to-list
+   'tramp-remote-path
+   "~/.local/bin"))
+#+end_src
+
 ** 共通の開発支援
 
 *** EditorConfig
@@ -943,6 +993,14 @@ Haskellの編集、HLSとの接続、保存時整形、シンボル検索を設�
 *** Haskell Mode
 
 HaskellソースとCabalファイルのメジャーモードを提供します。
+EglotのXrefバックエンドを使用するため、Haskell Mode独自の定義ジャンプより
+Emacs標準のXref操作を優先します。
+
+| キー | 操作 |
+|------+------|
+| =M-.= | カーソル位置の識別子の定義へ移動 |
+| =M-?= | カーソル位置の識別子の参照箇所を表示 |
+
 #+begin_src emacs-lisp
 (use-package haskell-mode
   :ensure t
@@ -950,7 +1008,27 @@ HaskellソースとCabalファイルのメジャーモードを提供します�
   :mode
   (("\\.hs\\'" . haskell-mode)
    ("\\.lhs\\'" . literate-haskell-mode)
-   ("\\.cabal\\'" . haskell-cabal-mode)))
+   ("\\.cabal\\'" . haskell-cabal-mode))
+
+  :config
+  ;; Haskell ModeとInteractive Haskell Modeの独自ジャンプを、
+  ;; Eglotと連携するEmacs標準Xrefへ統一する。
+  (keymap-set
+   haskell-mode-map
+   "M-."
+   #'xref-find-definitions)
+  (keymap-set
+   haskell-mode-map
+   "M-?"
+   #'xref-find-references)
+  (keymap-set
+   interactive-haskell-mode-map
+   "M-."
+   #'xref-find-definitions)
+  (keymap-set
+   interactive-haskell-mode-map
+   "M-?"
+   #'xref-find-references))
 #+end_src
 
 *** Eglot
