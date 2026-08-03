@@ -1283,6 +1283,18 @@ VS CodeのRetro Hacker Blueを元にしたカラーテーマを使用します�
 
 独自の編集コマンドと、Emacs全体で使用するキー割り当てをまとめます。
 
+** アンドゥ・リドゥ
+
+#+begin_src emacs-lisp
+  (use-package undo-fu
+    :ensure t
+
+    :bind
+    (("s-z" . undo-fu-only-undo)
+     ("s-Z" . undo-fu-only-redo)))
+#+end_src
+
+
 ** 独自の編集コマンド
 
 *** 現在の行を選択
@@ -1393,12 +1405,6 @@ Emacs設定操作、Org Capture、Org Agendaの入口となるキーを設定し
   ;; Tab Lineの最後のタブならウィンドウを閉じ、
   ;; それ以外なら現在のタブを閉じる。
   (keymap-global-set "s-w" #'my/close-tab-or-window)
-
-  ;; macOS風のUndo。
-  (keymap-global-set "s-z" #'undo-only)
-
-  ;; macOS風のRedo。
-  (keymap-global-set "s-Z" #'undo-redo)
 
   ;; Cmd+←：行頭へ移動する。
   (keymap-global-set "s-<left>" #'move-beginning-of-line)
