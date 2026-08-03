@@ -681,9 +681,20 @@ Verticoは、ミニバッファの補完候補を縦方向に表示します。
 (use-package vertico
   :ensure t
 
+  :custom
+  ;; 最大20件の候補を表示する。
+  (vertico-count 20)
+
+  ;; 候補数に応じて高さを伸縮する。
+  (vertico-resize t)
+
+  ;; ミニバッファの最大高さをフレームの30%にする。
+  (max-mini-window-height 0.30)
+
   :init
-  (vertico-mode 1))
+  (vertico-mode))
 #+end_src
+
 ** Marginalia：候補の補足情報
 
 ミニバッファの補完候補に説明を表示します。
@@ -708,6 +719,24 @@ Verticoは、ミニバッファの補完候補を縦方向に表示します。
   ;; ファイル名では、ディレクトリの部分入力を使いやすくする。
   (completion-category-overrides
    '((file (styles partial-completion)))))
+#+end_src
+
+** Consult
+
+ミニバッファを利用した検索・移動機能を強化します。
+
+- =C-c r=: 最近開いたファイルを開く
+- =C-b b=: バッファや最近のファイルなどをまとめて選択
+- =M-s l=: 現在のバッファ内を行単位で検索
+
+#+begin_src emacs-lisp
+(use-package consult
+  :ensure t
+
+  :bind
+  (("C-c r" . consult-recent-file)
+   ("C-c b" . consult-buffer)
+   ("M-s l" . consult-line)))
 #+end_src
 * 開発ツール
 
