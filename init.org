@@ -279,8 +279,6 @@ Emacs上のバッファも自動的に更新します。
 
 各ウィンドウで表示したバッファを、タブとして切り替えます。
 
-=*scratch*= とvtermのバッファは、Tab Lineに表示しません。
-
 | キー         | 操作                 |
 |--------------+----------------------|
 | =Cmd+Option+←= | 左隣のTab Lineへ移動 |
@@ -315,7 +313,9 @@ Tab Lineのバッファ名は並び順を維持し、
        ;; vterm-modeと、その派生モードのバッファを表示しない。
        (not
         (with-current-buffer buffer
-          (derived-mode-p 'vterm-mode)))))
+          (derived-mode-p
+           'dired-mode
+           'vterm-mode)))))
 
     (defun my/tab-line-tabs ()
       "不要なバッファを除外し、固定順でTab Lineへ表示する。"
@@ -372,7 +372,7 @@ Tab Lineのバッファ名は並び順を維持し、
          ;; Emacsではそのウィンドウを削除できないため、バッファを閉じる。
          (t
           (kill-current-buffer)))))
-    
+
     ;; Tab Barを切り替えても、ウィンドウごとの並び順を保持する。
     (add-to-list
      'window-persistent-parameters
