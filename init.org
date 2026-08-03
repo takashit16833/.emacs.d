@@ -554,7 +554,7 @@ Orgファイルの初期表示、TODO状態、Agenda対象ファイルを設定�
   :config
   (setq org-capture-templates
         `(
-          ;; 未整理の気づきをInboxへ追加する。
+          ;; 未整理の気づきはInboxへ追加する。
           ("i" "Inbox" entry
            (file+headline ,my/task-inbox-file "Inbox")
            "* TODO %?\n:PROPERTIES:\n:CAPTURED: %U\n:END:\n%a")
@@ -1094,7 +1094,7 @@ Emacs標準のLSPクライアントからHaskell Language Serverへ接続しま�
 
 (use-package eglot
   :ensure nil
-  :after (haskell-mode haskell-ts-mode)
+  :after (:any haskell-mode haskell-ts-mode)
 
   :hook
   ((haskell-mode . my/haskell-eglot-setup)
