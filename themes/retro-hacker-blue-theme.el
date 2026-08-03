@@ -178,11 +178,11 @@
 
    ;; Syntax highlighting
    `(font-lock-comment-face
-     ((,class (:foreground "#465082" :slant italic))))
+     ((,class (:foreground "#7F8DD4" :slant italic))))
    `(font-lock-comment-delimiter-face
-     ((,class (:foreground "#465082" :slant italic))))
+     ((,class (:foreground "#7F8DD4" :slant italic))))
    `(font-lock-doc-face
-     ((,class (:foreground "#3C5A77" :slant italic))))
+     ((,class (:foreground "#7083C9" :slant italic))))
    `(font-lock-string-face ((,class (:foreground ,string))))
    `(font-lock-keyword-face
      ((,class (:foreground ,fg-pale :weight bold))))
@@ -192,7 +192,7 @@
      ((,class (:foreground ,sky :weight bold))))
    `(font-lock-function-call-face ((,class (:foreground ,sky))))
    `(font-lock-type-face
-     ((,class (:foreground ,purple :weight bold))))
+     ((,class (:foreground ,fg-pale :weight bold))))
    `(font-lock-variable-name-face ((,class (:foreground ,fg-light))))
    `(font-lock-variable-use-face ((,class (:foreground ,fg-pale))))
    `(font-lock-property-name-face ((,class (:foreground ,fg-pale))))
