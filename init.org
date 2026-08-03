@@ -554,7 +554,7 @@ Orgファイルの初期表示、TODO状態、Agenda対象ファイルを設定�
   :config
   (setq org-capture-templates
         `(
-          ;; 未整理の気づきはInboxへ追加する。
+          ;; 未整理の気づきをInboxへ追加する。
           ("i" "Inbox" entry
            (file+headline ,my/task-inbox-file "Inbox")
            "* TODO %?\n:PROPERTIES:\n:CAPTURED: %U\n:END:\n%a")
@@ -745,7 +745,7 @@ Verticoは、ミニバッファの補完候補を縦方向に表示します。
 
 ** Marginalia：候補の補足情報
 
-ミニバッファの補完候補に説明を表示します。
+ミニバッファの候補に説明を表示します。
 #+begin_src emacs-lisp
 (use-package marginalia
   :ensure t
@@ -855,6 +855,52 @@ TRAMP接続先の通常PATHに加えて、GHCupとユーザー単位の
 
   :config
   (editorconfig-mode 1))
+#+end_src
+
+*** Rainbow Delimiters
+
+プログラム用バッファで、括弧・角括弧・波括弧を
+入れ子の深さに応じて色分けします。
+配色はRetro Hacker Blueテーマ側で定義します。
+
+#+begin_src emacs-lisp
+(use-package rainbow-delimiters
+  :ensure t
+
+  :hook
+  (prog-mode . rainbow-delimiters-mode))
+#+end_src
+
+*** Indent Bars
+
+プログラム用バッファで、空白によるインデント位置へ細い縦線を表示します。
+Tree-sitterのスコープ解析には依存せず、各メジャーモードとEditorConfigが決めた
+インデント幅をそのまま表示へ使用します。
+
+#+begin_src emacs-lisp
+(use-package indent-bars
+  :ensure t
+
+  :hook
+  (prog-mode . indent-bars-mode)
+
+  :custom
+  ;; Retro Hacker Blueの背景で主張しすぎない暗い青灰色。
+  (indent-bars-color '("#252632" :blend 1.0))
+
+  ;; すべての深さで同じ色を使う。
+  (indent-bars-color-by-depth nil)
+
+  ;; キャプチャのような細い実線を表示する。
+  (indent-bars-width-frac 0.10)
+  (indent-bars-pad-frac 0.10)
+  (indent-bars-pattern ".")
+
+  ;; 現在位置だけを強調せず、すべてのガイドを同じ濃さで表示する。
+  (indent-bars-highlight-current-depth nil)
+
+  ;; 空行にも前後のインデントを引き継いでガイドを表示する。
+  (indent-bars-display-on-blank-lines t))
 #+end_src
 
 *** Corfu：バッファ内補完
