@@ -251,7 +251,7 @@ Emacs上のバッファも自動的に更新します。
 
   :config
   ;; Emacs標準のTab Barを有効にする。
-  (tab-bar-mode 1)
+  (tab-bar-mode 0)
 
   ;; Ctrl+PageDown：右隣のTab Barへ移動する。
   ;; 右端では左端へ戻り、循環する。
