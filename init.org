@@ -621,6 +621,37 @@ Orgファイルの初期表示、TODO状態、Agenda対象ファイルを設定�
                    (org-agenda-files
                     '(,my/ragscope-inbox-file)))))))))
 #+end_src
+** 集中時間の管理
+
+*** Org Pomodoro
+
+Orgの作業項目に対してポモドーロタイマーを開始します。
+
+- =C-c p=: カーソル位置の作業項目でポモドーロを開始する
+- 作業時間: 25分
+- 短い休憩: 5分
+- 4回ごとの長い休憩: 15分
+
+Orgファイル以外で =C-c p= を実行した場合は、
+最近クロックインした作業項目から対象を選択できます。
+#+begin_src emacs-lisp
+(use-package org-pomodoro
+  :ensure t
+  :commands org-pomodoro
+
+  :custom
+  ;; 1回の集中時間を25分にする。
+  (org-pomodoro-length 25)
+
+  ;; 通常の休憩時間を5分にする。
+  (org-pomodoro-short-break-length 5)
+
+  ;; 長い休憩時間を15分にする。
+  (org-pomodoro-long-break-length 15)
+
+  ;; 4回のポモドーロごとに長い休憩を入れる。
+  (org-pomodoro-long-break-frequency 4))
+#+end_src
 ** Org modeの表示
 
 Orgファイルの見出しやテーブルを読みやすく表示するための設定です。
@@ -881,6 +912,27 @@ VS CodeのRetro Hacker Blueを元にしたカラーテーマを使用します�
 独自の編集コマンドと、Emacs全体で使用するキー割り当てをまとめます。
 
 ** 独自の編集コマンド
+
+*** 現在の行を選択
+#+begin_src emacs-lisp
+(defun my/select-current-line ()
+  "カーソル行全体を選択し、カーソルを次の行頭へ移動する。
+ 続けて実行すると、選択範囲を次の行まで広げる。"
+  (interactive)
+  (if (and (region-active-p)
+           (eq last-command 'my/select-current-line))
+      ;; 連続実行時は、選択範囲を次の行まで広げる。
+      (goto-char (line-beginning-position 2))
+
+    ;; 最初の実行では、現在行の先頭から次の行頭までを選択する。
+    (let ((start (line-beginning-position)))
+      (goto-char (line-beginning-position 2))
+      (set-mark start)
+      (activate-mark))))
+
+;; VS Code風にカーソル行を選択する。
+(keymap-global-set "s-l" #'my/select-current-line)
+#+end_src
 
 *** 現在行の削除
 
