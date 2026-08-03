@@ -42,6 +42,10 @@
        (red "#FF5A5A")
        (red-light "#FF8080")
        (pink "#FF4DE1")
+       ;; VS Codeの括弧色分けに合わせた3色。
+       (delimiter-yellow "#F9D949")
+       (delimiter-pink "#CC76D1")
+       (delimiter-blue "#4A9DF8")
 
        ;; VS Code alpha colors blended over #010111
        (selection "#264770")          ; #5EAFFF66
@@ -175,6 +179,30 @@
    `(show-paren-mismatch
      ((,class (:background ,red-subtle :foreground ,red :weight bold
                            :box (:line-width -1 :color ,red)))))
+
+   ;; Rainbow Delimiters
+   `(rainbow-delimiters-depth-1-face
+     ((,class (:foreground ,delimiter-yellow))))
+   `(rainbow-delimiters-depth-2-face
+     ((,class (:foreground ,delimiter-pink))))
+   `(rainbow-delimiters-depth-3-face
+     ((,class (:foreground ,delimiter-blue))))
+   `(rainbow-delimiters-depth-4-face
+     ((,class (:foreground ,delimiter-yellow))))
+   `(rainbow-delimiters-depth-5-face
+     ((,class (:foreground ,delimiter-pink))))
+   `(rainbow-delimiters-depth-6-face
+     ((,class (:foreground ,delimiter-blue))))
+   `(rainbow-delimiters-depth-7-face
+     ((,class (:foreground ,delimiter-yellow))))
+   `(rainbow-delimiters-depth-8-face
+     ((,class (:foreground ,delimiter-pink))))
+   `(rainbow-delimiters-depth-9-face
+     ((,class (:foreground ,delimiter-blue))))
+   `(rainbow-delimiters-unmatched-face
+     ((,class (:foreground ,red :weight bold))))
+   `(rainbow-delimiters-mismatched-face
+     ((,class (:foreground ,red :weight bold))))
 
    ;; Syntax highlighting
    `(font-lock-comment-face
