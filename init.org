@@ -248,6 +248,18 @@ Emacs上のバッファも自動的に更新します。
 * ウィンドウとバッファの移動
 
 作業画面全体と、各ウィンドウ内のバッファをタブとして切り替える設定です。
+** Window Move：次に実行したコマンドが表示するバッファの行き先を予約する
+
+#+begin_src emacs-lisp
+  (use-package windmove
+    :ensure nil
+
+    :bind
+    (("C-x <left>"  . windmove-display-left)
+     ("C-x <right>" . windmove-display-right)
+     ("C-x <up>"    . windmove-display-up)
+     ("C-x <down>"  . windmove-display-down)))
+#+end_src
 
 ** Tab Bar：作業画面全体の切り替え
 
@@ -275,6 +287,7 @@ Emacs上のバッファも自動的に更新します。
   ;; 左端では右端へ戻り、循環する。
   (keymap-global-set "C-<prior>" #'tab-previous))
 #+end_src
+
 ** Tab Line：ウィンドウ内のバッファ切り替え
 
 各ウィンドウで表示したバッファを、タブとして切り替えます。
