@@ -745,7 +745,7 @@ Verticoは、ミニバッファの補完候補を縦方向に表示します。
 
 ** Marginalia：候補の補足情報
 
-ミニバッファの候補に説明を表示します。
+ミニバッファの補完候補に説明を表示します。
 #+begin_src emacs-lisp
 (use-package marginalia
   :ensure t
