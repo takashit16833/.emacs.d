@@ -776,6 +776,7 @@ Verticoは、ミニバッファの補完候補を縦方向に表示します。
 - =C-c r=: 最近開いたファイルを開く
 - =C-b b=: バッファや最近のファイルなどをまとめて選択
 - =M-s l=: 現在のバッファ内を行単位で検索
+- =M-g f=: 現在のプロジェクトの診断一覧を表示
 
 #+begin_src emacs-lisp
 (use-package consult
@@ -784,11 +785,60 @@ Verticoは、ミニバッファの補完候補を縦方向に表示します。
   :bind
   (("C-c r" . consult-recent-file)
    ("C-c b" . consult-buffer)
-   ("M-s l" . consult-line)))
+   ("M-s l" . consult-line)
+   ("M-g f" . consult-flymake)))
 #+end_src
 * 開発ツール
 
-ターミナルやバージョン管理など、開発作業で利用するパッケージをまとめます。
+ターミナル、バージョン管理、コード補完、言語サーバーなど、
+開発作業で利用するパッケージをまとめます。
+
+** 共通の開発支援
+
+*** EditorConfig
+
+プロジェクトの =.editorconfig= を読み取り、インデント幅や改行コードなどを
+バッファへ反映します。特定のプロジェクト名やパスには依存しません。
+#+begin_src emacs-lisp
+(use-package editorconfig
+  :ensure t
+
+  :config
+  (editorconfig-mode 1))
+#+end_src
+
+*** Corfu：バッファ内補完
+
+Emacs標準の補完機構を利用して、コード編集中の候補をポップアップ表示します。
+Eglotなどが提供する補完候補も同じ画面で扱います。
+#+begin_src emacs-lisp
+(use-package corfu
+  :ensure t
+
+  :custom
+  ;; 候補の末尾と先頭を循環できるようにする。
+  (corfu-cycle t)
+
+  ;; 入力中に候補を自動表示する。
+  (corfu-auto t)
+
+  ;; TRAMPや言語サーバー利用時に過剰な問い合わせを避ける。
+  (corfu-auto-delay 0.25)
+  (corfu-auto-prefix 2)
+
+  ;; 候補を自動選択せず、明示的に選んだときだけ確定する。
+  (corfu-preselect 'prompt)
+
+  :init
+  (global-corfu-mode 1)
+
+  :config
+  ;; Enterによる誤確定を避け、候補確定にはTABを使用する。
+  (keymap-unset corfu-map "RET")
+
+  ;; 選択中の候補について、利用可能な説明を表示する。
+  (corfu-popupinfo-mode 1))
+#+end_src
 
 ** ターミナル
 
@@ -883,6 +933,103 @@ Gitで追加・変更・削除された行を、ウィンドウ左端のフリ�
   (with-eval-after-load 'magit
     (add-hook 'magit-post-refresh-hook
               #'diff-hl-magit-post-refresh)))
+#+end_src
+
+** Haskell開発
+
+Haskellの編集、HLSとの接続、保存時整形、シンボル検索を設定します。
+設定はHaskell全般を対象とし、特定のリポジトリ名やディレクトリには依存しません。
+
+*** Haskell Mode
+
+HaskellソースとCabalファイルのメジャーモードを提供します。
+#+begin_src emacs-lisp
+(use-package haskell-mode
+  :ensure t
+
+  :mode
+  (("\\.hs\\'" . haskell-mode)
+   ("\\.lhs\\'" . literate-haskell-mode)
+   ("\\.cabal\\'" . haskell-cabal-mode)))
+#+end_src
+
+*** Eglot
+
+Emacs標準のLSPクライアントからHaskell Language Serverへ接続します。
+ローカル環境でもTRAMP接続先でも、各環境のPATHにある
+=haskell-language-server-wrapper= を使用します。
+
+保存時の整形にはFourmolu、Cabalファイルの整形にはcabal-gildを指定します。
+これは特定プロジェクト専用ではなく、Haskell開発全体の既定値です。
+
+| キー | 操作 |
+|------+------|
+| =C-c l a= | Code Actionを表示 |
+| =C-c l r= | プロジェクト全体で識別子を変更 |
+| =C-c l f= | 現在のバッファを整形 |
+
+#+begin_src emacs-lisp
+(defun my/haskell-format-buffer-before-save ()
+  "Eglot管理中のHaskellバッファを保存前に整形する。"
+  (when (eglot-managed-p)
+    (eglot-format-buffer)))
+
+(defun my/haskell-eglot-setup ()
+  "HaskellバッファでEglotと保存時整形を有効にする。"
+  (eglot-ensure)
+  (add-hook
+   'before-save-hook
+   #'my/haskell-format-buffer-before-save
+   nil
+   t))
+
+(use-package eglot
+  :ensure nil
+  :after haskell-mode
+
+  :hook
+  (haskell-mode . my/haskell-eglot-setup)
+
+  :custom
+  ;; 最後の管理対象バッファを閉じたとき、HLSも終了する。
+  (eglot-autoshutdown t)
+
+  :bind
+  (:map eglot-mode-map
+        ("C-c l a" . eglot-code-actions)
+        ("C-c l r" . eglot-rename)
+        ("C-c l f" . eglot-format-buffer))
+
+  :config
+  ;; HLSをPATHから解決するため、ローカル環境とTRAMP接続先の
+  ;; どちらでも同じ設定を使用できる。
+  (add-to-list
+   'eglot-server-programs
+   '((haskell-mode literate-haskell-mode)
+     . ("haskell-language-server-wrapper" "--lsp")))
+
+  ;; Haskellプロジェクト全体で使用するformatterの既定値。
+  (setq-default
+   eglot-workspace-configuration
+   '(:haskell
+     (:formattingProvider "fourmolu"
+      :cabalFormattingProvider "cabal-gild"))))
+#+end_src
+
+*** Consult Eglot
+
+HLSが認識している型、関数、クラスなどをプロジェクト全体から検索します。
+
+- =M-g s=: ワークスペースシンボルを検索
+
+#+begin_src emacs-lisp
+(use-package consult-eglot
+  :ensure t
+  :after (consult eglot)
+
+  :bind
+  (:map eglot-mode-map
+        ("M-g s" . consult-eglot-symbols)))
 #+end_src
 
 * 外観
