@@ -281,8 +281,8 @@ Emacs上のバッファも自動的に更新します。
 
 =*scratch*= とvtermのバッファは、Tab Lineに表示しません。
 
-| キー          | 操作                |
-|--------------+--------------------|
+| キー         | 操作                 |
+|--------------+----------------------|
 | =Cmd+Option+←= | 左隣のTab Lineへ移動 |
 | =Cmd+Option+→= | 右隣のTab Lineへ移動 |
 
@@ -353,6 +353,26 @@ Tab Lineのバッファ名は並び順を維持し、
 
         buffers))
 
+    (defun my/close-tab-or-window ()
+      "Tab Lineの最後のタブならウィンドウを閉じ、それ以外なら現在のバッファを閉じる。"
+      (interactive)
+      (let ((tab-count
+             (length
+              (funcall tab-line-tabs-function))))
+        (cond
+         ;; Tab Lineに複数のバッファがある場合は、現在のタブを閉じる。
+         ((> tab-count 1)
+          (kill-current-buffer))
+
+         ;; 最後の1つで、画面が分割されている場合はウィンドウを閉じる。
+         ((not (one-window-p))
+          (delete-window))
+
+         ;; フレーム内にウィンドウが1つしかない場合、
+         ;; Emacsではそのウィンドウを削除できないため、バッファを閉じる。
+         (t
+          (kill-current-buffer)))))
+    
     ;; Tab Barを切り替えても、ウィンドウごとの並び順を保持する。
     (add-to-list
      'window-persistent-parameters
@@ -1043,8 +1063,9 @@ Emacs設定操作、Org Capture、Org Agendaの入口となるキーを設定し
   ;; macOS風の貼り付け。
   (keymap-global-set "s-v" #'yank)
 
-  ;; macOS風に現在の文書・バッファを閉じる。
-  (keymap-global-set "s-w" #'kill-current-buffer)
+  ;; Tab Lineの最後のタブならウィンドウを閉じ、
+  ;; それ以外なら現在のタブを閉じる。
+  (keymap-global-set "s-w" #'my/close-tab-or-window)
 
   ;; macOS風のUndo。
   (keymap-global-set "s-z" #'undo-only)
