@@ -934,6 +934,35 @@ VS CodeのRetro Hacker Blueを元にしたカラーテーマを使用します�
 (keymap-global-set "s-l" #'my/select-current-line)
 #+end_src
 
+*** カーソル行の上下に新しい行を挿入
+
+VS Codeの「Insert Line Below」「Insert Line Above」に相当する操作です。
+カーソルが行の途中にあっても、現在行の内容は分割しません。
+
+- =Cmd+Enter=: カーソル行の下に新しい行を追加し、その行へ移動する
+- =Cmd+Shift+Enter=: カーソル行の上に新しい行を追加し、その行へ移動する
+
+#+begin_src emacs-lisp
+(defun my/insert-line-below ()
+  "カーソル行の下に新しい行を挿入し、その行へ移動する。"
+  (interactive)
+  (end-of-line)
+  (newline-and-indent))
+
+(defun my/insert-line-above ()
+  "カーソル行の上に新しい行を挿入し、その行へ移動する。"
+  (interactive)
+  (beginning-of-line)
+  (open-line 1)
+  (indent-according-to-mode))
+
+;; VS Code風に、現在行の下へ新しい行を挿入する。
+(keymap-global-set "s-<return>" #'my/insert-line-below)
+
+;; VS Code風に、現在行の上へ新しい行を挿入する。
+(keymap-global-set "S-s-<return>" #'my/insert-line-above)
+#+end_src
+
 *** 現在行の削除
 
 VS Codeに近い行単位の操作を追加します。
