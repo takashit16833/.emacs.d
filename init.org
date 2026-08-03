@@ -893,41 +893,59 @@ Emacs設定操作、Org Capture、Org Agendaの入口となるキーを設定し
 
 保存、選択、クリップボード、Undo、カーソル移動をmacOS風のキーへ割り当てます。
 #+begin_src emacs-lisp
-;; macOS風の保存。
-(keymap-global-set "s-s" #'save-buffer)
+  ;; macOS風の保存。
+  (keymap-global-set "s-s" #'save-buffer)
 
-;; macOS風の全選択。
-(keymap-global-set "s-a" #'mark-whole-buffer)
+  ;; macOS風の全選択。
+  (keymap-global-set "s-a" #'mark-whole-buffer)
 
-;; macOS風のコピー。
-(keymap-global-set "s-c" #'kill-ring-save)
+  ;; macOS風のコピー。
+  (keymap-global-set "s-c" #'kill-ring-save)
 
-;; macOS風の切り取り。
-(keymap-global-set "s-x" #'kill-region)
+  ;; macOS風の切り取り。
+  (keymap-global-set "s-x" #'kill-region)
 
-;; macOS風の貼り付け。
-(keymap-global-set "s-v" #'yank)
+  ;; macOS風の貼り付け。
+  (keymap-global-set "s-v" #'yank)
 
-;; macOS風に現在の文書・バッファを閉じる。
-(keymap-global-set "s-w" #'kill-current-buffer)
+  ;; macOS風に現在の文書・バッファを閉じる。
+  (keymap-global-set "s-w" #'kill-current-buffer)
 
-;; macOS風のUndo。
-(keymap-global-set "s-z" #'undo-only)
+  ;; macOS風のUndo。
+  (keymap-global-set "s-z" #'undo-only)
 
-;; macOS風のRedo。
-(keymap-global-set "s-Z" #'undo-redo)
+  ;; macOS風のRedo。
+  (keymap-global-set "s-Z" #'undo-redo)
 
-;; Cmd+←：行頭へ移動する。
-(keymap-global-set "s-<left>" #'move-beginning-of-line)
+  ;; Cmd+←：行頭へ移動する。
+  (keymap-global-set "s-<left>" #'move-beginning-of-line)
 
-;; Cmd+→：行末へ移動する。
-(keymap-global-set "s-<right>" #'move-end-of-line)
+  ;; Cmd+→：行末へ移動する。
+  (keymap-global-set "s-<right>" #'move-end-of-line)
 
-;; Cmd+↑：バッファの先頭へ移動する。
-(keymap-global-set "s-<up>" #'beginning-of-buffer)
+  ;; Cmd+↑：バッファの先頭へ移動する。
+  (keymap-global-set "s-<up>" #'beginning-of-buffer)
 
-;; Cmd+↓：バッファの末尾へ移動する。
-(keymap-global-set "s-<down>" #'end-of-buffer)
+  ;; Cmd+↓：バッファの末尾へ移動する。
+  (keymap-global-set "s-<down>" #'end-of-buffer)
+
+  (defun my/delete-to-line-beginning ()
+    "カーソル位置から行頭までを削除する。"
+    (interactive)
+    (delete-region (line-beginning-position) (point)))
+
+  (defun my/delete-to-line-end ()
+    "カーソル位置から行末までを削除する。"
+    (interactive)
+    (delete-region (point) (line-end-position)))
+
+  ;; カーソル位置から行頭までを削除する。
+  (global-set-key (kbd "s-<backspace>")
+                  #'my/delete-to-line-beginning)
+
+  ;; カーソル位置から行末までを削除する。
+  (global-set-key (kbd "s-<delete>")
+                  #'my/delete-to-line-end)
 #+end_src
 * 生成ファイルのフッター
 
