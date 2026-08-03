@@ -779,14 +779,18 @@ Verticoは、ミニバッファの補完候補を縦方向に表示します。
 - =M-g f=: 現在のプロジェクトの診断一覧を表示
 
 #+begin_src emacs-lisp
-(use-package consult
-  :ensure t
+  (use-package consult
+    :ensure t
 
-  :bind
-  (("C-c r" . consult-recent-file)
-   ("C-c b" . consult-buffer)
-   ("M-s l" . consult-line)
-   ("M-g f" . consult-flymake)))
+    :bind
+    (("C-c r" . consult-recent-file)
+     ("C-c b" . consult-buffer)
+     
+     ;; ブックマークをミニバッファで選択する。
+     ("s-b" . consult-bookmark)
+
+     ("M-s l" . consult-line)
+     ("M-g f" . consult-flymake)))
 #+end_src
 * 開発ツール
 
