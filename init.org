@@ -323,11 +323,12 @@ Tab Lineのバッファ名は並び順を維持し、
        (not (member (buffer-name buffer)
                     my/tab-line-excluded-buffer-names))
 
-       ;; vterm-modeと、その派生モードのバッファを表示しない。
+       ;; 表示しないバッファはここに定義する。
        (not
         (with-current-buffer buffer
           (derived-mode-p
            'dired-mode
+           'magit-mode
            'vterm-mode)))))
 
     (defun my/tab-line-tabs ()
