@@ -330,6 +330,34 @@
      ["#000000" ,red "#4682B4" ,gold "#3B85D8"
       ,purple-dark "#00CED1" "#E0EEFF"])))
 
+;; haskell-ts-modeはfield_nameを独立したfaceへ割り当てないため、
+;; Retro Hacker Blueのレコードキーとフィールド参照を淡い青で強調する。
+(defun retro-hacker-blue--haskell-ts-highlight-record-fields ()
+  "Haskellのレコードフィールド名をTree-sitterで強調する。"
+  (unless (memq 'retro-hacker-record-field
+                (apply #'append treesit-font-lock-feature-list))
+    (setq-local
+     treesit-font-lock-settings
+     (append
+      treesit-font-lock-settings
+      (treesit-font-lock-rules
+       :language 'haskell
+       :feature 'retro-hacker-record-field
+       :override t
+       '((field_name) @font-lock-property-name-face))))
+    (let ((features (copy-tree treesit-font-lock-feature-list)))
+      (setf (nth 3 features)
+            (append (nth 3 features)
+                    '(retro-hacker-record-field)))
+      (setq-local treesit-font-lock-feature-list features))
+    (treesit-font-lock-recompute-features)
+    (font-lock-flush)))
+
+(with-eval-after-load 'haskell-ts-mode
+  (add-hook
+   'haskell-ts-mode-hook
+   #'retro-hacker-blue--haskell-ts-highlight-record-fields))
+
 ;;;###autoload
 (when (and load-file-name
            (boundp 'custom-theme-load-path))
