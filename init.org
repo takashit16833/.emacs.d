@@ -543,6 +543,9 @@ Emacs上のバッファも自動的に更新します。
     :ensure nil
 
     :custom
+    ;; 新しいタブは現在のバッファを引き継がず、*scratch*だけで始める。
+    (tab-bar-new-tab-choice "*scratch*")
+    
     ;; 新しいタブを作る「＋」ボタンを表示しない。
     (tab-bar-new-button-show nil)
 
