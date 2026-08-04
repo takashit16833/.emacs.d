@@ -543,9 +543,10 @@ Emacs上のバッファも自動的に更新します。
     :ensure nil
 
     :custom
-    ;; 新しいタブは現在のバッファを引き継がず、*scratch*だけで始める。
-    (tab-bar-new-tab-choice "*scratch*")
-    
+    ;; 新しいTab Barは、ほかのタブと共有しない専用Scratchで始める。
+    (tab-bar-new-tab-choice
+     #'bufferlo-create-local-scratch-buffer)
+
     ;; 新しいタブを作る「＋」ボタンを表示しない。
     (tab-bar-new-button-show nil)
 
@@ -565,6 +566,29 @@ Emacs上のバッファも自動的に更新します。
     (keymap-global-set "C-<prior>" #'tab-previous))
 #+end_src
 
+** Bufferlo：Tab Barごとのバッファ管理
+
+各Tab Barが独立したバッファ一覧を持つようにします。
+
+#+begin_src emacs-lisp
+  (use-package bufferlo
+    :ensure t
+    :demand t
+
+    :init
+    ;; next-bufferとprevious-bufferも現在のTab Bar内に限定する。
+    ;; bufferlo-modeを有効にする前に設定する必要がある。
+    (setq bufferlo-prefer-local-buffers 'tabs)
+
+    :bind
+    ;; 現在のTab Barに属するバッファから選択する。
+    ;; Prefix引数を付けると、Emacs全体のバッファから選択できる。
+    (("C-x b" . bufferlo-switch-to-buffer))
+
+    :config
+    ;; フレーム・Tab Barごとのローカルバッファ管理を有効にする。
+    (bufferlo-mode 1))
+#+end_src
 ** Tab Line：ウィンドウ内のバッファ切り替え
 
 各ウィンドウで表示したバッファを、タブとして切り替えます。
@@ -581,6 +605,7 @@ Tab Lineのバッファ名は並び順を維持し、
 #+begin_src emacs-lisp
   (use-package tab-line
     :ensure nil
+    :after bufferlo
 
     :init
     (require 'seq)
@@ -596,10 +621,12 @@ Tab Lineのバッファ名は並び順を維持し、
        ;; 削除済みのバッファは表示しない。
        (buffer-live-p buffer)
 
-       ;; 指定した名前のバッファを表示しない。
-       (not (member (buffer-name buffer)
-                    my/tab-line-excluded-buffer-names))
-
+       ;; 通常のScratchと、Bufferloが作るタブ専用Scratchを表示しない。
+       (not
+        (string-prefix-p
+         "*scratch*"
+         (buffer-name buffer)))
+       
        ;; 表示しないバッファはここに定義する。
        (not
         (with-current-buffer buffer
@@ -620,7 +647,7 @@ Tab Lineのバッファ名は並び順を維持し、
              (current-buffers
               (seq-filter
                #'my/tab-line-buffer-visible-p
-               (tab-line-tabs-window-buffers)))
+               (bufferlo-buffer-list)))
 
              ;; 以前からあるバッファは、保存済みの順番を維持する。
              (kept-buffers
@@ -1325,11 +1352,17 @@ Verticoなどのミニバッファ補完候補に、
 #+begin_src emacs-lisp
   (use-package consult
     :ensure t
+    :after bufferlo
+
+    :custom
+    ;; 現在のTab Barに属するバッファを既定の候補にする。
+    (consult-buffer-list-function
+     #'bufferlo-buffer-list)
 
     :bind
     (("C-c r" . consult-recent-file)
      ("C-c b" . consult-buffer)
-     
+
      ;; ブックマークをミニバッファで選択する。
      ("s-b" . consult-bookmark)
 
