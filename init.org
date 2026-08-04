@@ -626,7 +626,7 @@ Tab Lineのバッファ名は並び順を維持し、
         (string-prefix-p
          "*scratch*"
          (buffer-name buffer)))
-       
+     
        ;; 表示しないバッファはここに定義する。
        (not
         (with-current-buffer buffer
@@ -672,24 +672,33 @@ Tab Lineのバッファ名は並び順を維持し、
         buffers))
 
     (defun my/close-tab-or-window ()
-      "Tab Lineの最後のタブならウィンドウを閉じ、それ以外なら現在のバッファを閉じる。"
+      "現在のTab Line項目またはウィンドウを安全に閉じる。"
       (interactive)
       (let ((tab-count
              (length
-              (funcall tab-line-tabs-function))))
+              (funcall tab-line-tabs-function)))
+            (local-scratch
+             (bufferlo-get-local-scratch-buffer)))
         (cond
-         ;; Tab Lineに複数のバッファがある場合は、現在のタブを閉じる。
-         ((> tab-count 1)
-          (kill-current-buffer))
+         ;; 専用ScratchでCmd+Wを押しても、ほかのタブへ侵入しない。
+         ((eq (current-buffer) local-scratch)
+          (message "このTab Barには閉じるバッファがありません"))
 
-         ;; 最後の1つで、画面が分割されている場合はウィンドウを閉じる。
+         ;; 複数のファイルがある場合は、
+         ;; バッファを破壊せず現在のTab Barからだけ外す。
+         ((> tab-count 1)
+          (bufferlo-bury))
+
+         ;; 最後のファイルで画面分割されている場合は、
+         ;; これまでどおりウィンドウを閉じる。
          ((not (one-window-p))
           (delete-window))
 
-         ;; フレーム内にウィンドウが1つしかない場合、
-         ;; Emacsではそのウィンドウを削除できないため、バッファを閉じる。
+         ;; 最後のファイルなら現在のTab Barから外し、
+         ;; このTab Bar専用のScratchへ戻る。
          (t
-          (kill-current-buffer)))))
+          (bufferlo-remove (current-buffer))
+          (switch-to-buffer local-scratch)))))
 
     ;; Tab Barを切り替えても、ウィンドウごとの並び順を保持する。
     (add-to-list
