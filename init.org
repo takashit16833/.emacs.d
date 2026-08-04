@@ -739,11 +739,13 @@ Tab Lineのバッファ名は並び順を維持し、
     (global-tab-line-mode 1)
 
     ;; Cmd+Option+←：左隣のTab Lineへ移動する。
+    ;; 左端では右端へ戻り、循環する。
     (keymap-global-set
      "M-s-<left>"
      #'tab-line-switch-to-prev-tab)
 
     ;; Cmd+Option+→：右隣のTab Lineへ移動する。
+    ;; 右端では左端へ戻り、循環する。
     (keymap-global-set
      "M-s-<right>"
      #'tab-line-switch-to-next-tab))
@@ -1572,7 +1574,10 @@ Emacs内で高速なターミナルを利用します。
     :bind
     (:map vterm-mode-map
           ;; vterm内でもCmd+jでエディタへ戻る。
-          ("s-j" . vterm-toggle))
+          ("s-j" . vterm-toggle)
+
+          ;; 分割表示したvterm内でもCmd+Shift+jで元の画面へ戻る。
+          ("s-J" . my/vterm-toggle-split))
 
     :custom
     ;; ローカルのmacOSではZshを使う。
@@ -1591,19 +1596,59 @@ Emacs内で高速なターミナルを利用します。
 *** Vterm Toggle
 
 Cmd+jでプロジェクト単位のvtermを全画面表示・非表示にします。
+Cmd+Shift+jでは、現在のウィンドウ構成に応じて分割表示します。
+
+- 1ウィンドウ、または上下分割: 選択ウィンドウの右50%
+- 左右分割: 選択ウィンドウの下30%
+
 #+begin_src emacs-lisp
 (use-package vterm-toggle
   :ensure t
 
+  :preface
+  (defun my/vterm-toggle--left-right-layout-p ()
+    "選択ウィンドウに左右隣接するウィンドウがあるとき、非nilを返す。"
+    (or (window-in-direction 'left)
+        (window-in-direction 'right)))
+
+  (defun my/vterm-toggle--display-buffer (buffer _alist)
+    "現在のウィンドウ構成に応じた位置へBUFFERを表示する。"
+    (if (my/vterm-toggle--left-right-layout-p)
+        (display-buffer-in-direction
+         buffer
+         '((direction . below)
+           (window-height . 0.30)))
+      (display-buffer-in-direction
+       buffer
+       '((direction . right)
+         (window-width . 0.50)))))
+
+  (defun my/vterm-toggle-split ()
+    "現在のウィンドウ構成に応じてvtermを分割表示・非表示にする。"
+    (interactive)
+    (let ((vterm-toggle-fullscreen-p nil)
+          (display-buffer-alist
+           (cons
+            '((lambda (buffer-or-name _action)
+                (let ((buffer (get-buffer buffer-or-name)))
+                  (and buffer
+                       (with-current-buffer buffer
+                         (derived-mode-p 'vterm-mode)))))
+              (display-buffer-reuse-window
+               my/vterm-toggle--display-buffer))
+            display-buffer-alist)))
+      (vterm-toggle)))
+
   ;; vterm-toggleを遅延読み込み可能なコマンドとして登録する。
   :commands vterm-toggle
 
-  ;; Emacs起動直後からCmd+jを使えるようにする。
+  ;; Emacs起動直後からCmd+jとCmd+Shift+jを使えるようにする。
   :bind
-  (("s-j" . vterm-toggle))
+  (("s-j" . vterm-toggle)
+   ("s-J" . my/vterm-toggle-split))
 
   :custom
-  ;; vtermを全画面で表示する。
+  ;; 通常のvterm-toggleは全画面で表示する。
   (vterm-toggle-fullscreen-p t)
 
   ;; vtermを隠したとき、元のウィンドウ構成へ戻す。
