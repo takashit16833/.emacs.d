@@ -875,6 +875,8 @@ Orgファイルの初期表示、TODO状態、Agenda対象ファイルを設定�
 | Inbox     | =TODO=のInbox項目   |
 
 Agenda項目上では、次のキーで表示順に隣接するレーンへ移動します。
+移動後は同じ項目へカーソルも追従するため、
+Cmdを押したまま上下を連続入力できます。
 
 | キー      | 操作                              |
 |-----------+-----------------------------------|
@@ -921,6 +923,48 @@ PlannedとInboxの境界では項目をファイル間で移動します。
       (org-get-at-bol 'org-marker)
       (user-error "Agenda項目の行にカーソルを置いてください")))
 
+(defun my/org-last-refile-marker ()
+  "直前にRefileされたOrg見出しを指す新しいマーカーを返す。"
+  (require 'bookmark)
+  (let* ((bookmark-name
+          (plist-get org-bookmark-names-plist
+                     :last-refile))
+         (bookmark
+          (and bookmark-name
+               (bookmark-get-bookmark
+                bookmark-name
+                'noerror)))
+         (file
+          (and bookmark
+               (bookmark-get-filename bookmark)))
+         (position
+          (and bookmark
+               (bookmark-get-position bookmark))))
+    (unless (and file position)
+      (user-error "Refile後の項目位置を取得できません"))
+    (with-current-buffer (find-file-noselect file)
+      (copy-marker position))))
+
+(defun my/org-agenda-goto-marker (marker column)
+  "Agenda内でMARKERに対応する項目へ移動し、COLUMNを復元する。"
+  (goto-char (point-min))
+  (let (found)
+    (while (and (not found)
+                (not (eobp)))
+      (let ((line-marker
+             (or (org-get-at-bol 'org-hd-marker)
+                 (org-get-at-bol 'org-marker))))
+        (if (and line-marker
+                 (equal line-marker marker))
+            (setq found t)
+          (forward-line 1))))
+
+    (unless found
+      (user-error "移動後のAgenda項目を見つけられません"))
+
+    (org-move-to-column column)
+    (org-agenda-do-context-action)))
+
 (defun my/org-agenda-lane-index (file todo)
   "FILEとTODOに対応するワークフローレーンの位置を返す。"
   (or
@@ -937,8 +981,9 @@ PlannedとInboxの境界では項目をファイル間で移動します。
     todo)))
 
 (defun my/org-agenda-move-workflow-lane (offset)
-  "Agenda項目をOFFSET方向のワークフローレーンへ移動する。"
-  (let* ((marker (my/org-agenda-entry-marker))
+  "Agenda項目とカーソルをOFFSET方向のワークフローレーンへ移動する。"
+  (let* ((column (current-column))
+         (marker (my/org-agenda-entry-marker))
          (source-file
           (org-with-point-at marker
             (buffer-file-name)))
@@ -967,27 +1012,42 @@ PlannedとInboxの境界では項目をファイル間で移動します。
            (target-file
             (plist-get target-lane :file))
            (target-todo
-            (plist-get target-lane :todo)))
+            (plist-get target-lane :todo))
+           moved-marker)
 
-      (if (file-equal-p source-file target-file)
-          ;; Cockpit内では、元見出しのTODO状態だけを変更する。
-          (org-agenda-todo target-todo)
+      (unwind-protect
+          (progn
+            (if (file-equal-p source-file target-file)
+                ;; Cockpit内では、元見出しのTODO状態だけを変更する。
+                (progn
+                  (org-agenda-todo target-todo)
+                  (setq moved-marker
+                        (copy-marker
+                         org-last-heading-marker)))
 
-        ;; InboxとCockpitの境界では、見出し全体をファイル間移動する。
-        (org-agenda-refile
-         nil
-         (my/org-refile-location
-          target-file
-          (plist-get target-lane :parent))
-         t))
+              ;; InboxとCockpitの境界では、見出し全体をファイル間移動する。
+              (org-agenda-refile
+               nil
+               (my/org-refile-location
+                target-file
+                (plist-get target-lane :parent))
+               t)
+              (setq moved-marker
+                    (my/org-last-refile-marker)))
 
-      (my/save-task-org-buffers)
-      (org-agenda-redo)
+            (my/save-task-org-buffers)
+            (org-agenda-redo)
+            (my/org-agenda-goto-marker
+             moved-marker
+             column)
 
-      (message
-       "%sから%sへ移動しました"
-       (plist-get source-lane :name)
-       (plist-get target-lane :name)))))
+            (message
+             "%sから%sへ移動しました"
+             (plist-get source-lane :name)
+             (plist-get target-lane :name)))
+
+        (when (markerp moved-marker)
+          (set-marker moved-marker nil))))))
 
 (defun my/org-agenda-move-workflow-up ()
   "Agenda項目を1つ上のワークフローレーンへ移動する。"
