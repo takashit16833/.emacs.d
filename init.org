@@ -1489,23 +1489,30 @@ Tree-sitterのスコープ解析には依存せず、各メジャーモードと
 
 Emacs内で高速なターミナルを利用します。
 #+begin_src emacs-lisp
-(use-package vterm
-  :ensure t
-  :commands vterm
+  (use-package vterm
+    :ensure t
+    :commands vterm
 
-  :hook
-  (vterm-mode . (lambda ()
-                  ;; ターミナルでは行番号を表示しない。
-                  (display-line-numbers-mode -1)))
+    :hook
+    (vterm-mode . (lambda ()
+                    ;; ターミナルでは行番号を表示しない。
+                    (display-line-numbers-mode -1)))
 
-  :bind
-  (:map vterm-mode-map
-        ;; vterm内でもCmd+jでエディタへ戻る。
-        ("s-j" . vterm-toggle))
+    :bind
+    (:map vterm-mode-map
+          ;; vterm内でもCmd+jでエディタへ戻る。
+          ("s-j" . vterm-toggle))
 
-  :config
-  ;; C-yをEmacsで処理せず、ターミナル側へ送る。
-  (keymap-set vterm-mode-map "C-y" #'vterm--self-insert))
+    :custom
+    ;; TRAMPのDocker接続ではBashを起動する。
+    (vterm-tramp-shells
+     '(("ssh" login-shell "/bin/bash")
+       ("scp" login-shell "/bin/bash")
+       ("docker" "/bin/bash")))
+
+    :config
+    ;; C-yをEmacsで処理せず、ターミナル側へ送る。
+    (keymap-set vterm-mode-map "C-y" #'vterm--self-insert))
 #+end_src
 *** Vterm Toggle
 
@@ -1719,6 +1726,22 @@ Emacs標準のLSPクライアントからHaskell Language Serverへ接続しま�
       :cabalFormattingProvider "cabal-gild"))))
 #+end_src
 
+*** Eldoc Box
+
+Eglotが言語サーバーから取得したカーソル位置の型、
+シグネチャ、ドキュメントをポップアップ表示します。
+
+- =C-c l h=: カーソル位置の情報を表示
+
+#+begin_src emacs-lisp
+  (use-package eldoc-box
+    :ensure t
+    :after eglot
+
+    :bind
+    (:map eglot-mode-map
+          ("C-c l h" . eldoc-box-help-at-point)))
+#+end_src
 *** Consult Eglot
 
 HLSが認識している型、関数、クラスなどをプロジェクト全体から検索します。
