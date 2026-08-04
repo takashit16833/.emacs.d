@@ -687,27 +687,35 @@ Tab Lineのバッファ名は並び順を維持し、
              (length
               (funcall tab-bar-tabs-function))))
         (cond
-         ;; Tab Lineへ表示されるバッファが1つ以上ある場合：
-         ;; 現在のバッファを破壊せず、このTab Barからだけ外す。
+         ;; ウィンドウが複数ある場合は、従来の挙動を維持する。
          ;;
-         ;; 最後の表示対象バッファを外すと、
-         ;; Tab Lineには何も表示されず、専用Scratchだけが残る。
-         ((> visible-buffer-count 0)
-          (bufferlo-bury))
-
-         ;; 表示対象バッファがなく、ウィンドウが複数ある場合：
-         ;; 現在のウィンドウを閉じる。
+         ;; 表示対象バッファがあれば、このTab Barからだけ外す。
+         ;; 表示対象バッファがなければ、現在のウィンドウを閉じる。
          ((not (one-window-p))
-          (delete-window))
+          (if (> visible-buffer-count 0)
+              (bufferlo-bury)
+            (delete-window)))
 
-         ;; 表示対象バッファがなく、最後のウィンドウで、
          ;; Tab Barが複数ある場合：
-         ;; 現在のTab Barを閉じる。
+         ;; 他のTab Barで同じバッファを使っている可能性があるため、
+         ;; バッファ自体は削除せず、このTab Barからだけ外す。
          ((> tab-count 1)
-          (tab-close))
+          (if (> visible-buffer-count 0)
+              (bufferlo-bury)
+            (tab-close)))
 
-         ;; 表示対象バッファがなく、最後のTab Barの場合：
-         ;; Emacsは終了しない。
+         ;; ここからは、最後のウィンドウかつ最後のTab Bar。
+         ;;
+         ;; Scratch以外ならバッファ自体を削除する。
+         ;; Dired、Magit、vtermもここで削除できる。
+         ((not
+           (string-prefix-p
+            "*scratch*"
+            (buffer-name)))
+          (kill-current-buffer))
+
+         ;; Scratchだけが表示されている状態を、
+         ;; VS Codeの「何も開かれていない状態」とみなす。
          (t
           (message "最後のTab Barなので、Emacsは終了しません")))))
 
