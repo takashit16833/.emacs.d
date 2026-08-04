@@ -274,20 +274,126 @@ Emacs上のバッファも自動的に更新します。
          (0 'my-dired-file-face))))
      'append))
 
+  (require 'dired)
+  (require 'project)
+
+  (defun my-project-dired-other-window ()
+    "プロジェクトルートを、一時的なDiredとして別ウィンドウに開く。"
+    (interactive)
+    (let* ((origin-window (selected-window))
+           ;; Diredを開く前のウィンドウ構成を保存する。
+           (window-config (current-window-configuration))
+           (project       (project-current t))
+           (root          (project-root project)))
+
+      ;; ウィンドウを分割、または既存の別ウィンドウを使ってDiredを開く。
+      (dired-other-window root)
+
+      ;; Diredを表示しているウィンドウに、
+      ;; 戻り先と元のウィンドウ構成を記録する。
+      (set-window-parameter
+       (selected-window)
+       'my-dired-origin-window
+       origin-window)
+
+      (set-window-parameter
+       (selected-window)
+       'my-dired-window-config
+       window-config)))
+
+  (defun my-dired--clear-picker-state (window)
+    "WINDOWに保存した一時Dired用の情報を削除する。"
+    (set-window-parameter window 'my-dired-origin-window nil)
+    (set-window-parameter window 'my-dired-window-config nil))
+
+  (defun my-dired-find-file-and-restore ()
+    "一時Diredなら、選択したファイルを元のウィンドウで開いてDiredを終了する。"
+    (interactive)
+    (let* ((dired-window  (selected-window))
+           (origin-window
+            (window-parameter dired-window
+                              'my-dired-origin-window))
+           (window-config
+            (window-parameter dired-window
+                              'my-dired-window-config))
+           (file (dired-get-file-for-visit)))
+
+      ;; 通常の方法で開いたDiredでは、標準動作のままにする。
+      (if (not (window-configuration-p window-config))
+          (dired-find-file)
+
+        ;; ディレクトリを選んだ場合は、Dired内で移動を続ける。
+        (if (file-directory-p file)
+            (dired-find-alternate-file)
+
+          ;; ファイルは、まず表示せずにバッファへ読み込む。
+          ;; 読み込みに失敗した場合はDiredを閉じない。
+          (let ((file-buffer  (find-file-noselect file))
+                (dired-buffer (current-buffer)))
+
+            ;; 一時Diredの状態を解除する。
+            (my-dired--clear-picker-state dired-window)
+
+            ;; Diredを開く前のウィンドウ構成へ戻す。
+            (set-window-configuration window-config)
+
+            ;; 元の作業ウィンドウを選択する。
+            (when (window-live-p origin-window)
+              (select-window origin-window))
+
+            ;; 選択したファイルを元の作業ウィンドウに表示する。
+            (switch-to-buffer file-buffer)
+
+            ;; 一時的に使ったDiredバッファを削除する。
+            (when (buffer-live-p dired-buffer)
+              (kill-buffer dired-buffer)))))))
+
+  (defun my-dired-quit-and-restore ()
+    "一時Diredをキャンセルし、元のウィンドウ構成へ戻す。"
+    (interactive)
+    (let* ((dired-window  (selected-window))
+           (origin-window
+            (window-parameter dired-window
+                              'my-dired-origin-window))
+           (window-config
+            (window-parameter dired-window
+                              'my-dired-window-config)))
+
+      ;; 通常のDiredなら、標準の終了動作を行う。
+      (if (not (window-configuration-p window-config))
+          (quit-window)
+
+        (let ((dired-buffer (current-buffer)))
+          (my-dired--clear-picker-state dired-window)
+          (set-window-configuration window-config)
+
+          (when (window-live-p origin-window)
+            (select-window origin-window))
+
+          (when (buffer-live-p dired-buffer)
+            (kill-buffer dired-buffer))))))
+
   (use-package dired
     :ensure nil
-
-    :commands
-    (dired dired-jump)
-
-    :bind
-    ;; 現在開いているファイルの場所をDiredで表示する。
-    (("C-x C-j" . dired-jump))
 
     :hook
     ;; 所有者、権限、日時などを最初は隠して、一覧をすっきり表示する。
     (dired-mode . dired-hide-details-mode)
 
+    :bind
+    ("C-c d" . my-project-dired-other-window)
+
+    :config
+    ;; RET、f、eなど、`dired-find-file'を呼ぶキーをまとめて置き換える。
+    (define-key dired-mode-map
+                [remap dired-find-file]
+                #'my-dired-find-file-and-restore)
+
+    ;; qでキャンセルした場合も、元の画面へ完全に戻す。
+    (define-key dired-mode-map
+                (kbd "q")
+                #'my-dired-quit-and-restore)
+    
     :custom
     ;; 2つのDiredを左右に表示している場合、
     ;; コピー・移動先の初期値をもう一方のディレクトリにする。
