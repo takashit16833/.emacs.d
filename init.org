@@ -739,13 +739,11 @@ Tab Lineのバッファ名は並び順を維持し、
     (global-tab-line-mode 1)
 
     ;; Cmd+Option+←：左隣のTab Lineへ移動する。
-    ;; 左端では右端へ戻り、循環する。
     (keymap-global-set
      "M-s-<left>"
      #'tab-line-switch-to-prev-tab)
 
     ;; Cmd+Option+→：右隣のTab Lineへ移動する。
-    ;; 右端では左端へ戻り、循環する。
     (keymap-global-set
      "M-s-<right>"
      #'tab-line-switch-to-next-tab))
@@ -1598,8 +1596,8 @@ Emacs内で高速なターミナルを利用します。
 Cmd+jでプロジェクト単位のvtermを全画面表示・非表示にします。
 Cmd+Shift+jでは、現在のウィンドウ構成に応じて分割表示します。
 
-- 1ウィンドウ、または上下分割: 選択ウィンドウの右50%
-- 左右分割: 選択ウィンドウの下30%
+- 1ウィンドウ、または上下分割: フレームの右50%
+- 左右分割: フレームの下30%
 
 #+begin_src emacs-lisp
 (use-package vterm-toggle
@@ -1612,15 +1610,17 @@ Cmd+Shift+jでは、現在のウィンドウ構成に応じて分割表示しま
         (window-in-direction 'right)))
 
   (defun my/vterm-toggle--display-buffer (buffer _alist)
-    "現在のウィンドウ構成に応じた位置へBUFFERを表示する。"
+    "現在のウィンドウ構成に応じたフレーム位置へBUFFERを表示する。"
     (if (my/vterm-toggle--left-right-layout-p)
         (display-buffer-in-direction
          buffer
          '((direction . below)
+           (window . root)
            (window-height . 0.30)))
       (display-buffer-in-direction
        buffer
        '((direction . right)
+         (window . root)
          (window-width . 0.50)))))
 
   (defun my/vterm-toggle-split ()
