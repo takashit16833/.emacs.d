@@ -1790,6 +1790,17 @@ Emacs標準のLSPクライアントからHaskell Language Serverへ接続しま�
       :cabalFormattingProvider "cabal-gild"))))
 #+end_src
 
+*** Markdown Mode：Eldoc内のMarkdown描画
+
+Eglotから渡されるMarkdown形式のドキュメントを、
+Eldoc Box内で装飾して表示します。
+
+#+begin_src emacs-lisp
+(use-package markdown-mode
+  :ensure t
+  :defer t)
+#+end_src
+
 *** Eldoc Box
 
 Eglotが言語サーバーから取得したカーソル位置の型、
@@ -1798,14 +1809,155 @@ Eglotが言語サーバーから取得したカーソル位置の型、
 - =C-c l h=: カーソル位置の情報を表示
 
 #+begin_src emacs-lisp
+  (defun my-eldoc-box-rich-buffer-setup (source-buffer)
+    "Render Eldoc documentation as GitHub-flavored Markdown.
+
+                SOURCE-BUFFER is the buffer from which Eldoc was requested."
+    ;; まずeldoc-box標準の整形処理を適用する。
+    (eldoc-box-buffer-setup source-buffer)
+
+    (let ((inhibit-read-only t))
+      ;; Markdownの表示専用モードにする。
+      ;;
+      ;; - **bold**             → 太字
+      ;; - [label](URL)        → labelだけ表示
+      ;; - ```haskell ... ```  → Haskellとして構文強調
+      (gfm-view-mode)
+
+      ;; Eldoc Boxの中では行番号を表示しない。
+      (display-line-numbers-mode -1)
+      (setq-local display-line-numbers nil)
+
+      (setq-local
+       markdown-hide-markup t
+       markdown-hide-urls t
+       markdown-fontify-code-blocks-natively t
+
+       ;; child frame内では通常のバッファUIを隠す。
+       mode-line-format nil
+       tab-line-format nil
+       cursor-type nil
+
+       ;; 少しゆったり表示する。
+       line-spacing 0.16
+       truncate-lines nil
+
+       header-line-format nil)
+
+      ;; Markdownの記号を非表示にする。
+      (add-to-invisibility-spec 'markdown-markup)
+
+      ;; child frame全体にeldoc-box用Faceを適用する。
+      (buffer-face-set 'eldoc-box-body)
+
+      (visual-line-mode 1)
+
+      ;; eldoc-box標準セットアップ内でも設定される内部状態。
+      ;; gfm-view-modeによるMajor mode変更後に復元する。
+      (setq-local eldoc-box-hover-mode t)
+
+      ;; 挿入済みのMarkdownをすぐに描画する。
+      (font-lock-flush)
+      (font-lock-ensure)
+
+      ;; 先頭のコードフェンス行を、改行も含めて表示上たたむ。
+      (let ((inhibit-read-only t))
+        (save-excursion
+          (goto-char (point-min))
+
+          ;; 本物の空行がある場合は削除する。
+          (while (looking-at "[ \t]*\n")
+            (delete-region (match-beginning 0)
+                           (match-end 0)))
+
+          ;; ```haskell の行は構文強調のため残しつつ、
+          ;; 改行を含む行全体を表示しない。
+          (when (looking-at "[ \t]*```[^\n]*\n")
+            (put-text-property
+             (match-beginning 0)
+             (match-end 0)
+             'display ""))))))
+
   (use-package eldoc-box
     :ensure t
-    :after eglot
+    :after (eglot markdown-mode)
 
     :bind
     (:map eglot-mode-map
-          ("C-c l h" . eldoc-box-help-at-point)))
+          ("C-c l h" . eldoc-box-help-at-point))
+
+    :custom
+    ;; 横に広がりすぎないカードサイズ。
+    (eldoc-box-max-pixel-width 760)
+    (eldoc-box-max-pixel-height 480)
+
+    ;; カーソルとの距離。
+    (eldoc-box-offset '(18 18 16))
+
+    ;; C-gで閉じる。
+    (eldoc-box-clear-with-C-g t)
+
+    ;; fringeも本体と同じ背景にする。
+    (eldoc-box-fringe-use-same-bg t)
+
+    :config
+    ;; Markdown表示用セットアップを使用する。
+    (setq-default
+     eldoc-box-buffer-setup-function
+     #'my-eldoc-box-rich-buffer-setup)
+
+    ;; カードの内側余白。
+    (setf (alist-get 'internal-border-width
+                     eldoc-box-frame-parameters)
+          2)
+
+    (setf (alist-get 'left-fringe
+                     eldoc-box-frame-parameters)
+          14)
+
+    (setf (alist-get 'right-fringe
+                     eldoc-box-frame-parameters)
+          14)
+
+    ;; Retro Hacker Blueのパレットに合わせる。
+    (set-face-attribute
+     'eldoc-box-body nil
+     :background "#07162B"
+     :foreground "#A6CAFF")
+
+    (set-face-attribute
+     'eldoc-box-border nil
+     :background "#5EAFFF")
+
+    ;; フェンス付きコードブロック。
+    (set-face-attribute
+     'markdown-code-face nil
+     :background "#0D172F"
+     :foreground "#BFD7FF"
+     :extend t)
+
+    ;; インラインコード。
+    (set-face-attribute
+     'markdown-inline-code-face nil
+     :background "#0D172F"
+     :foreground "#00FFFF")
+
+    ;; リンク、太字、Markdown区切り。
+    (set-face-attribute
+     'markdown-link-face nil
+     :foreground "#87CEEB"
+     :underline t)
+
+    (set-face-attribute
+     'markdown-bold-face nil
+     :foreground "#FFFFFF"
+     :weight 'bold)
+
+    (set-face-attribute
+     'markdown-markup-face nil
+     :foreground "#316CBD"))
 #+end_src
+
 *** Consult Eglot
 
 HLSが認識している型、関数、クラスなどをプロジェクト全体から検索します。
