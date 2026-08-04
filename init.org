@@ -710,10 +710,8 @@ org-modernによるテーブル装飾は無効にします。
 #+end_src
 
 * ミニバッファ補完
-
-ミニバッファの候補表示、補足情報、絞り込み方法を設定します。
-
-** Vertico：候補の縦表示
+** ミニバッファ補完
+*** Vertico：候補の縦表示
 
 Verticoは、ミニバッファの補完候補を縦方向に表示します。
 #+begin_src emacs-lisp
@@ -734,7 +732,7 @@ Verticoは、ミニバッファの補完候補を縦方向に表示します。
   (vertico-mode))
 #+end_src
 
-** Marginalia：候補の補足情報
+*** Marginalia：候補の補足情報
 
 ミニバッファの補完候補に説明を表示します。
 #+begin_src emacs-lisp
@@ -744,7 +742,7 @@ Verticoは、ミニバッファの補完候補を縦方向に表示します。
   :init
   (marginalia-mode 1))
 #+end_src
-** Orderless：柔軟な絞り込み
+*** Orderless：柔軟な絞り込み
 
 スペースで区切った複数の文字列を使って、
 補完候補を柔軟に絞り込みます。
@@ -760,7 +758,7 @@ Verticoは、ミニバッファの補完候補を縦方向に表示します。
    '((file (styles partial-completion)))))
 #+end_src
 
-** Consult
+*** Consult：検索・移動コマンド
 
 ミニバッファを利用した検索・移動機能を強化します。
 
@@ -783,6 +781,42 @@ Verticoは、ミニバッファの補完候補を縦方向に表示します。
      ("M-s l" . consult-line)
      ("M-g f" . consult-flymake)))
 #+end_src
+** バッファ補完
+*** Corfu：バッファ内補完
+
+Emacs標準の補完機構を利用して、コード編集中の候補をポップアップ表示します。
+Eglotなどが提供する補完候補も同じ画面で扱います。
+
+#+begin_src emacs-lisp
+  (use-package corfu
+    :ensure t
+
+    :custom
+    ;; 候補の末尾と先頭を循環できるようにする。
+    (corfu-cycle t)
+
+    ;; 入力中に候補を自動表示する。
+    (corfu-auto t)
+
+    ;; TRAMPや言語サーバー利用時に過剰な問い合わせを避ける。
+    (corfu-auto-delay 0.25)
+    (corfu-auto-prefix 2)
+
+    ;; 候補を自動選択せず、明示的に選んだときだけ確定する。
+    (corfu-preselect 'prompt)
+
+    :init
+    (global-corfu-mode 1)
+
+    :config
+    ;; RETによる候補確定を無効にし、改行時の誤確定を防ぐ。
+    ;; 候補の補完・確定にはTABを使用する。
+    (keymap-unset corfu-map "RET")
+
+    ;; 選択中の候補について、利用可能な説明を表示する。
+    (corfu-popupinfo-mode 1))
+#+end_src
+
 * 開発ツール
 
 ターミナル、バージョン管理、コード補完、言語サーバーなど、
@@ -902,39 +936,6 @@ Tree-sitterのスコープ解析には依存せず、各メジャーモードと
 
   ;; 空行にも前後のインデントを引き継いでガイドを表示する。
   (indent-bars-display-on-blank-lines t))
-#+end_src
-
-*** Corfu：バッファ内補完
-
-Emacs標準の補完機構を利用して、コード編集中の候補をポップアップ表示します。
-Eglotなどが提供する補完候補も同じ画面で扱います。
-#+begin_src emacs-lisp
-(use-package corfu
-  :ensure t
-
-  :custom
-  ;; 候補の末尾と先頭を循環できるようにする。
-  (corfu-cycle t)
-
-  ;; 入力中に候補を自動表示する。
-  (corfu-auto t)
-
-  ;; TRAMPや言語サーバー利用時に過剰な問い合わせを避ける。
-  (corfu-auto-delay 0.25)
-  (corfu-auto-prefix 2)
-
-  ;; 候補を自動選択せず、明示的に選んだときだけ確定する。
-  (corfu-preselect 'prompt)
-
-  :init
-  (global-corfu-mode 1)
-
-  :config
-  ;; Enterによる誤確定を避け、候補確定にはTABを使用する。
-  (keymap-unset corfu-map "RET")
-
-  ;; 選択中の候補について、利用可能な説明を表示する。
-  (corfu-popupinfo-mode 1))
 #+end_src
 
 ** ターミナル
