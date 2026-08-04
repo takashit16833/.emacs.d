@@ -418,7 +418,7 @@ Emacs上のバッファも自動的に更新します。
     (delete-by-moving-to-trash t)
 
     ;; 隠しファイルは表示するが、`.` と `..` は表示しない。
-    (dired-listing-switches "-Al")
+    ;(dired-listing-switches "-Al")
 
     :custom-face
     ;; 通常ファイル
@@ -487,6 +487,31 @@ Emacs上のバッファも自動的に更新します。
               #'my-nerd-icons-dired-refresh))
 #+end_src
 
+** Diff HL：Git差分の表示
+#+begin_src emacs-lisp
+  (use-package diff-hl
+    :ensure t
+
+    :hook
+    ;; 通常のファイルでは、変更された行をウィンドウ左端に表示する。
+    ((prog-mode . diff-hl-mode)
+     (text-mode . diff-hl-mode)
+
+     ;; Diredでは、Git状態に応じてファイル単位の印を表示する。
+     (dired-mode . diff-hl-dired-mode))
+
+    :custom
+    ;; .gitignore対象のファイルまでは表示しない。
+    ;; 未追跡ファイルは引き続き表示される。
+    (diff-hl-dired-extra-indicators nil)
+
+    :config
+    ;; dired-subtreeで後から挿入されたファイルについても、
+    ;; Git状態を再取得して表示する。
+    (with-eval-after-load 'dired-subtree
+      (add-hook 'dired-subtree-after-insert-hook
+                #'diff-hl-dired-update)))
+#+end_src
 * ウィンドウとバッファの移動
 
 作業画面全体と、各ウィンドウ内のバッファをタブとして切り替える設定です。
