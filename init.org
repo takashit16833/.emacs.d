@@ -313,18 +313,39 @@ Emacs上のバッファも自動的に更新します。
     ;; ディレクトリ
     (dired-directory
      ((t (:inherit font-lock-type-face
-                   :weight bold
-                   :underline t)))))
+                   :weight bold)))))
 #+end_src
 ** Nerd Icons：ファイルアイコンの基盤
+#+begin_src emacs-lisp
+(use-package nerd-icons
+  :ensure t)
+#+end_src
 
 ** Nerd Icons Dired：Diredのアイコン表示
+#+begin_src emacs-lisp
+(use-package nerd-icons-dired
+  :ensure t
+  :after (dired nerd-icons)
+
+  :hook
+  (dired-mode . nerd-icons-dired-mode))
+#+end_src
 
 ** Dired Subtree：ディレクトリのツリー展開
+#+begin_src emacs-lisp
+(use-package dired-subtree
+  :ensure t
+  :after dired
 
-** Diredfl：Dired項目の色分け
+  :bind
+  (:map dired-mode-map
+        ;; カーソル位置のディレクトリを展開・折り畳みする。
+        ("<tab>" . dired-subtree-toggle)
 
-** Dired Preview：ファイルのプレビュー
+        ;; サブツリーの展開状態を段階的に切り替える。
+        ("<backtab>" . dired-subtree-cycle)))
+#+end_src
+
 * ウィンドウとバッファの移動
 
 作業画面全体と、各ウィンドウ内のバッファをタブとして切り替える設定です。
