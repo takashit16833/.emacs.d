@@ -140,6 +140,9 @@ Emacs本体の設定を =use-package= 形式で整理するために使用して
     ;; カーソル移動によるスクロールを1行ずつにする。
     (scroll-conservatively most-positive-fixnum)
 
+    ;; インデント済みの位置でTABを押した場合は補完を実行する。
+    (tab-always-indent 'complete)
+
     :config
     ;; 選択範囲がある状態で入力すると、選択範囲を置換する。
     (delete-selection-mode 1)
@@ -516,9 +519,6 @@ Orgファイルの初期表示、TODO状態、Agenda対象ファイルを設定�
 
     ;; DONEへ変更した日時を記録する。
     (org-log-done 'time)
-
-    ;; インデント済みの位置でTABを押した場合は補完を実行する。
-    (tab-always-indent 'complete)
 
     :config
     ;; InboxとCockpitをAgendaの検索対象にする。
