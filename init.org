@@ -1504,10 +1504,13 @@ Emacs内で高速なターミナルを利用します。
           ("s-j" . vterm-toggle))
 
     :custom
-    ;; TRAMPのDocker接続ではBashを起動する。
+    ;; ローカルのmacOSではZshを使う。
+    (vterm-shell "/bin/zsh")
+
+    ;; TRAMP接続先では、接続方式に応じたシェルを使う。
     (vterm-tramp-shells
-     '(("ssh" login-shell "/bin/bash")
-       ("scp" login-shell "/bin/bash")
+     '(("ssh" login-shell)
+       ("scp" login-shell)
        ("docker" "/bin/bash")))
 
     :config
