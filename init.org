@@ -789,6 +789,75 @@ Orgファイルの初期表示、TODO状態、Agenda対象ファイルを設定�
            (file+headline ,my/task-cockpit-file "Work Items")
            "* WAIT %?\n- 待っているもの: \n- 解除条件: \n- 次に確認する時点: \n- 解除後の一手: \n%a"))))
 #+end_src
+** 作業項目の移動
+
+=inbox.org= の項目上で =C-c w= を押すと、
+現在項目を =cockpit.org= の =Work Items= へ移動します。
+
+本文や子見出しにカーソルがある場合も、Inbox直下の項目全体を移動します。
+#+begin_src emacs-lisp
+(defun my/org-refile-location (file headline)
+  "FILE内のHEADLINEを、`org-refile'用の移動先として返す。"
+  (let* ((buffer (find-file-noselect file))
+         (target-file (buffer-file-name buffer))
+         (position
+          (with-current-buffer buffer
+            (org-with-wide-buffer
+              (goto-char (point-min))
+              (or (org-find-exact-headline-in-buffer headline)
+                  (user-error
+                   "%sに見出し「%s」がありません"
+                   file
+                   headline))))))
+    (list headline target-file nil position)))
+
+(defun my/save-task-org-buffers ()
+  "変更されたInboxとCockpitのバッファを保存する。"
+  (dolist (file (list my/task-inbox-file
+                      my/task-cockpit-file))
+    (let ((buffer (find-buffer-visiting file)))
+      (when buffer
+        (with-current-buffer buffer
+          (when (buffer-modified-p)
+            (save-buffer)))))))
+
+(defun my/move-inbox-item-to-work-items ()
+  "Inboxの現在項目をCockpitのWork Itemsへ移動する。"
+  (interactive)
+  (unless (and buffer-file-name
+               (file-equal-p buffer-file-name
+                             my/task-inbox-file))
+    (user-error "このコマンドはinbox.orgでのみ使用できます"))
+
+  (org-back-to-heading t)
+
+  ;; 子見出し内から実行した場合も、Inbox直下の項目全体を対象にする。
+  (while (> (org-outline-level) 2)
+    (org-up-heading-safe))
+
+  (unless (and (= (org-outline-level) 2)
+               (save-excursion
+                 (org-up-heading-safe)
+                 (equal (org-get-heading t t t t)
+                        "Inbox")))
+    (user-error "Inbox直下の項目で実行してください"))
+
+  (org-refile
+   nil
+   nil
+   (my/org-refile-location
+    my/task-cockpit-file
+    "Work Items"))
+
+  (my/save-task-org-buffers)
+  (message "Inbox項目をCockpitのWork Itemsへ移動しました"))
+
+(with-eval-after-load 'org
+  (keymap-set
+   org-mode-map
+   "C-c w"
+   #'my/move-inbox-item-to-work-items))
+#+end_src
 ** 作業状態の一覧表示
 
 *** Cockpit Agenda
@@ -804,10 +873,140 @@ Orgファイルの初期表示、TODO状態、Agenda対象ファイルを設定�
 | Waiting   | =WAIT=                |
 | Planned   | =TODO=のCockpit項目 |
 | Inbox     | =TODO=のInbox項目   |
+
+Agenda項目上では、次のキーで表示順に隣接するレーンへ移動します。
+
+| キー      | 操作                              |
+|-----------+-----------------------------------|
+| =Cmd+↑=     | 1つ上のワークフローレーンへ移動 |
+| =Cmd+↓=     | 1つ下のワークフローレーンへ移動 |
+| =Option+↑=  | Agenda標準の行移動               |
+| =Option+↓=  | Agenda標準の行移動               |
+
+Cockpit内の移動ではTODO状態を変更し、
+PlannedとInboxの境界では項目をファイル間で移動します。
 #+begin_src emacs-lisp
+(require 'cl-lib)
+
+(defconst my/org-agenda-workflow-lanes
+  `((:name "Active"
+     :file ,my/task-cockpit-file
+     :todo "DOING"
+     :parent "Work Items")
+    (:name "Next"
+     :file ,my/task-cockpit-file
+     :todo "NEXT"
+     :parent "Work Items")
+    (:name "Suspended"
+     :file ,my/task-cockpit-file
+     :todo "HOLD"
+     :parent "Work Items")
+    (:name "Waiting"
+     :file ,my/task-cockpit-file
+     :todo "WAIT"
+     :parent "Work Items")
+    (:name "Planned"
+     :file ,my/task-cockpit-file
+     :todo "TODO"
+     :parent "Work Items")
+    (:name "Inbox"
+     :file ,my/task-inbox-file
+     :todo "TODO"
+     :parent "Inbox"))
+  "Cockpit Agendaで上下移動するワークフローレーン。")
+
+(defun my/org-agenda-entry-marker ()
+  "現在のAgenda行が参照するOrg見出しのマーカーを返す。"
+  (or (org-get-at-bol 'org-hd-marker)
+      (org-get-at-bol 'org-marker)
+      (user-error "Agenda項目の行にカーソルを置いてください")))
+
+(defun my/org-agenda-lane-index (file todo)
+  "FILEとTODOに対応するワークフローレーンの位置を返す。"
+  (or
+   (cl-position-if
+    (lambda (lane)
+      (and (file-equal-p file
+                         (plist-get lane :file))
+           (equal todo
+                  (plist-get lane :todo))))
+    my/org-agenda-workflow-lanes)
+   (user-error
+    "現在の項目はレーン移動の対象外です: %s / %s"
+    file
+    todo)))
+
+(defun my/org-agenda-move-workflow-lane (offset)
+  "Agenda項目をOFFSET方向のワークフローレーンへ移動する。"
+  (let* ((marker (my/org-agenda-entry-marker))
+         (source-file
+          (org-with-point-at marker
+            (buffer-file-name)))
+         (source-todo
+          (org-with-point-at marker
+            (org-get-todo-state)))
+         (source-index
+          (my/org-agenda-lane-index
+           source-file
+           source-todo))
+         (target-index (+ source-index offset)))
+
+    (unless (< -1
+               target-index
+               (length my/org-agenda-workflow-lanes))
+      (user-error
+       "これ以上%sのレーンへは移動できません"
+       (if (< offset 0) "上" "下")))
+
+    (let* ((source-lane
+            (nth source-index
+                 my/org-agenda-workflow-lanes))
+           (target-lane
+            (nth target-index
+                 my/org-agenda-workflow-lanes))
+           (target-file
+            (plist-get target-lane :file))
+           (target-todo
+            (plist-get target-lane :todo)))
+
+      (if (file-equal-p source-file target-file)
+          ;; Cockpit内では、元見出しのTODO状態だけを変更する。
+          (org-agenda-todo target-todo)
+
+        ;; InboxとCockpitの境界では、見出し全体をファイル間移動する。
+        (org-agenda-refile
+         nil
+         (my/org-refile-location
+          target-file
+          (plist-get target-lane :parent))
+         t))
+
+      (my/save-task-org-buffers)
+      (org-agenda-redo)
+
+      (message
+       "%sから%sへ移動しました"
+       (plist-get source-lane :name)
+       (plist-get target-lane :name)))))
+
+(defun my/org-agenda-move-workflow-up ()
+  "Agenda項目を1つ上のワークフローレーンへ移動する。"
+  (interactive)
+  (my/org-agenda-move-workflow-lane -1))
+
+(defun my/org-agenda-move-workflow-down ()
+  "Agenda項目を1つ下のワークフローレーンへ移動する。"
+  (interactive)
+  (my/org-agenda-move-workflow-lane 1))
+
 (use-package org-agenda
   :ensure nil
   :after org
+
+  :bind
+  (:map org-agenda-mode-map
+        ("s-<up>" . my/org-agenda-move-workflow-up)
+        ("s-<down>" . my/org-agenda-move-workflow-down))
 
   :config
   (setq org-agenda-custom-commands
