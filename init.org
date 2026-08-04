@@ -1273,7 +1273,7 @@ VS CodeのRetro Hacker Blueを元にしたカラーテーマを使用します�
     :bind
     (("s-z" . undo-fu-only-undo)
      ("s-Z" . undo-fu-only-redo)
-     ("s-x" . undo-fu-clear-all)))
+     ("s-X" . undo-fu-clear-all)))
 #+end_src
 
 ** 独自の編集コマンド
