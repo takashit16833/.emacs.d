@@ -712,7 +712,7 @@ org-modernによるテーブル装飾は無効にします。
      :family "SauceCodePro Nerd Font Mono"))
 #+end_src
 
-* ミニバッファ補完
+* 補完と検索
 ** ミニバッファ補完
 *** Vertico：候補の縦表示
 
