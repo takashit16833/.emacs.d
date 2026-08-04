@@ -1268,6 +1268,25 @@ Verticoは、ミニバッファの補完候補を縦方向に表示します。
   :init
   (marginalia-mode 1))
 #+end_src
+*** Nerd Icons Completion：補完候補のアイコン表示
+
+Verticoなどのミニバッファ補完候補に、
+ファイル、ディレクトリ、バッファ、コマンドなどに応じたアイコンを表示します。
+
+#+begin_src emacs-lisp
+  (use-package nerd-icons-completion
+    :ensure t
+    :after marginalia
+
+    :config
+    ;; ミニバッファの補完候補へNerd Iconsを表示する。
+    (nerd-icons-completion-mode)
+
+    ;; Marginaliaの有効・無効とアイコン表示を連動させる。
+    (add-hook
+     'marginalia-mode-hook
+     #'nerd-icons-completion-marginalia-setup))
+#+end_src
 *** Orderless：柔軟な絞り込み
 
 スペースで区切った複数の文字列を使って、
