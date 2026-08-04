@@ -254,7 +254,68 @@ Emacs上のバッファも自動的に更新します。
 階層表示、プレビューに関する設定をまとめます。
 
 ** Dired：標準のファイル管理
+#+begin_src emacs-lisp
+  (defface my-dired-file-face
+    '((t (:inherit default)))
+    "Face used for regular files in Dired."
+    :group 'dired-faces)
 
+  (defun my-dired-fontify-regular-files ()
+    "Apply `my-dired-file-face' to regular files."
+    (font-lock-add-keywords
+     nil
+     (list
+      (list
+       ;; 権限表示の先頭が「-」なら通常ファイル。
+       (concat dired-re-maybe-mark
+               dired-re-inode-size
+               "-")
+       '(".+" (dired-move-to-filename) nil
+         (0 'my-dired-file-face))))
+     'append))
+
+  (use-package dired
+    :ensure nil
+
+    :commands
+    (dired dired-jump)
+
+    :bind
+    ;; 現在開いているファイルの場所をDiredで表示する。
+    (("C-x C-j" . dired-jump))
+
+    :hook
+    ;; 所有者、権限、日時などを最初は隠して、一覧をすっきり表示する。
+    (dired-mode . dired-hide-details-mode)
+
+    :custom
+    ;; 2つのDiredを左右に表示している場合、
+    ;; コピー・移動先の初期値をもう一方のディレクトリにする。
+    (dired-dwim-target t)
+
+    ;; ディレクトリを移動してもDiredバッファを大量に残さない。
+    (dired-kill-when-opening-new-dired-buffer t)
+
+    ;; ディレクトリの再帰コピーは確認なしで行う。
+    (dired-recursive-copies 'always)
+
+    ;; 再帰削除では最上位で一度確認する。
+    (dired-recursive-deletes 'top)
+
+    ;; 削除したファイルを直接消さず、macOSのゴミ箱へ移動する。
+    (delete-by-moving-to-trash t)
+
+    :custom-face
+    ;; 通常ファイル
+    (my-dired-file-face
+     ((t (:inherit font-lock-string-face))))
+
+    ;; ディレクトリ
+    (dired-directory
+     ((t (:inherit font-lock-type-face
+                   :weight bold
+                   :underline t)))))
+#+end_src
 ** Nerd Icons：ファイルアイコンの基盤
 
 ** Nerd Icons Dired：Diredのアイコン表示
