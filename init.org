@@ -2058,6 +2058,20 @@ VS CodeのRetro Hacker Blueを元にしたカラーテーマを使用します�
 
 独自の編集コマンドと、Emacs全体で使用するキー割り当てをまとめます。
 
+** Move Text：行・選択範囲の上下移動
+
+VS Codeと同様に、Option＋上下キーで
+現在行または選択中の複数行を上下へ移動します。
+
+#+begin_src emacs-lisp
+  (use-package move-text
+    :ensure t
+
+    :bind
+    (("M-<up>"   . move-text-up)
+     ("M-<down>" . move-text-down)))
+#+end_src
+
 ** アンドゥ・リドゥ
 
 #+begin_src emacs-lisp
