@@ -1394,7 +1394,7 @@ Verticoなどのミニバッファ補完候補に、
      ;; ブックマークをミニバッファで選択する。
      ("s-b" . consult-bookmark)
 
-     ("M-s l" . consult-line)
+     ("s-f" . consult-line)
      ("M-g f" . consult-flymake)))
 #+end_src
 ** バッファ補完
