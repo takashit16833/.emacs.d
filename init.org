@@ -417,6 +417,9 @@ Emacs上のバッファも自動的に更新します。
     ;; 削除したファイルを直接消さず、macOSのゴミ箱へ移動する。
     (delete-by-moving-to-trash t)
 
+    ;; 隠しファイルは表示するが、`.` と `..` は表示しない。
+    (dired-listing-switches "-Al")
+
     :custom-face
     ;; 通常ファイル
     (my-dired-file-face
@@ -467,9 +470,8 @@ Emacs上のバッファも自動的に更新します。
     ;; 階層ごとに付けられる背景色を使用しない。
     (dired-subtree-use-backgrounds nil)
 
-    ;; デフォルトの1空白より深くインデントし、縦罫線を表示する。
-    ;; 深い階層では「│   │   」のように繰り返される。
-    (dired-subtree-line-prefix "│   ")
+    ;; 罫線なしで、階層ごとに4文字インデントする。
+    (dired-subtree-line-prefix "    ")
 
     ;; 罫線へサブツリー用のfaceを継承させない。
     (dired-subtree-line-prefix-face nil)
