@@ -675,9 +675,10 @@ Tab Lineのバッファ名は並び順を維持し、
         buffers))
 
     (defun my/close-tab-or-window ()
-      "Buffer、Window、Tab Bar、Emacsの順で閉じる。"
+      "Buffer、Window、Tab Barの順で閉じる。
+  最後のTab BarではEmacsを終了しない。"
       (interactive)
-      (let ((buffer-count
+      (let ((visible-buffer-count
              ;; 現在のTab BarでTab Lineへ表示されるバッファ数。
              (length
               (funcall tab-line-tabs-function)))
@@ -686,28 +687,29 @@ Tab Lineのバッファ名は並び順を維持し、
              (length
               (funcall tab-bar-tabs-function))))
         (cond
-         ;; バッファが複数ある場合：
+         ;; Tab Lineへ表示されるバッファが1つ以上ある場合：
          ;; 現在のバッファを破壊せず、このTab Barからだけ外す。
-         ((> buffer-count 1)
+         ;;
+         ;; 最後の表示対象バッファを外すと、
+         ;; Tab Lineには何も表示されず、専用Scratchだけが残る。
+         ((> visible-buffer-count 0)
           (bufferlo-bury))
 
-         ;; 最後のバッファで、ウィンドウが複数ある場合：
+         ;; 表示対象バッファがなく、ウィンドウが複数ある場合：
          ;; 現在のウィンドウを閉じる。
          ((not (one-window-p))
           (delete-window))
 
-         ;; 最後のウィンドウで、Tab Barが複数ある場合：
+         ;; 表示対象バッファがなく、最後のウィンドウで、
+         ;; Tab Barが複数ある場合：
          ;; 現在のTab Barを閉じる。
          ((> tab-count 1)
           (tab-close))
 
-         ;; 最後のTab BarではEmacsを終了しない。
-         (t (message "最後のTab Barなので、Emacsは終了しません"))
-
-         ;; 最後のTab Barまで到達した場合：
-         ;; 保存確認などを行ってEmacsを終了する。
-         ;(t (save-buffers-kill-emacs))
-         )))
+         ;; 表示対象バッファがなく、最後のTab Barの場合：
+         ;; Emacsは終了しない。
+         (t
+          (message "最後のTab Barなので、Emacsは終了しません")))))
 
     ;; Tab Barを切り替えても、ウィンドウごとの並び順を保持する。
     (add-to-list
