@@ -492,36 +492,39 @@ Org関連の設定やコマンドから参照するファイルパスを定義�
 
 Orgファイルの初期表示、TODO状態、Agenda対象ファイルを設定します。
 #+begin_src emacs-lisp
-(use-package org
-  :ensure nil
-  :defer t
+  (use-package org
+    :ensure nil
+    :defer t
 
-  :init
-  ;; Org modeでもShift+矢印による範囲選択を使用する。
-  ;;
-  ;; org-replace-disputed-keysはOrgのShift+矢印操作を別キーへ移すため、
-  ;; Orgが読み込まれる前に設定する。
-  (setq org-support-shift-select t
-        org-replace-disputed-keys t)
+    :init
+    ;; Org modeでもShift+矢印による範囲選択を使用する。
+    ;;
+    ;; org-replace-disputed-keysはOrgのShift+矢印操作を別キーへ移すため、
+    ;; Orgが読み込まれる前に設定する。
+    (setq org-support-shift-select t
+          org-replace-disputed-keys t)
 
-  :custom
-  ;; Orgファイルを開いたとき、見出しを折りたたんで表示する。
-  (org-startup-folded 'content)
+    :custom
+    ;; Orgファイルを開いたとき、見出しを折りたたんで表示する。
+    (org-startup-folded 'content)
 
-  ;; アウトラインレベルに応じて視覚的にインデントする。
-  (org-startup-indented t)
+    ;; アウトラインレベルに応じて視覚的にインデントする。
+    (org-startup-indented t)
 
-  ;; =などを非表示にする
-  (org-hide-emphasis-markers t)
+    ;; =などを非表示にする
+    (org-hide-emphasis-markers t)
 
-  ;; DONEへ変更した日時を記録する。
-  (org-log-done 'time)
+    ;; DONEへ変更した日時を記録する。
+    (org-log-done 'time)
 
-  :config
-  ;; InboxとCockpitをAgendaの検索対象にする。
-  (setq org-agenda-files
-        (list my/task-inbox-file
-              my/task-cockpit-file)))
+    ;; インデント済みの位置でTABを押した場合は補完を実行する。
+    (tab-always-indent 'complete)
+
+    :config
+    ;; InboxとCockpitをAgendaの検索対象にする。
+    (setq org-agenda-files
+          (list my/task-inbox-file
+                my/task-cockpit-file)))
 #+end_src
 ** 作業項目の登録
 
@@ -1269,9 +1272,9 @@ VS CodeのRetro Hacker Blueを元にしたカラーテーマを使用します�
 
     :bind
     (("s-z" . undo-fu-only-undo)
-     ("s-Z" . undo-fu-only-redo)))
+     ("s-Z" . undo-fu-only-redo)
+     ("s-x" . undo-fu-clear-all)))
 #+end_src
-
 
 ** 独自の編集コマンド
 
