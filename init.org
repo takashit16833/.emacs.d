@@ -373,14 +373,19 @@ Emacs上のバッファも自動的に更新します。
           (when (buffer-live-p dired-buffer)
             (kill-buffer dired-buffer))))))
 
+  (defun my-dired-disable-line-numbers ()
+    "Diredでは行番号を表示しない。"
+    (display-line-numbers-mode -1))
+
   (use-package dired
     :ensure nil
 
     :hook
     ;; 所有者、権限、日時などを最初は隠して、一覧をすっきり表示する。
     ((dired-mode . dired-hide-details-mode)
-     (dired-mode . my-dired-fontify-regular-files))
-    
+     (dired-mode . my-dired-fontify-regular-files)
+     (dired-mode . my-dired-disable-line-numbers))
+
     :bind
     ("C-c d" . my-project-dired-other-window)
 
@@ -430,27 +435,54 @@ Emacs上のバッファも自動的に更新します。
 
 ** Nerd Icons Dired：Diredのアイコン表示
 #+begin_src emacs-lisp
-(use-package nerd-icons-dired
-  :ensure t
-  :after (dired nerd-icons)
+  (defun my-nerd-icons-dired-refresh ()
+    "Diredの内容が部分的に変化した後、Nerd Iconsを再描画する。"
+    (when (and (bound-and-true-p nerd-icons-dired-mode)
+               (fboundp 'nerd-icons-dired--refresh))
+      (nerd-icons-dired--refresh)))
 
-  :hook
-  (dired-mode . nerd-icons-dired-mode))
+  (use-package nerd-icons-dired
+    :ensure t
+    :after (dired nerd-icons)
+
+    :hook
+    (dired-mode . nerd-icons-dired-mode))
 #+end_src
 
 ** Dired Subtree：ディレクトリのツリー展開
 #+begin_src emacs-lisp
-(use-package dired-subtree
-  :ensure t
-  :after dired
+  (use-package dired-subtree
+    :ensure t
+    :after dired
 
-  :bind
-  (:map dired-mode-map
-        ;; カーソル位置のディレクトリを展開・折り畳みする。
-        ("<tab>" . dired-subtree-toggle)
+    :bind
+    (:map dired-mode-map
+          ;; カーソル位置のディレクトリを展開・折り畳みする。
+          ("<tab>" . dired-subtree-toggle)
 
-        ;; サブツリーの展開状態を段階的に切り替える。
-        ("<backtab>" . dired-subtree-cycle)))
+          ;; サブツリーの展開状態を段階的に切り替える。
+          ("<backtab>" . dired-subtree-cycle))
+
+    :custom
+    ;; 階層ごとに付けられる背景色を使用しない。
+    (dired-subtree-use-backgrounds nil)
+
+    ;; デフォルトの1空白より深くインデントし、縦罫線を表示する。
+    ;; 深い階層では「│   │   」のように繰り返される。
+    (dired-subtree-line-prefix "│   ")
+
+    ;; 罫線へサブツリー用のfaceを継承させない。
+    (dired-subtree-line-prefix-face nil)
+
+    :config
+    ;; dired-subtreeはDiredバッファの途中へ直接行を挿入するため、
+    ;; 挿入後にNerd Iconsを再描画する。
+    (add-hook 'dired-subtree-after-insert-hook
+              #'my-nerd-icons-dired-refresh)
+
+    ;; 折り畳み後に残ったアイコン用overlayも整理する。
+    (add-hook 'dired-subtree-after-remove-hook
+              #'my-nerd-icons-dired-refresh))
 #+end_src
 
 * ウィンドウとバッファの移動
