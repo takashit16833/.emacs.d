@@ -378,8 +378,9 @@ Emacs上のバッファも自動的に更新します。
 
     :hook
     ;; 所有者、権限、日時などを最初は隠して、一覧をすっきり表示する。
-    (dired-mode . dired-hide-details-mode)
-
+    ((dired-mode . dired-hide-details-mode)
+     (dired-mode . my-dired-fontify-regular-files))
+    
     :bind
     ("C-c d" . my-project-dired-other-window)
 
@@ -393,7 +394,7 @@ Emacs上のバッファも自動的に更新します。
     (define-key dired-mode-map
                 (kbd "q")
                 #'my-dired-quit-and-restore)
-    
+
     :custom
     ;; 2つのDiredを左右に表示している場合、
     ;; コピー・移動先の初期値をもう一方のディレクトリにする。
