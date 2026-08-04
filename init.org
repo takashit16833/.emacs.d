@@ -1193,6 +1193,19 @@ HLSが認識している型、関数、クラスなどをプロジェクト全�
         ("M-g s" . consult-eglot-symbols)))
 #+end_src
 
+** Emacs Lisp開発
+*** Flymake：Emacs Lispのリアルタイム診断
+
+Emacs LispのバッファでFlymakeを有効にし、
+編集中のエラーや警告をリアルタイムで表示します。
+
+#+begin_src emacs-lisp
+  (use-package flymake
+    :ensure nil
+
+    :hook
+    (emacs-lisp-mode . flymake-mode))
+#+end_src
 * 外観
 
 Emacs全体のフォント、テーマ、配色に関する設定をまとめます。
