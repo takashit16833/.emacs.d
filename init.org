@@ -532,27 +532,34 @@ Emacs上のバッファも自動的に更新します。
 
 画面分割を含む作業画面全体を、タブとして切り替えます。
 
-| キー | 操作 |
-|------+------|
+| キー       | 操作                |
+|------------+---------------------|
 | =C-PageDown= | 右隣のTab Barへ移動 |
-| =C-PageUp= | 左隣のTab Barへ移動 |
+| =C-PageUp=   | 左隣のTab Barへ移動 |
 
 どちらも端まで移動すると、反対側へ戻って循環します。
 #+begin_src emacs-lisp
-(use-package tab-bar
-  :ensure nil
+  (use-package tab-bar
+    :ensure nil
 
-  :config
-  ;; Emacs標準のTab Barを有効にする。
-  (tab-bar-mode 0)
+    :custom
+    ;; 新しいタブを作る「＋」ボタンを表示しない。
+    (tab-bar-new-button-show nil)
 
-  ;; Ctrl+PageDown：右隣のTab Barへ移動する。
-  ;; 右端では左端へ戻り、循環する。
-  (keymap-global-set "C-<next>" #'tab-next)
+    ;; 各タブの「×」ボタンを表示しない。
+    (tab-bar-close-button-show nil)
 
-  ;; Ctrl+PageUp：左隣のTab Barへ移動する。
-  ;; 左端では右端へ戻り、循環する。
-  (keymap-global-set "C-<prior>" #'tab-previous))
+    :config
+    ;; Emacs標準のTab Barを有効にする。
+    (tab-bar-mode 1)
+
+    ;; Ctrl+PageDown：右隣のTab Barへ移動する。
+    ;; 右端では左端へ戻り、循環する。
+    (keymap-global-set "C-<next>" #'tab-next)
+
+    ;; Ctrl+PageUp：左隣のTab Barへ移動する。
+    ;; 左端では右端へ戻り、循環する。
+    (keymap-global-set "C-<prior>" #'tab-previous))
 #+end_src
 
 ** Tab Line：ウィンドウ内のバッファ切り替え
