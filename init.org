@@ -2279,6 +2279,24 @@ Emacs設定操作、Org Capture、Org Agendaの入口となるキーを設定し
   ;; カーソル位置から行末までを削除する。
   (global-set-key (kbd "s-<delete>")
                   #'my/delete-to-line-end)
+
+  (defun my/delete-word-forward (arg)
+    "カーソルからARG語先までを、Kill Ringへ保存せずに削除する。"
+    (interactive "p")
+    (let ((start (point)))
+      (forward-word arg)
+      (delete-region start (point))))
+
+  (defun my/delete-word-backward (arg)
+    "カーソルからARG語前までを、Kill Ringへ保存せずに削除する。"
+    (interactive "p")
+    (my/delete-word-forward (- arg)))
+
+  ;; Option+Backspace：カーソル左側の単語を削除する。
+  (keymap-global-set "M-DEL" #'my/delete-word-backward)
+
+  ;; Option+Delete：カーソル右側の単語を削除する。
+  (keymap-global-set "M-<delete>" #'my/delete-word-forward)
 #+end_src
 * 生成ファイルのフッター
 
