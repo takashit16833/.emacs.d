@@ -156,6 +156,36 @@ Emacs本体の設定を =use-package= 形式で整理するために使用して
     (when (fboundp 'scroll-bar-mode)
       (scroll-bar-mode -1)))
 #+end_src
+** Dashboard：起動時の作業ハブ
+
+最近開いたファイル、プロジェクト、ブックマークを表示し、
+各作業場所へ移動するための入口として使用します。
+
+#+begin_src emacs-lisp
+  (use-package dashboard
+    :ensure t
+
+    :custom
+    ;; 内容を画面中央に表示する。
+    (dashboard-center-content t)
+
+    ;; Emacs標準のproject.elからプロジェクトを取得する。
+    (dashboard-projects-backend 'project-el)
+
+    ;; ダッシュボードへ表示する項目。
+    (dashboard-items
+     '((projects  . 5)
+       (recents   . 5)
+       (bookmarks . 5)))
+
+    ;; 項目間を循環して移動できるようにする。
+    (dashboard-navigation-cycle t)
+
+    :config
+    ;; Emacs起動時にDashboardを表示する。
+    (dashboard-setup-startup-hook))
+#+end_src
+
 * macOSとの連携
 
 macOS版Emacs固有の修飾キーと、GUI起動時のシェル環境を設定します。
@@ -580,8 +610,8 @@ NEW-WINDOW-Pが非nilなら、新しいウィンドウへファイルを表示�
 #+begin_src emacs-lisp
   (defun my/close-window-or-tab ()
     "複数ウィンドウなら現在のウィンドウを閉じる。
-1ウィンドウかつ複数Tab Barなら現在のTab Barを閉じる。
-最後のウィンドウかつ最後のTab Barでは何もしない。"
+  1ウィンドウかつ複数Tab Barなら現在のTab Barを閉じる。
+  最後のウィンドウかつ最後のTab Barでは何もしない。"
     (interactive)
     (cond
      ;; ミニバッファを除く通常ウィンドウが複数ある場合。
@@ -602,9 +632,8 @@ NEW-WINDOW-Pが非nilなら、新しいウィンドウへファイルを表示�
     :ensure nil
 
     :custom
-    ;; 新しいTab Barは、ほかのタブと共有しない専用Scratchで始める。
-    (tab-bar-new-tab-choice
-     #'bufferlo-create-local-scratch-buffer)
+    ;; 新しいTab BarはDashboardから始める。
+    (tab-bar-new-tab-choice #'dashboard-open)
 
     ;; 新しいタブを作る「＋」ボタンを表示しない。
     (tab-bar-new-button-show nil)
