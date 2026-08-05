@@ -2129,6 +2129,20 @@ VS CodeのRetro Hacker Blueを元にしたカラーテーマを使用します�
 * 編集操作とキーバインド
 
 独自の編集コマンドと、Emacs全体で使用するキー割り当てをまとめます。
+** Avy：画面内の任意位置へジャンプ
+
+画面内に表示されている文字列を指定し、
+表示されたラベルを入力して、その位置へ移動します。
+
+- =C-;=: 入力した文字列の位置へジャンプ
+
+#+begin_src emacs-lisp
+  (use-package avy
+    :ensure t
+
+    :bind
+    (("s-t" . avy-goto-word-1)))
+#+end_src
 
 ** Move Text：行・選択範囲の上下移動
 
