@@ -239,6 +239,20 @@ ease-out-cubicのアニメーションを使用します。
       (my/pixel-scroll-interpolate
        (window-text-height nil t)))
 
+    (defun my/pixel-scroll-half-page-down ()
+      "ease-out-cubicで半ページ下へスクロールする。"
+      (interactive)
+      (my/pixel-scroll-interpolate
+       (- (max 1
+               (/ (window-text-height nil t) 2)))))
+
+    (defun my/pixel-scroll-half-page-up ()
+      "ease-out-cubicで半ページ上へスクロールする。"
+      (interactive)
+      (my/pixel-scroll-interpolate
+       (max 1
+            (/ (window-text-height nil t) 2))))
+
     ;; pixel-scroll-precision-mode標準のPageUp・PageDownを上書きする。
     (keymap-set pixel-scroll-precision-mode-map
                 "<next>"
@@ -246,8 +260,18 @@ ease-out-cubicのアニメーションを使用します。
 
     (keymap-set pixel-scroll-precision-mode-map
                 "<prior>"
-                #'my/pixel-scroll-page-up))
-#+end_src
+                #'my/pixel-scroll-page-up)
+    
+    ;; Command＋PageDown・PageUpでは半ページずつスクロールする。
+    (keymap-set pixel-scroll-precision-mode-map
+                "s-<next>"
+                #'my/pixel-scroll-half-page-down)
+
+    (keymap-set pixel-scroll-precision-mode-map
+                "s-<prior>"
+                #'my/pixel-scroll-half-page-up)
+    )
+                    #+end_src
 ** Dashboard：起動時の作業ハブ
 
 最近開いたファイル、プロジェクト、ブックマークを表示し、
