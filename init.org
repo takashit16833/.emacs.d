@@ -542,6 +542,26 @@ Emacs上のバッファも自動的に更新します。
 
 どちらも端まで移動すると、反対側へ戻って循環します。
 #+begin_src emacs-lisp
+  (defun my/close-window-or-tab ()
+    "複数ウィンドウなら現在のウィンドウを閉じる。
+1ウィンドウかつ複数Tab Barなら現在のTab Barを閉じる。
+最後のウィンドウかつ最後のTab Barでは何もしない。"
+    (interactive)
+    (cond
+     ;; ミニバッファを除く通常ウィンドウが複数ある場合。
+     ((not (one-window-p t))
+      (delete-window))
+
+     ;; 通常ウィンドウが1つで、Tab Barが複数ある場合。
+     ((> (length
+          (funcall tab-bar-tabs-function))
+         1)
+      (tab-close))
+
+     ;; 最後のウィンドウかつ最後のTab Bar。
+     (t
+      (message "最後のウィンドウとTab Barは閉じません"))))
+
   (use-package tab-bar
     :ensure nil
 
@@ -624,6 +644,9 @@ Tab Lineのバッファ名は並び順を維持し、
        ;; 削除済みのバッファは表示しない。
        (buffer-live-p buffer)
 
+       ;; ミニバッファはTab Lineへ表示しない。
+       (not (minibufferp buffer))
+
        ;; 通常のScratchと、Bufferloが作るタブ専用Scratchを表示しない。
        (not
         (string-prefix-p
@@ -673,51 +696,6 @@ Tab Lineのバッファ名は並び順を維持し、
         (set-window-parameter nil 'tab-line-buffers buffers)
 
         buffers))
-
-    (defun my/close-tab-or-window ()
-      "Buffer、Window、Tab Barの順で閉じる。
-  最後のTab BarではEmacsを終了しない。"
-      (interactive)
-      (let ((visible-buffer-count
-             ;; 現在のTab BarでTab Lineへ表示されるバッファ数。
-             (length
-              (funcall tab-line-tabs-function)))
-            (tab-count
-             ;; 現在のフレームに存在するTab Barの数。
-             (length
-              (funcall tab-bar-tabs-function))))
-        (cond
-         ;; ウィンドウが複数ある場合は、従来の挙動を維持する。
-         ;;
-         ;; 表示対象バッファがあれば、このTab Barからだけ外す。
-         ;; 表示対象バッファがなければ、現在のウィンドウを閉じる。
-         ((not (one-window-p))
-          (if (> visible-buffer-count 0)
-              (bufferlo-bury)
-            (delete-window)))
-
-         ;; Tab Barが複数ある場合：
-         ;; 他のTab Barで同じバッファを使っている可能性があるため、
-         ;; バッファ自体は削除せず、このTab Barからだけ外す。
-         ((> tab-count 1)
-          (if (> visible-buffer-count 0)
-              (bufferlo-bury)
-            (tab-close)))
-
-         ;; ここからは、最後のウィンドウかつ最後のTab Bar。
-         ;;
-         ;; Scratch以外ならバッファ自体を削除する。
-         ;; Dired、Magit、vtermもここで削除できる。
-         ((not
-           (string-prefix-p
-            "*scratch*"
-            (buffer-name)))
-          (kill-current-buffer))
-
-         ;; Scratchだけが表示されている状態を、
-         ;; VS Codeの「何も開かれていない状態」とみなす。
-         (t
-          (message "最後のTab Barなので、Emacsは終了しません")))))
 
     ;; Tab Barを切り替えても、ウィンドウごとの並び順を保持する。
     (add-to-list
@@ -2246,9 +2224,12 @@ Emacs設定操作、Org Capture、Org Agendaの入口となるキーを設定し
   ;; macOS風の貼り付け。
   (keymap-global-set "s-v" #'yank)
 
-  ;; Tab Lineの最後のタブならウィンドウを閉じ、
-  ;; それ以外なら現在のタブを閉じる。
-  (keymap-global-set "s-w" #'my/close-tab-or-window)
+  ;; 現在のバッファを、このTab Barのローカル一覧から外す。
+  (keymap-global-set "s-w" #'bufferlo-bury)
+
+  ;; 複数ウィンドウなら現在のウィンドウを閉じ、
+  ;; 1ウィンドウかつ複数Tab Barなら現在のTab Barを閉じる。
+  (keymap-global-set "s-W" #'my/close-window-or-tab)
 
   ;; Cmd+←：行頭へ移動する。
   (keymap-global-set "s-<left>" #'move-beginning-of-line)
