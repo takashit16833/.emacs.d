@@ -1899,54 +1899,58 @@ Language Server Protocol経由で各言語へ提供します。
 - =C-c L=: LSP Modeのコマンドプレフィックス
 
 #+begin_src emacs-lisp
-(defun my/lsp-format-buffer-before-save ()
-  "LSP管理中のバッファを保存前に整形する。"
-  (when (bound-and-true-p lsp-mode)
-    (lsp-format-buffer)))
+  (defun my/lsp-format-buffer-before-save ()
+    "LSP管理中のバッファを保存前に整形する。"
+    (when (bound-and-true-p lsp-mode)
+      (lsp-format-buffer)))
 
-(use-package lsp-mode
-  :ensure t
-  :demand t
+  (use-package lsp-mode
+    :ensure t
+    :demand t
 
-  :init
-  ;; lsp-mode標準のs-lは、既存の行選択キーと競合するため使用しない。
-  (setq lsp-keymap-prefix "C-c L")
+    :init
+    ;; lsp-mode標準のs-lは、既存の行選択キーと競合するため使用しない。
+    (setq lsp-keymap-prefix "C-c L")
 
-  :custom
-  ;; CorfuからLSPの補完候補を利用する。
-  (lsp-completion-provider :capf)
+    :custom
+    ;; Corfuがcompletion-at-point-functionsを直接利用するため、
+    ;; Companyの自動設定は行わない。
+    (lsp-completion-provider :none)
 
-  ;; import追加など、補完候補に付随する編集も適用する。
-  (lsp-completion-enable-additional-text-edit t)
+    ;; LSPのCAPF連携自体は有効にする。
+    (lsp-completion-enable t)
 
-  ;; 現在Yasnippetを導入していないため、snippet展開は無効にする。
-  (lsp-enable-snippet nil)
+    ;; import追加など、補完候補に付随する編集も適用する。
+    (lsp-completion-enable-additional-text-edit t)
 
-  ;; 現在の診断UIであるFlymakeを維持する。
-  (lsp-diagnostics-provider :flymake)
+    ;; 現在Yasnippetを導入していないため、snippet展開は無効にする。
+    (lsp-enable-snippet nil)
 
-  ;; 最後の管理対象バッファを閉じたとき、Language Serverも終了する。
-  (lsp-keep-workspace-alive nil)
+    ;; 現在の診断UIであるFlymakeを維持する。
+    (lsp-diagnostics-provider :flymake)
 
-  ;; TRAMP先では、接続先環境のLanguage Serverを使用する。
-  (lsp-auto-register-remote-clients t)
+    ;; 最後の管理対象バッファを閉じたとき、Language Serverも終了する。
+    (lsp-keep-workspace-alive nil)
 
-  ;; 既存の控えめなUIを維持し、必要な情報は既存機能で表示する。
-  (lsp-headerline-breadcrumb-enable nil)
-  (lsp-lens-enable nil)
-  (lsp-modeline-code-actions-enable nil)
-  (lsp-modeline-diagnostics-enable nil)
-  (lsp-modeline-workspace-status-enable nil)
+    ;; TRAMP先では、接続先環境のLanguage Serverを使用する。
+    (lsp-auto-register-remote-clients t)
 
-  ;; 通常利用ではLSP通信ログを保存しない。
-  (lsp-log-io nil)
+    ;; 既存の控えめなUIを維持し、必要な情報は既存機能で表示する。
+    (lsp-headerline-breadcrumb-enable nil)
+    (lsp-lens-enable nil)
+    (lsp-modeline-code-actions-enable nil)
+    (lsp-modeline-diagnostics-enable nil)
+    (lsp-modeline-workspace-status-enable nil)
 
-  :bind
-  (:map lsp-mode-map
-        ("C-c l a" . lsp-execute-code-action)
-        ("C-c l r" . lsp-rename)
-        ("C-c l f" . lsp-format-buffer)
-        ("M-g s" . lsp-workspace-symbol)))
+    ;; 通常利用ではLSP通信ログを保存しない。
+    (lsp-log-io nil)
+
+    :bind
+    (:map lsp-mode-map
+          ("C-c l a" . lsp-execute-code-action)
+          ("C-c l r" . lsp-rename)
+          ("C-c l f" . lsp-format-buffer)
+          ("M-g s" . lsp-workspace-symbol)))
 #+end_src
 
 *** Markdown Mode：LSPドキュメントのMarkdown描画

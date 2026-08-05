@@ -54,6 +54,7 @@
 /eshell/history
 /eshell/lastdir
 /network-security.data
+/.lsp-session-v1
 
 # ------------------------------------------------------------
 # Tree-sitter
