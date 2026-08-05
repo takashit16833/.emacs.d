@@ -2070,8 +2070,13 @@ Language Server Protocol経由で各言語へ提供します。
     ;; Child Frameへ表示する。
     (lsp-ui-doc-enable t)
     (lsp-ui-doc-use-childframe t)
-    (lsp-ui-doc-show-with-cursor t)
-    (lsp-ui-doc-show-with-mouse nil)
+
+    ;; カーソルを置いただけでは自動表示しない。
+    (lsp-ui-doc-show-with-cursor nil)
+
+    ;; マウスを重ねたときは自動表示する。
+    (lsp-ui-doc-show-with-mouse t)
+
     (lsp-ui-doc-position 'at-point)
     (lsp-ui-doc-delay 0.30)
 
@@ -2097,12 +2102,27 @@ Language Server Protocol経由で各言語へ提供します。
     (lsp-ui-imenu-auto-refresh 'after-save)
 
     ;; Peekは、定義・参照を現在のウィンドウ内へ一時表示するUI。
-    ;; 現在は標準Xrefの操作感を維持するため無効にする。
-    (lsp-ui-peek-enable nil)
+    (lsp-ui-peek-enable t)
 
-    ;; Sidelineは、診断・Hover・Code Actionを行末付近へ表示するUI。
-    ;; 現在の診断基盤はFlymakeであり、画面の情報量も増えるため無効にする。
-    (lsp-ui-sideline-enable nil)
+    ;; 検索結果が1件でも直接移動せず、必ずPeekを表示する。
+    (lsp-ui-peek-always-show t)
+
+    ;; 行末へHover情報とCode Actionを表示する。
+    (lsp-ui-sideline-enable t)
+    ;; カーソル位置の型など、短いHover情報を行末へ表示する。
+    (lsp-ui-sideline-show-hover t)
+    ;; 利用できるQuick FixやRefactorを行末へ表示する。
+    (lsp-ui-sideline-show-code-actions t)
+
+    ;; 診断表示はFlymakeへ一本化する。
+    (lsp-ui-sideline-show-diagnostics nil)
+
+    ;; シンボル名そのものは表示せず、補足情報だけに絞る。
+    (lsp-ui-sideline-show-symbol nil)
+    ;; カーソルが行を移動してから表示するまで少し待つ。
+    (lsp-ui-sideline-delay 0.30)
+    ;; 1文字動くたびではなく、行が変わったときに更新する。
+    (lsp-ui-sideline-update-mode 'line)
 
     :config
     ;; Child Frameの背景とヘッダーを、白枠のないフラットなカードにする。
