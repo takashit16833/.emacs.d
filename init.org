@@ -1626,66 +1626,70 @@ Cmd+Shift+jでは、現在のウィンドウ構成に応じて分割表示しま
 - 左右分割: フレームの下30%
 
 #+begin_src emacs-lisp
-(use-package vterm-toggle
-  :ensure t
+  (use-package vterm-toggle
+    :ensure t
 
-  :preface
-  (defun my/vterm-toggle--left-right-layout-p ()
-    "選択ウィンドウに左右隣接するウィンドウがあるとき、非nilを返す。"
-    (or (window-in-direction 'left)
-        (window-in-direction 'right)))
+    :preface
+    ;; vterm-toggle本体が遅延読み込みされる前に、
+    ;; この変数を動的束縛される変数として宣言しておく。
+    (defvar vterm-toggle-fullscreen-p)
 
-  (defun my/vterm-toggle--display-buffer (buffer _alist)
-    "現在のウィンドウ構成に応じたフレーム位置へBUFFERを表示する。"
-    (if (my/vterm-toggle--left-right-layout-p)
+    (defun my/vterm-toggle--left-right-layout-p ()
+      "選択ウィンドウに左右隣接するウィンドウがあるとき、非nilを返す。"
+      (or (window-in-direction 'left)
+          (window-in-direction 'right)))
+
+    (defun my/vterm-toggle--display-buffer (buffer _alist)
+      "現在のウィンドウ構成に応じたフレーム位置へBUFFERを表示する。"
+      (if (my/vterm-toggle--left-right-layout-p)
+          (display-buffer-in-direction
+           buffer
+           '((direction . below)
+             (window . root)
+             (window-height . 0.30)))
         (display-buffer-in-direction
          buffer
-         '((direction . below)
+         '((direction . right)
            (window . root)
-           (window-height . 0.30)))
-      (display-buffer-in-direction
-       buffer
-       '((direction . right)
-         (window . root)
-         (window-width . 0.50)))))
+           (window-width . 0.50)))))
 
-  (defun my/vterm-toggle-split ()
-    "現在のウィンドウ構成に応じてvtermを分割表示・非表示にする。"
-    (interactive)
-    (let ((vterm-toggle-fullscreen-p nil)
-          (display-buffer-alist
-           (cons
-            '((lambda (buffer-or-name _action)
-                (let ((buffer (get-buffer buffer-or-name)))
-                  (and buffer
-                       (with-current-buffer buffer
-                         (derived-mode-p 'vterm-mode)))))
-              (display-buffer-reuse-window
-               my/vterm-toggle--display-buffer))
-            display-buffer-alist)))
-      (vterm-toggle)))
+    (defun my/vterm-toggle-split ()
+      "現在のウィンドウ構成に応じてvtermを分割表示・非表示にする。"
+      (interactive)
+      (let ((vterm-toggle-fullscreen-p nil)
+            (display-buffer-alist
+             (cons
+              '((lambda (buffer-or-name _action)
+                  (let ((buffer (get-buffer buffer-or-name)))
+                    (and buffer
+                         (with-current-buffer buffer
+                           (derived-mode-p 'vterm-mode)))))
+                (display-buffer-reuse-window
+                 my/vterm-toggle--display-buffer))
+              display-buffer-alist)))
+        (vterm-toggle)))
 
-  ;; vterm-toggleを遅延読み込み可能なコマンドとして登録する。
-  :commands vterm-toggle
+    ;; vterm-toggleを遅延読み込み可能なコマンドとして登録する。
+    :commands vterm-toggle
 
-  ;; Emacs起動直後からCmd+jとCmd+Shift+jを使えるようにする。
-  :bind
-  (("s-j" . vterm-toggle)
-   ("s-J" . my/vterm-toggle-split))
+    ;; Emacs起動直後からCmd+jとCmd+Shift+jを使えるようにする。
+    :bind
+    (("s-j" . vterm-toggle)
+     ("s-J" . my/vterm-toggle-split))
 
-  :custom
-  ;; 通常のvterm-toggleは全画面で表示する。
-  (vterm-toggle-fullscreen-p t)
+    :custom
+    ;; 通常のvterm-toggleは全画面で表示する。
+    (vterm-toggle-fullscreen-p t)
 
-  ;; vtermを隠したとき、元のウィンドウ構成へ戻す。
-  ;; configrationはパッケージ側の変数名どおりの綴り。
-  (vterm-toggle-hide-method 'reset-window-configration)
+    ;; vtermを隠したとき、元のウィンドウ構成へ戻す。
+    ;; configrationはパッケージ側の変数名どおりの綴り。
+    (vterm-toggle-hide-method 'reset-window-configration)
 
-  ;; プロジェクトごとにvtermを管理する。
-  (vterm-toggle-scope 'project)
+    ;; プロジェクトごとにvtermを管理する。
+    (vterm-toggle-scope 'project)
 
-  ;; 新しいvtermをプロジェクトルートで起動する。
-  (vterm-toggle-project-root t))
+    ;; 新しいvtermをプロジェクトルートで起動する。
+    (vterm-toggle-project-root t))
 #+end_src
 
 ** バージョン管理
