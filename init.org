@@ -280,17 +280,14 @@ Emacs上のバッファも自動的に更新します。
   (require 'dired)
   (require 'project)
 
-  (defun my-project-dired-other-window ()
-    "プロジェクトルートを、一時的なDiredとして別ウィンドウに開く。"
-    (interactive)
-    (let* ((origin-window (selected-window))
-           ;; Diredを開く前のウィンドウ構成を保存する。
-           (window-config (current-window-configuration))
-           (project       (project-current t))
-           (root          (project-root project)))
+  (defun my-dired-open-picker (directory &optional switches)
+    "DIRECTORYを、一時的なDiredとして別ウィンドウに開く。"
+    (let ((origin-window (selected-window))
+          ;; Diredを開く前のウィンドウ構成を保存する。
+          (window-config (current-window-configuration)))
 
       ;; ウィンドウを分割、または既存の別ウィンドウを使ってDiredを開く。
-      (dired-other-window root)
+      (dired-other-window directory switches)
 
       ;; Diredを表示しているウィンドウに、
       ;; 戻り先と元のウィンドウ構成を記録する。
@@ -304,15 +301,46 @@ Emacs上のバッファも自動的に更新します。
        'my-dired-window-config
        window-config)))
 
+  (defun my-dired-other-window (directory &optional switches)
+    "DIRECTORYを選択し、一時的なDiredとして別ウィンドウに開く。"
+    (interactive (dired-read-dir-and-switches ""))
+    (my-dired-open-picker directory switches))
+
+  (defun my-project-dired-other-window ()
+    "プロジェクトルートを、一時的なDiredとして別ウィンドウに開く。"
+    (interactive)
+    (let* ((project (project-current t))
+           (root    (project-root project)))
+      (my-dired-open-picker root)))
+
   (defun my-dired--clear-picker-state (window)
     "WINDOWに保存した一時Dired用の情報を削除する。"
     (set-window-parameter window 'my-dired-origin-window nil)
     (set-window-parameter window 'my-dired-window-config nil))
 
-  (defun my-dired-find-file-and-restore ()
-    "一時Diredなら、選択したファイルを元のウィンドウで開いてDiredを終了する。"
-    (interactive)
-    (let* ((dired-window  (selected-window))
+  (defun my-dired--display-file-after-restore
+      (file-buffer new-window-p)
+    "FILE-BUFFERを復元後の画面に表示する。
+NEW-WINDOW-Pが非nilなら、新しいウィンドウを作成して表示する。"
+    (if (not new-window-p)
+        (switch-to-buffer file-buffer)
+
+      (let ((new-window
+             (split-window-sensibly (selected-window))))
+        (if (window-live-p new-window)
+            (progn
+              (set-window-buffer new-window file-buffer)
+              (select-window new-window))
+
+          ;; フレームが小さく分割できない場合も、ファイルは開けるようにする。
+          (message
+           "新しいウィンドウを作成できないため、現在のウィンドウで開きます")
+          (switch-to-buffer file-buffer)))))
+
+  (defun my-dired--find-file-and-restore (new-window-p)
+    "一時Diredで選択したファイルを開き、元の画面へ戻す。
+NEW-WINDOW-Pが非nilなら、新しいウィンドウへファイルを表示する。"
+    (let* ((dired-window (selected-window))
            (origin-window
             (window-parameter dired-window
                               'my-dired-origin-window))
@@ -321,9 +349,11 @@ Emacs上のバッファも自動的に更新します。
                               'my-dired-window-config))
            (file (dired-get-file-for-visit)))
 
-      ;; 通常の方法で開いたDiredでは、標準動作のままにする。
+      ;; 一時Dired以外では、Emacs標準のDired動作を維持する。
       (if (not (window-configuration-p window-config))
-          (dired-find-file)
+          (if new-window-p
+              (dired-find-file-other-window)
+            (dired-find-file))
 
         ;; ディレクトリを選んだ場合は、Dired内で移動を続ける。
         (if (file-directory-p file)
@@ -344,12 +374,24 @@ Emacs上のバッファも自動的に更新します。
             (when (window-live-p origin-window)
               (select-window origin-window))
 
-            ;; 選択したファイルを元の作業ウィンドウに表示する。
-            (switch-to-buffer file-buffer)
+            ;; 選択した方法でファイルを表示する。
+            (my-dired--display-file-after-restore
+             file-buffer
+             new-window-p)
 
             ;; 一時的に使ったDiredバッファを削除する。
             (when (buffer-live-p dired-buffer)
               (kill-buffer dired-buffer)))))))
+
+  (defun my-dired-find-file-and-restore ()
+    "選択したファイルを元の作業ウィンドウで開き、Diredを終了する。"
+    (interactive)
+    (my-dired--find-file-and-restore nil))
+
+  (defun my-dired-find-file-new-window-and-restore ()
+    "選択したファイルを新しいウィンドウで開き、Diredを終了する。"
+    (interactive)
+    (my-dired--find-file-and-restore t))
 
   (defun my-dired-quit-and-restore ()
     "一時Diredをキャンセルし、元のウィンドウ構成へ戻す。"
@@ -390,13 +432,19 @@ Emacs上のバッファも自動的に更新します。
      (dired-mode . my-dired-disable-line-numbers))
 
     :bind
-    ("C-c d" . my-project-dired-other-window)
+    (("C-x d" . my-dired-other-window)
+     ("C-c d" . my-project-dired-other-window))
 
     :config
     ;; RET、f、eなど、`dired-find-file'を呼ぶキーをまとめて置き換える。
     (define-key dired-mode-map
                 [remap dired-find-file]
                 #'my-dired-find-file-and-restore)
+
+    ;; Cmd+RETでは、元の画面を復元してから新しいウィンドウで開く。
+    (define-key dired-mode-map
+                (kbd "s-<return>")
+                #'my-dired-find-file-new-window-and-restore)
 
     ;; qでキャンセルした場合も、元の画面へ完全に戻す。
     (define-key dired-mode-map
