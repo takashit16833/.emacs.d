@@ -1958,6 +1958,20 @@ Language Server Protocol経由で各言語へ提供します。
     ;; 通常利用ではLSP通信ログを保存しない。
     (lsp-log-io nil)
 
+    :config
+    ;; Breadcrumbを囲む枠線を消し、文字とアイコンだけを表示する。
+    (set-face-attribute 'header-line nil :box nil)
+    (set-face-attribute 'header-line-highlight nil :box nil)
+
+    (with-eval-after-load 'lsp-headerline
+      (dolist (face
+               '(lsp-headerline-breadcrumb-separator-face
+                 lsp-headerline-breadcrumb-path-face
+                 lsp-headerline-breadcrumb-project-prefix-face
+                 lsp-headerline-breadcrumb-unknown-project-prefix-face
+                 lsp-headerline-breadcrumb-symbols-face))
+        (set-face-attribute face nil :box nil)))
+
     :bind
     (:map lsp-mode-map
           ("C-c l a" . lsp-execute-code-action)
@@ -1966,174 +1980,58 @@ Language Server Protocol経由で各言語へ提供します。
           ("M-g s" . lsp-workspace-symbol)))
 #+end_src
 
-*** Markdown Mode：LSPドキュメントのMarkdown描画
+*** LSP UI：高機能UI
 
-LSPサーバーから渡されるMarkdown形式のドキュメントを、
-Eldoc Box内で装飾して表示します。
+=lsp-ui= が提供する高水準UIを有効にします。
+パッケージには =lsp-ui-doc=、=lsp-ui-imenu=、=lsp-ui-peek=、
+=lsp-ui-sideline= が含まれますが、ここではドキュメント表示と
+シンボル一覧を中心に使用します。
 
-#+begin_src emacs-lisp
-(use-package markdown-mode
-  :ensure t
-  :defer t)
-#+end_src
-
-*** Eldoc Box
-
-LSP Modeが言語サーバーから取得したカーソル位置の型、
-シグネチャ、ドキュメントをポップアップ表示します。
-
-- =C-c l h=: カーソル位置の情報を表示
+- =C-c l h=: カーソル位置の型・ドキュメントを表示
+- =C-c l i=: 現在のバッファのシンボル一覧を右側へ表示
 
 #+begin_src emacs-lisp
-  (defun my-eldoc-box-rich-buffer-setup (source-buffer)
-    "Render Eldoc documentation as GitHub-flavored Markdown.
-
-                SOURCE-BUFFER is the buffer from which Eldoc was requested."
-    ;; まずeldoc-box標準の整形処理を適用する。
-    (eldoc-box-buffer-setup source-buffer)
-
-    (let ((inhibit-read-only t))
-      ;; Markdownの表示専用モードにする。
-      ;;
-      ;; - **bold**             → 太字
-      ;; - [label](URL)        → labelだけ表示
-      ;; - ```haskell ... ```  → Haskellとして構文強調
-      (gfm-view-mode)
-
-      ;; Eldoc Boxの中では行番号を表示しない。
-      (display-line-numbers-mode -1)
-      (setq-local display-line-numbers nil)
-
-      (setq-local
-       markdown-hide-markup t
-       markdown-hide-urls t
-       markdown-fontify-code-blocks-natively t
-
-       ;; child frame内では通常のバッファUIを隠す。
-       mode-line-format nil
-       tab-line-format nil
-       cursor-type nil
-
-       ;; 少しゆったり表示する。
-       line-spacing 0.16
-       truncate-lines nil
-
-       header-line-format nil)
-
-      ;; Markdownの記号を非表示にする。
-      (add-to-invisibility-spec 'markdown-markup)
-
-      ;; child frame全体にeldoc-box用Faceを適用する。
-      (buffer-face-set 'eldoc-box-body)
-
-      (visual-line-mode 1)
-
-      ;; eldoc-box標準セットアップ内でも設定される内部状態。
-      ;; gfm-view-modeによるMajor mode変更後に復元する。
-      (setq-local eldoc-box-hover-mode t)
-
-      ;; 挿入済みのMarkdownをすぐに描画する。
-      (font-lock-flush)
-      (font-lock-ensure)
-
-      ;; 先頭のコードフェンス行を、改行も含めて表示上たたむ。
-      (let ((inhibit-read-only t))
-        (save-excursion
-          (goto-char (point-min))
-
-          ;; 本物の空行がある場合は削除する。
-          (while (looking-at "[ \t]*\n")
-            (delete-region (match-beginning 0)
-                           (match-end 0)))
-
-          ;; ```haskell の行は構文強調のため残しつつ、
-          ;; 改行を含む行全体を表示しない。
-          (when (looking-at "[ \t]*```[^\n]*\n")
-            (put-text-property
-             (match-beginning 0)
-             (match-end 0)
-             'display ""))))))
-
-  (use-package eldoc-box
+  (use-package lsp-ui
     :ensure t
-    :after (lsp-mode markdown-mode)
+    :after lsp-mode
+
+    :hook
+    (lsp-mode . lsp-ui-mode)
 
     :bind
-    (:map lsp-mode-map
-          ("C-c l h" . eldoc-box-help-at-point))
+    (:map lsp-ui-mode-map
+          ("C-c l h" . lsp-ui-doc-show)
+          ("C-c l i" . lsp-ui-imenu))
 
     :custom
-    ;; 横に広がりすぎないカードサイズ。
-    (eldoc-box-max-pixel-width 760)
-    (eldoc-box-max-pixel-height 480)
+    ;; カーソル位置の型・シグネチャ・ドキュメントを
+    ;; Child Frameへ表示する。
+    (lsp-ui-doc-enable t)
+    (lsp-ui-doc-use-childframe t)
+    (lsp-ui-doc-show-with-cursor t)
+    (lsp-ui-doc-show-with-mouse nil)
+    (lsp-ui-doc-position 'at-point)
+    (lsp-ui-doc-delay 0.35)
+    (lsp-ui-doc-header t)
+    (lsp-ui-doc-include-signature t)
+    (lsp-ui-doc-enhanced-markdown t)
+    (lsp-ui-doc-max-width 100)
+    (lsp-ui-doc-max-height 20)
 
-    ;; カーソルとの距離。
-    (eldoc-box-offset '(18 18 16))
+    ;; 現在のバッファにある型、関数、クラスなどを
+    ;; VS CodeのOutlineに近い右側の一覧で表示する。
+    (lsp-ui-imenu-enable t)
+    (lsp-ui-imenu-buffer-position 'right)
+    (lsp-ui-imenu-kind-position 'top)
+    (lsp-ui-imenu-window-width 38)
+    (lsp-ui-imenu-window-fix-width t)
+    (lsp-ui-imenu-auto-refresh 'after-save)
 
-    ;; C-gで閉じる。
-    (eldoc-box-clear-with-C-g t)
-
-    ;; fringeも本体と同じ背景にする。
-    (eldoc-box-fringe-use-same-bg t)
-
-    :config
-    ;; Markdown表示用セットアップを使用する。
-    (setq-default
-     eldoc-box-buffer-setup-function
-     #'my-eldoc-box-rich-buffer-setup)
-
-    ;; カードの内側余白。
-    (setf (alist-get 'internal-border-width
-                     eldoc-box-frame-parameters)
-          2)
-
-    (setf (alist-get 'left-fringe
-                     eldoc-box-frame-parameters)
-          14)
-
-    (setf (alist-get 'right-fringe
-                     eldoc-box-frame-parameters)
-          14)
-
-    ;; Retro Hacker Blueのパレットに合わせる。
-    (set-face-attribute
-     'eldoc-box-body nil
-     :background "#07162B"
-     :foreground "#A6CAFF")
-
-    (set-face-attribute
-     'eldoc-box-border nil
-     :background "#5EAFFF")
-
-    ;; フェンス付きコードブロック。
-    (set-face-attribute
-     'markdown-code-face nil
-     :background "#0D172F"
-     :foreground "#BFD7FF"
-     :extend t)
-
-    ;; インラインコード。
-    (set-face-attribute
-     'markdown-inline-code-face nil
-     :background "#0D172F"
-     :foreground "#00FFFF")
-
-    ;; リンク、太字、Markdown区切り。
-    (set-face-attribute
-     'markdown-link-face nil
-     :foreground "#87CEEB"
-     :underline t)
-
-    (set-face-attribute
-     'markdown-bold-face nil
-     :foreground "#FFFFFF"
-     :weight 'bold)
-
-    (set-face-attribute
-     'markdown-markup-face nil
-     :foreground "#316CBD"))
+    ;; 今回は明示的に採用したDocとImenuへ絞る。
+    ;; PeekとSidelineは、必要になった時点で個別に有効化する。
+    (lsp-ui-peek-enable nil)
+    (lsp-ui-sideline-enable nil))
 #+end_src
-
 
 ** Haskell開発
 
