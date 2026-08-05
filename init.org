@@ -433,7 +433,7 @@ NEW-WINDOW-Pが非nilなら、新しいウィンドウへファイルを表示�
 
     :bind
     (("C-x d" . my-dired-other-window)
-     ("C-c d" . my-project-dired-other-window))
+     ("s-b" . my-project-dired-other-window))
 
     :config
     ;; RET、f、eなど、`dired-find-file'を呼ぶキーをまとめて置き換える。
@@ -1414,11 +1414,10 @@ Verticoなどのミニバッファ補完候補に、
      #'bufferlo-buffer-list)
 
     :bind
-    (("C-c r" . consult-recent-file)
-     ("C-c b" . consult-buffer)
+    (("C-c r" . consult-buffer)
 
      ;; ブックマークをミニバッファで選択する。
-     ("s-b" . consult-bookmark)
+     ("C-c m" . consult-bookmark)
 
      ("s-f" . consult-line)
      ("M-g f" . consult-flymake)))
