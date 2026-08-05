@@ -101,7 +101,7 @@ Emacs本体の設定を =use-package= 形式で整理するために使用して
     :init
     ;; カーソルを幅2pxの縦ラインにする。
     (setq-default cursor-type '(bar . 2))
-    
+
     ;; Customizeが生成した設定をinit.elへ直接書き込ませない。
     ;; init.elはinit.orgから再生成されるため、別ファイルへ分離する。
     (setq custom-file
@@ -147,6 +147,9 @@ Emacs本体の設定を =use-package= 形式で整理するために使用して
     (tab-always-indent 'complete)
 
     :config
+    ;; Repeat対応コマンドを、短いキーで連続実行できるようにする。
+    (repeat-mode 1)
+
     ;; 選択範囲がある状態で入力すると、選択範囲を置換する。
     (delete-selection-mode 1)
 
