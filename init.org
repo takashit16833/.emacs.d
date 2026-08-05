@@ -2215,7 +2215,6 @@ VS Codeと同様に、Option＋上下キーで
 #+end_src
 
 ** 独自の編集コマンド
-
 *** 現在の行を選択
 #+begin_src emacs-lisp
 (defun my/select-current-line ()
@@ -2280,6 +2279,91 @@ VS Codeに近い行単位の操作を追加します。
    (line-beginning-position 2)))
 
 (keymap-global-set "s-K" #'my/delete-current-line)
+#+end_src
+*** 行・選択範囲の複製
+#+begin_src emacs-lisp
+  (defun my/line-block-bounds ()
+    "現在行、または選択範囲を含む行全体の範囲を返す。"
+    (if (use-region-p)
+        (let ((beg (region-beginning))
+              (end (region-end)))
+          (cons
+           (save-excursion
+             (goto-char beg)
+             (line-beginning-position))
+           (save-excursion
+             (goto-char end)
+             ;; 選択範囲の末尾が行頭の場合、その行は含めない。
+             (if (and (bolp) (> end beg))
+                 end
+               (line-beginning-position 2)))))
+      (cons (line-beginning-position)
+            (line-beginning-position 2))))
+
+  (defun my/duplicate-lines (direction)
+    "現在行または選択した行をDIRECTION方向へ複製する。"
+    (let* ((region-active-p (use-region-p))
+           (original-point (point))
+           (original-mark (and region-active-p (mark)))
+           (bounds (my/line-block-bounds))
+           (beg (car bounds))
+           (end (cdr bounds))
+           (text (buffer-substring beg end))
+           (point-offset (- original-point beg))
+           (mark-offset
+            (and region-active-p
+                 (- original-mark beg)))
+           (ends-with-newline-p
+            (and (> end beg)
+                 (eq (char-before end) ?\n)))
+           copy-beg)
+
+      (atomic-change-group
+        (pcase direction
+          ('down
+           (goto-char end)
+
+           ;; ファイル末尾に改行がない場合は、行を分離する。
+           (unless ends-with-newline-p
+             (insert "\n"))
+
+           (setq copy-beg (point))
+           (insert text))
+
+          ('up
+           (goto-char beg)
+           (setq copy-beg (point))
+           (insert text)
+
+           ;; ファイル末尾に改行がない行を上へ複製する場合も分離する。
+           (unless ends-with-newline-p
+             (insert "\n"))))
+
+        ;; 複製された側へカーソルと選択範囲を移動する。
+        (if region-active-p
+            (let ((new-point (+ copy-beg point-offset))
+                  (new-mark (+ copy-beg mark-offset)))
+              (goto-char new-mark)
+              (set-mark (point))
+              (goto-char new-point)
+              (activate-mark))
+          (goto-char (+ copy-beg point-offset))))))
+
+  (defun my/duplicate-lines-up ()
+    "現在行または選択した行を上へ複製する。"
+    (interactive)
+    (my/duplicate-lines 'up))
+
+  (defun my/duplicate-lines-down ()
+    "現在行または選択した行を下へ複製する。"
+    (interactive)
+    (my/duplicate-lines 'down))
+
+  (global-set-key (kbd "S-M-<up>")
+                  #'my/duplicate-lines-up)
+
+  (global-set-key (kbd "S-M-<down>")
+                  #'my/duplicate-lines-down)
 #+end_src
 ** グローバルキーバインド
 
