@@ -1935,13 +1935,26 @@ Language Server Protocol経由で各言語へ提供します。
     ;; TRAMP先では、接続先環境のLanguage Serverを使用する。
     (lsp-auto-register-remote-clients t)
 
-    ;; 既存の控えめなUIを維持し、必要な情報は既存機能で表示する。
-    (lsp-headerline-breadcrumb-enable nil)
-    (lsp-lens-enable nil)
-    (lsp-modeline-code-actions-enable nil)
-    (lsp-modeline-diagnostics-enable nil)
-    (lsp-modeline-workspace-status-enable nil)
+    ;; 画面上部に、現在のプロジェクト・ファイル・シンボル階層を表示する。
+    ;; VS CodeのBreadcrumbに近い表示。
+    (lsp-headerline-breadcrumb-enable t)
 
+    ;; 関数や定義の上に、Language Serverが提供する補助情報を表示する。
+    ;; HLSでは型情報や参照情報などが表示されることがある。
+    ;; 画面が賑やかすぎる場合は、ここだけnilへ戻す。
+    (lsp-lens-enable t)
+
+    ;; 現在位置で利用可能なCode Actionがあることを
+    ;; モードラインへ表示する。
+    (lsp-modeline-code-actions-enable t)
+
+    ;; エラー・警告・情報の件数をモードラインへ表示する。
+    (lsp-modeline-diagnostics-enable t)
+
+    ;; Language Serverの接続状態や処理状態を
+    ;; モードラインへ表示する。
+    (lsp-modeline-workspace-status-enable t)
+    
     ;; 通常利用ではLSP通信ログを保存しない。
     (lsp-log-io nil)
 
