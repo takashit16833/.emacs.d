@@ -2005,6 +2005,9 @@ Language Server Protocol経由で各言語へ提供します。
 
 - =C-c l h=: カーソル位置の型・ドキュメントを表示
 - =C-c l i=: 現在のバッファのシンボル一覧を右側へ表示
+- =C-c l p d=: 定義をPeek表示
+- =C-c l p r=: 参照をPeek表示
+- =C-c l p i=: 実装をPeek表示
 
 #+begin_src emacs-lisp
   (defun my/lsp-ui-doc-style-frame (frame _window)
@@ -2053,6 +2056,26 @@ Language Server Protocol経由で各言語へ提供します。
        :background "#111C32"
        :foreground "#87CEEB")))
 
+  (require 'cl-lib)
+
+  (defun my/lsp-ui-peek-read-file-with-coding
+      (original-function file)
+    "LSP UI PeekがFILEを文字コード判定付きで読み込むようにする。"
+    ;; lsp-ui-peekは未訪問ファイルを
+    ;; insert-file-contents-literallyで読み込むため、
+    ;; UTF-8の日本語が\345のような8進表記になることがある。
+    ;; Peekの読み込み中だけ通常の文字コード判定を使う。
+    (cl-letf
+        (((symbol-function 'insert-file-contents-literally)
+          #'insert-file-contents))
+      (funcall original-function file)))
+
+  (defvar-keymap my/lsp-ui-peek-prefix-map
+    :doc "LSP UI Peekを開くためのプレフィックスマップ。"
+    "d" #'lsp-ui-peek-find-definitions
+    "r" #'lsp-ui-peek-find-references
+    "i" #'lsp-ui-peek-find-implementation)
+
   (use-package lsp-ui
     :ensure t
     :after lsp-mode
@@ -2071,11 +2094,10 @@ Language Server Protocol経由で各言語へ提供します。
     (lsp-ui-doc-enable t)
     (lsp-ui-doc-use-childframe t)
 
-    ;; カーソルを置いただけでは自動表示しない。
+    ;; カーソル移動やマウスホバーでは自動表示しない。
+    ;; 詳細を確認したいときだけC-c l hで明示的に表示する。
     (lsp-ui-doc-show-with-cursor nil)
-
-    ;; マウスを重ねたときは自動表示する。
-    (lsp-ui-doc-show-with-mouse t)
+    (lsp-ui-doc-show-with-mouse nil)
 
     (lsp-ui-doc-position 'at-point)
     (lsp-ui-doc-delay 0.30)
@@ -2101,28 +2123,24 @@ Language Server Protocol経由で各言語へ提供します。
     (lsp-ui-imenu-window-fix-width t)
     (lsp-ui-imenu-auto-refresh 'after-save)
 
-    ;; Peekは、定義・参照を現在のウィンドウ内へ一時表示するUI。
+    ;; 定義・参照・実装を、現在のウィンドウ内へ一時表示する。
+    ;; M-.とM-?は標準Xrefとして残し、PeekはC-c l p配下で使い分ける。
     (lsp-ui-peek-enable t)
 
-    ;; 検索結果が1件でも直接移動せず、必ずPeekを表示する。
+    ;; 結果が1件だけでも直接ジャンプせず、必ずPeekを表示する。
     (lsp-ui-peek-always-show t)
 
-    ;; 行末へHover情報とCode Actionを表示する。
-    (lsp-ui-sideline-enable t)
-    ;; カーソル位置の型など、短いHover情報を行末へ表示する。
-    (lsp-ui-sideline-show-hover t)
-    ;; 利用できるQuick FixやRefactorを行末へ表示する。
-    (lsp-ui-sideline-show-code-actions t)
+    ;; ファイル名だけを表示し、一覧を簡潔に保つ。
+    (lsp-ui-peek-show-directory nil)
 
-    ;; 診断表示はFlymakeへ一本化する。
-    (lsp-ui-sideline-show-diagnostics nil)
+    ;; コードと候補一覧を見渡せる、ややコンパクトなサイズにする。
+    (lsp-ui-peek-peek-height 16)
+    (lsp-ui-peek-list-width 42)
+    (lsp-ui-peek-fontify 'on-demand)
 
-    ;; シンボル名そのものは表示せず、補足情報だけに絞る。
-    (lsp-ui-sideline-show-symbol nil)
-    ;; カーソルが行を移動してから表示するまで少し待つ。
-    (lsp-ui-sideline-delay 0.30)
-    ;; 1文字動くたびではなく、行が変わったときに更新する。
-    (lsp-ui-sideline-update-mode 'line)
+    ;; Sidelineは右端揃えの表示位置を設定で変更できないため使用しない。
+    ;; 診断はFlymake、詳細情報はLSP UI Docへ一本化する。
+    (lsp-ui-sideline-enable nil)
 
     :config
     ;; Child Frameの背景とヘッダーを、白枠のないフラットなカードにする。
@@ -2156,7 +2174,24 @@ Language Server Protocol経由で各言語へ提供します。
 
     (add-hook
      'lsp-ui-doc-frame-hook
-     #'my/lsp-ui-doc-style-frame))
+     #'my/lsp-ui-doc-style-frame)
+
+    ;; 定義・参照・実装のPeekコマンドをC-c l p配下へまとめる。
+    (keymap-set
+     lsp-ui-mode-map
+     "C-c l p"
+     my/lsp-ui-peek-prefix-map)
+
+    ;; 未訪問ファイルも通常の文字コード判定で読み込み、
+    ;; 日本語コメントが8進エスケープ表示になる問題を避ける。
+    (unless
+        (advice-member-p
+         #'my/lsp-ui-peek-read-file-with-coding
+         #'lsp-ui-peek--get-xrefs-in-file)
+      (advice-add
+       #'lsp-ui-peek--get-xrefs-in-file
+       :around
+       #'my/lsp-ui-peek-read-file-with-coding)))
 #+end_src
 
 ** Haskell開発

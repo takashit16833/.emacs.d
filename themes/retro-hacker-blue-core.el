@@ -110,6 +110,51 @@
      ((,class (:background ,focus :foreground ,white
                            :box nil :overline nil :underline nil))))
 
+   ;; LSP UI Peek
+   ;; インライン表示のため角丸にはできないが、
+   ;; AppleのダークUIに近いフラットな面と青いアクセントで整える。
+   `(lsp-ui-peek-peek
+     ((,class (:background "#0B1324"
+                           :foreground "#D8E8FF"
+                           :extend t))))
+   `(lsp-ui-peek-list
+     ((,class (:background "#101827"
+                           :foreground "#C5D5EE"
+                           :extend t))))
+   `(lsp-ui-peek-header
+     ((,class (:background "#15213A"
+                           :foreground "#EAF2FF"
+                           :weight semi-bold
+                           :box nil
+                           :overline nil
+                           :underline nil
+                           :extend t))))
+   `(lsp-ui-peek-footer
+     ((,class (:inherit lsp-ui-peek-header
+                         :box nil
+                         :overline nil
+                         :underline nil))))
+   `(lsp-ui-peek-filename
+     ((,class (:foreground "#64D2FF"
+                           :weight semi-bold))))
+   `(lsp-ui-peek-line-number
+     ((,class (:foreground "#6E86AA"))))
+   `(lsp-ui-peek-selection
+     ((,class (:background "#0A84FF"
+                           :foreground "#FFFFFF"
+                           :weight semi-bold
+                           :box nil
+                           :overline nil
+                           :underline nil
+                           :extend t))))
+   `(lsp-ui-peek-highlight
+     ((,class (:background "#0A84FF"
+                           :foreground "#FFFFFF"
+                           :weight semi-bold
+                           :box nil
+                           :overline nil
+                           :underline nil))))
+
    ;; Tabs
    `(tab-bar
      ((,class (:background ,bg-alt :foreground ,fg-dim
