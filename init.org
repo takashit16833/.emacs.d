@@ -1386,11 +1386,6 @@ Verticoなどのミニバッファ補完候補に、
 
 ミニバッファを利用した検索・移動機能を強化します。
 
-- =C-c r=: 最近開いたファイルを開く
-- =C-b b=: バッファや最近のファイルなどをまとめて選択
-- =M-s l=: 現在のバッファ内を行単位で検索
-- =M-g f=: 現在のプロジェクトの診断一覧を表示
-
 #+begin_src emacs-lisp
   (use-package consult
     :ensure t
@@ -1402,7 +1397,7 @@ Verticoなどのミニバッファ補完候補に、
      #'bufferlo-buffer-list)
 
     :bind
-    (("C-c r" . consult-buffer)
+    (("s-r" . consult-buffer)
 
      ;; ブックマークをミニバッファで選択する。
      ("C-c m" . consult-bookmark)
@@ -2258,9 +2253,8 @@ Emacs設定操作、Org Capture、Org Agendaの入口となるキーを設定し
 ;; Org Agendaを開く。
 (keymap-global-set "C-c a" #'org-agenda)
 #+end_src
-*** macOS風の基本操作
+*** 基本操作
 
-保存、選択、クリップボード、Undo、カーソル移動をmacOS風のキーへ割り当てます。
 #+begin_src emacs-lisp
   ;; macOS風の保存。
   (keymap-global-set "s-s" #'save-buffer)
