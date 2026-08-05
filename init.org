@@ -738,7 +738,7 @@ Tab Lineのバッファ名は並び順を維持し、
              (current-buffers
               (seq-filter
                #'my/tab-line-buffer-visible-p
-               (bufferlo-buffer-list)))
+               (tab-line-tabs-window-buffers)))
 
              ;; 以前からあるバッファは、保存済みの順番を維持する。
              (kept-buffers
