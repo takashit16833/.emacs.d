@@ -2085,7 +2085,7 @@ Language Server Protocol経由で各言語へ提供します。
 
     :bind
     (:map lsp-ui-mode-map
-          ("C-c l h" . lsp-ui-doc-show)
+          ("C-c l h" . lsp-ui-doc-glance)
           ("C-c l i" . lsp-ui-imenu))
 
     :custom
