@@ -1574,7 +1574,7 @@ Verticoなどのミニバッファ補完候補に、
 *** Corfu：バッファ内補完
 
 Emacs標準の補完機構を利用して、コード編集中の候補をポップアップ表示します。
-Eglotなどが提供する補完候補も同じ画面で扱います。
+LSP Modeなどが提供する補完候補も同じ画面で扱います。
 
 #+begin_src emacs-lisp
   (use-package corfu
@@ -1881,150 +1881,77 @@ Gitで追加・変更・削除された行を、ウィンドウ左端のフリ�
               #'diff-hl-magit-post-refresh)))
 #+end_src
 
-** Haskell開発
+** Language Server Protocol
 
-Haskellの編集、HLSとの接続、保存時整形、シンボル検索を設定します。
-設定はHaskell全般を対象とし、特定のリポジトリ名やディレクトリには依存しません。
+言語に依存しないLSPクライアント基盤を設定します。
+各言語では、対応するLanguage Serverとメジャーモードを追加し、
+その言語のフックから =lsp-deferred= を呼び出します。
 
-*** Haskell TS Mode
+*** LSP Mode：共通LSP基盤
 
-通常のHaskellソース（=.hs=）では、Tree-sitterを利用した
-=haskell-ts-mode= を既定のメジャーモードとして使用します。
+補完、診断、定義参照、リネーム、コードアクション、整形などを、
+Language Server Protocol経由で各言語へ提供します。
 
-構文ハイライトは最高レベルを使用します。
-インデント機能は安定性を優先して無効にし、保存時のFourmolu整形へ任せます。
+- =C-c l a=: コードアクションを実行
+- =C-c l r=: プロジェクト全体で識別子を変更
+- =C-c l f=: 現在のバッファを整形
+- =M-g s=: ワークスペースシンボルを検索
+- =C-c L=: LSP Modeのコマンドプレフィックス
 
 #+begin_src emacs-lisp
-(use-package haskell-ts-mode
+(defun my/lsp-format-buffer-before-save ()
+  "LSP管理中のバッファを保存前に整形する。"
+  (when (bound-and-true-p lsp-mode)
+    (lsp-format-buffer)))
+
+(use-package lsp-mode
   :ensure t
+  :demand t
 
-  :mode
-  (("\\.hs\\'" . haskell-ts-mode))
-
-  :custom
-  ;; Tree-sitterによる構文ハイライトを最高レベルで使用する。
-  (haskell-ts-font-lock-level 4)
-
-  ;; haskell-ts-modeのインデントは使用せず、Fourmoluへ任せる。
-  (haskell-ts-use-indent nil)
-
-  :config
-  ;; MacホストへインストールするHaskell grammarの取得元。
-  (add-to-list
-   'treesit-language-source-alist
-   '(haskell
-     "https://github.com/tree-sitter/tree-sitter-haskell"
-     "v0.23.1")))
-#+end_src
-
-*** Haskell Mode
-
-Literate HaskellソースとCabalファイルのメジャーモードを提供します。
-EglotのXrefバックエンドを使用するため、Haskell Mode独自の定義ジャンプより
-Emacs標準のXref操作を優先します。
-
-| キー | 操作 |
-|------+------|
-| =M-.= | カーソル位置の識別子の定義へ移動 |
-| =M-?= | カーソル位置の識別子の参照箇所を表示 |
-
-#+begin_src emacs-lisp
-  (use-package haskell-mode
-    :ensure t
-
-    :mode
-    (("\\.lhs\\'" . literate-haskell-mode)
-     ("\\.cabal\\'" . haskell-cabal-mode))
-
-    :config
-    ;; Haskell ModeとInteractive Haskell Modeの独自ジャンプを、
-    ;; Eglotと連携するEmacs標準Xrefへ統一する。
-    (with-eval-after-load 'haskell
-      (keymap-set
-       haskell-mode-map
-       "M-."
-       #'xref-find-definitions)
-      (keymap-set
-       haskell-mode-map
-       "M-?"
-       #'xref-find-references)
-      (keymap-set
-       interactive-haskell-mode-map
-       "M-."
-       #'xref-find-definitions)
-      (keymap-set
-       interactive-haskell-mode-map
-       "M-?"
-       #'xref-find-references)))
-    #+end_src
-
-*** Eglot
-
-Emacs標準のLSPクライアントからHaskell Language Serverへ接続します。
-ローカル環境でもTRAMP接続先でも、各環境のPATHにある
-=haskell-language-server-wrapper= を使用します。
-
-保存時の整形にはFourmolu、Cabalファイルの整形にはcabal-gildを指定します。
-これは特定プロジェクト専用ではなく、Haskell開発全体の既定値です。
-
-| キー | 操作 |
-|------+------|
-| =C-c l a= | Code Actionを表示 |
-| =C-c l r= | プロジェクト全体で識別子を変更 |
-| =C-c l f= | 現在のバッファを整形 |
-
-#+begin_src emacs-lisp
-(defun my/haskell-format-buffer-before-save ()
-  "Eglot管理中のHaskellバッファを保存前に整形する。"
-  (when (eglot-managed-p)
-    (eglot-format-buffer)))
-
-(defun my/haskell-eglot-setup ()
-  "HaskellバッファでEglotと保存時整形を有効にする。"
-  (eglot-ensure)
-  (add-hook
-   'before-save-hook
-   #'my/haskell-format-buffer-before-save
-   nil
-   t))
-
-(use-package eglot
-  :ensure nil
-  :after (:any haskell-mode haskell-ts-mode)
-
-  :hook
-  ((haskell-mode . my/haskell-eglot-setup)
-   (haskell-ts-mode . my/haskell-eglot-setup))
+  :init
+  ;; lsp-mode標準のs-lは、既存の行選択キーと競合するため使用しない。
+  (setq lsp-keymap-prefix "C-c L")
 
   :custom
-  ;; 最後の管理対象バッファを閉じたとき、HLSも終了する。
-  (eglot-autoshutdown t)
+  ;; CorfuからLSPの補完候補を利用する。
+  (lsp-completion-provider :capf)
+
+  ;; import追加など、補完候補に付随する編集も適用する。
+  (lsp-completion-enable-additional-text-edit t)
+
+  ;; 現在Yasnippetを導入していないため、snippet展開は無効にする。
+  (lsp-enable-snippet nil)
+
+  ;; 現在の診断UIであるFlymakeを維持する。
+  (lsp-diagnostics-provider :flymake)
+
+  ;; 最後の管理対象バッファを閉じたとき、Language Serverも終了する。
+  (lsp-keep-workspace-alive nil)
+
+  ;; TRAMP先では、接続先環境のLanguage Serverを使用する。
+  (lsp-auto-register-remote-clients t)
+
+  ;; 既存の控えめなUIを維持し、必要な情報は既存機能で表示する。
+  (lsp-headerline-breadcrumb-enable nil)
+  (lsp-lens-enable nil)
+  (lsp-modeline-code-actions-enable nil)
+  (lsp-modeline-diagnostics-enable nil)
+  (lsp-modeline-workspace-status-enable nil)
+
+  ;; 通常利用ではLSP通信ログを保存しない。
+  (lsp-log-io nil)
 
   :bind
-  (:map eglot-mode-map
-        ("C-c l a" . eglot-code-actions)
-        ("C-c l r" . eglot-rename)
-        ("C-c l f" . eglot-format-buffer))
-
-  :config
-  ;; HLSをPATHから解決するため、ローカル環境とTRAMP接続先の
-  ;; どちらでも同じ設定を使用できる。
-  (add-to-list
-   'eglot-server-programs
-   '((haskell-mode literate-haskell-mode haskell-ts-mode)
-     . ("haskell-language-server-wrapper" "--lsp")))
-
-  ;; Haskellプロジェクト全体で使用するformatterの既定値。
-  (setq-default
-   eglot-workspace-configuration
-   '(:haskell
-     (:formattingProvider "fourmolu"
-      :cabalFormattingProvider "cabal-gild"))))
+  (:map lsp-mode-map
+        ("C-c l a" . lsp-execute-code-action)
+        ("C-c l r" . lsp-rename)
+        ("C-c l f" . lsp-format-buffer)
+        ("M-g s" . lsp-workspace-symbol)))
 #+end_src
 
-*** Markdown Mode：Eldoc内のMarkdown描画
+*** Markdown Mode：LSPドキュメントのMarkdown描画
 
-Eglotから渡されるMarkdown形式のドキュメントを、
+LSPサーバーから渡されるMarkdown形式のドキュメントを、
 Eldoc Box内で装飾して表示します。
 
 #+begin_src emacs-lisp
@@ -2035,7 +1962,7 @@ Eldoc Box内で装飾して表示します。
 
 *** Eldoc Box
 
-Eglotが言語サーバーから取得したカーソル位置の型、
+LSP Modeが言語サーバーから取得したカーソル位置の型、
 シグネチャ、ドキュメントをポップアップ表示します。
 
 - =C-c l h=: カーソル位置の情報を表示
@@ -2112,10 +2039,10 @@ Eglotが言語サーバーから取得したカーソル位置の型、
 
   (use-package eldoc-box
     :ensure t
-    :after (eglot markdown-mode)
+    :after (lsp-mode markdown-mode)
 
     :bind
-    (:map eglot-mode-map
+    (:map lsp-mode-map
           ("C-c l h" . eldoc-box-help-at-point))
 
     :custom
@@ -2190,20 +2117,132 @@ Eglotが言語サーバーから取得したカーソル位置の型、
      :foreground "#316CBD"))
 #+end_src
 
-*** Consult Eglot
 
-HLSが認識している型、関数、クラスなどをプロジェクト全体から検索します。
+** Haskell開発
 
-- =M-g s=: ワークスペースシンボルを検索
+Haskellの編集、HLSとの接続、保存時整形、シンボル検索を設定します。
+設定はHaskell全般を対象とし、特定のリポジトリ名やディレクトリには依存しません。
+
+*** Haskell TS Mode
+
+通常のHaskellソース（=.hs=）では、Tree-sitterを利用した
+=haskell-ts-mode= を既定のメジャーモードとして使用します。
+
+構文ハイライトは最高レベルを使用します。
+インデント機能は安定性を優先して無効にし、保存時のFourmolu整形へ任せます。
 
 #+begin_src emacs-lisp
-(use-package consult-eglot
+(use-package haskell-ts-mode
   :ensure t
-  :after (consult eglot)
 
-  :bind
-  (:map eglot-mode-map
-        ("M-g s" . consult-eglot-symbols)))
+  :mode
+  (("\\.hs\\'" . haskell-ts-mode))
+
+  :custom
+  ;; Tree-sitterによる構文ハイライトを最高レベルで使用する。
+  (haskell-ts-font-lock-level 4)
+
+  ;; haskell-ts-modeのインデントは使用せず、Fourmoluへ任せる。
+  (haskell-ts-use-indent nil)
+
+  :config
+  ;; MacホストへインストールするHaskell grammarの取得元。
+  (add-to-list
+   'treesit-language-source-alist
+   '(haskell
+     "https://github.com/tree-sitter/tree-sitter-haskell"
+     "v0.23.1")))
+#+end_src
+
+*** Haskell Mode
+
+Literate HaskellソースとCabalファイルのメジャーモードを提供します。
+LSP ModeのXrefバックエンドを使用するため、Haskell Mode独自の定義ジャンプより
+Emacs標準のXref操作を優先します。
+
+| キー | 操作 |
+|------+------|
+| =M-.= | カーソル位置の識別子の定義へ移動 |
+| =M-?= | カーソル位置の識別子の参照箇所を表示 |
+
+#+begin_src emacs-lisp
+  (use-package haskell-mode
+    :ensure t
+
+    :mode
+    (("\\.lhs\\'" . literate-haskell-mode)
+     ("\\.cabal\\'" . haskell-cabal-mode))
+
+    :config
+    ;; Haskell ModeとInteractive Haskell Modeの独自ジャンプを、
+    ;; LSP Modeと連携するEmacs標準Xrefへ統一する。
+    (with-eval-after-load 'haskell
+      (keymap-set
+       haskell-mode-map
+       "M-."
+       #'xref-find-definitions)
+      (keymap-set
+       haskell-mode-map
+       "M-?"
+       #'xref-find-references)
+      (keymap-set
+       interactive-haskell-mode-map
+       "M-."
+       #'xref-find-definitions)
+      (keymap-set
+       interactive-haskell-mode-map
+       "M-?"
+       #'xref-find-references)))
+    #+end_src
+
+*** LSP Haskell：Haskell固有設定
+
+共通のLSP Mode基盤へHaskell Language Serverを接続します。
+ローカル環境でもTRAMP接続先でも、各環境のPATHにある
+=haskell-language-server-wrapper= を使用します。
+
+Haskellバッファでは保存時にFourmoluで整形し、
+スコープ外の識別子を補完したときはimportを自動追加します。
+
+#+begin_src emacs-lisp
+(defcustom my/lsp-haskell-cabal-formatting-provider
+  "cabal-gild"
+  "HLSがCabalファイルの整形に使用するformatter。"
+  :type 'string
+  :group 'haskell)
+
+(defun my/haskell-lsp-setup ()
+  "HaskellバッファでLSP Modeと保存時整形を有効にする。"
+  (lsp-deferred)
+  (add-hook
+   'before-save-hook
+   #'my/lsp-format-buffer-before-save
+   nil
+   t))
+
+(use-package lsp-haskell
+  :ensure t
+  :after lsp-mode
+
+  :hook
+  ((haskell-mode . my/haskell-lsp-setup)
+   (haskell-ts-mode . my/haskell-lsp-setup))
+
+  :custom
+  ;; HLS wrapperをPATHから解決する。
+  (lsp-haskell-server-path "haskell-language-server-wrapper")
+
+  ;; HaskellソースのformatterとしてFourmoluを使用する。
+  (lsp-haskell-formatting-provider "fourmolu")
+
+  ;; スコープ外の識別子を補完したとき、importを自動追加する。
+  (lsp-haskell-plugin-ghcide-completions-config-auto-extend-on t)
+
+  :config
+  ;; lsp-haskellが専用変数を提供していないCabal formatterを明示する。
+  (lsp-register-custom-settings
+   '(("haskell.cabalFormattingProvider"
+      my/lsp-haskell-cabal-formatting-provider))))
 #+end_src
 
 ** Emacs Lisp開発
