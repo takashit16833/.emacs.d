@@ -2272,8 +2272,16 @@ Emacs設定操作、Org Capture、Org Agendaの入口となるキーを設定し
   ;; macOS風の貼り付け。
   (keymap-global-set "s-v" #'yank)
 
-  ;; 現在のバッファを、このTab Barのローカル一覧から外す。
-  (keymap-global-set "s-w" #'bufferlo-bury)
+  (defun my/close-current-buffer ()
+    "複数Tab Barでは現在のTab Barから外し、
+  最後の1つのTab Barではバッファ自体を削除する。"
+    (interactive)
+    (if (> (length
+            (funcall tab-bar-tabs-function))
+           1)
+        (bufferlo-bury)
+      (kill-current-buffer)))
+  (keymap-global-set "s-w" #'my/close-current-buffer)
 
   ;; 複数ウィンドウなら現在のウィンドウを閉じ、
   ;; 1ウィンドウかつ複数Tab Barなら現在のTab Barを閉じる。
