@@ -1400,7 +1400,7 @@ Verticoなどのミニバッファ補完候補に、
     (("s-r" . consult-buffer)
 
      ;; ブックマークをミニバッファで選択する。
-     ("C-c m" . consult-bookmark)
+     ("s-m" . consult-bookmark)
 
      ("s-f" . consult-line)
      ("M-g f" . consult-flymake)))
