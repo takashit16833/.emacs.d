@@ -105,7 +105,10 @@
    `(mode-line-emphasis ((,class (:foreground ,gold :weight bold))))
    `(header-line
      ((,class (:background ,panel :foreground ,fg
-                           :box (:line-width 1 :color ,fg)))))
+                           :box nil :overline nil :underline nil))))
+   `(header-line-highlight
+     ((,class (:background ,focus :foreground ,white
+                           :box nil :overline nil :underline nil))))
 
    ;; Tabs
    `(tab-bar

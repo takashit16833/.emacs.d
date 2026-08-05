@@ -1959,18 +1959,34 @@ Language Server Protocol経由で各言語へ提供します。
     (lsp-log-io nil)
 
     :config
-    ;; Breadcrumbを囲む枠線を消し、文字とアイコンだけを表示する。
-    (set-face-attribute 'header-line nil :box nil)
-    (set-face-attribute 'header-line-highlight nil :box nil)
+    ;; Breadcrumbの外周と各セグメントから枠線を完全に取り除く。
+    ;; テーマ側でもheader-lineのboxを無効化しているが、
+    ;; テーマ再読込やFace継承後も確実に維持するため、ここでも指定する。
+    (dolist (face '(header-line header-line-highlight))
+      (set-face-attribute
+       face nil
+       :box nil
+       :overline nil
+       :underline nil))
 
     (with-eval-after-load 'lsp-headerline
       (dolist (face
                '(lsp-headerline-breadcrumb-separator-face
                  lsp-headerline-breadcrumb-path-face
+                 lsp-headerline-breadcrumb-path-error-face
+                 lsp-headerline-breadcrumb-path-warning-face
+                 lsp-headerline-breadcrumb-path-info-face
+                 lsp-headerline-breadcrumb-path-hint-face
                  lsp-headerline-breadcrumb-project-prefix-face
                  lsp-headerline-breadcrumb-unknown-project-prefix-face
-                 lsp-headerline-breadcrumb-symbols-face))
-        (set-face-attribute face nil :box nil)))
+                 lsp-headerline-breadcrumb-symbols-face
+                 lsp-headerline-breadcrumb-symbols-error-face
+                 lsp-headerline-breadcrumb-symbols-warning-face
+                 lsp-headerline-breadcrumb-symbols-info-face
+                 lsp-headerline-breadcrumb-symbols-hint-face
+                 lsp-headerline-breadcrumb-deprecated-face))
+        ;; 診断を示す波線は残し、ボックスと上線だけを消す。
+        (set-face-attribute face nil :box nil :overline nil)))
 
     :bind
     (:map lsp-mode-map
@@ -1991,6 +2007,52 @@ Language Server Protocol経由で各言語へ提供します。
 - =C-c l i=: 現在のバッファのシンボル一覧を右側へ表示
 
 #+begin_src emacs-lisp
+  (defun my/lsp-ui-doc-style-frame (frame _window)
+    "LSP UI DocのFRAMEをフラットなダークカードとして整える。"
+    ;; Child Frame内だけに適用し、通常バッファのテーマは変更しない。
+    (set-face-attribute
+     'default frame
+     :background "#0B1324"
+     :foreground "#D8E8FF")
+
+    (set-face-attribute
+     'fringe frame
+     :background "#0B1324"
+     :foreground "#506A91")
+
+    (set-face-attribute
+     'header-line frame
+     :background "#15213A"
+     :foreground "#EAF2FF"
+     :weight 'semi-bold
+     :box nil
+     :overline nil
+     :underline nil)
+
+    ;; 外枠と内側余白をカード本体と同色にして、白い輪郭をなくす。
+    (set-face-attribute
+     'internal-border frame
+     :background "#0B1324")
+
+    (when (facep 'child-frame-border)
+      (set-face-attribute
+       'child-frame-border frame
+       :background "#0B1324"))
+
+    ;; コード部分だけをわずかに明るい面へ置き、本文と区別する。
+    (when (facep 'markdown-code-face)
+      (set-face-attribute
+       'markdown-code-face frame
+       :background "#111C32"
+       :foreground "#BFD7FF"
+       :extend t))
+
+    (when (facep 'markdown-inline-code-face)
+      (set-face-attribute
+       'markdown-inline-code-face frame
+       :background "#111C32"
+       :foreground "#87CEEB")))
+
   (use-package lsp-ui
     :ensure t
     :after lsp-mode
@@ -2011,12 +2073,19 @@ Language Server Protocol経由で各言語へ提供します。
     (lsp-ui-doc-show-with-cursor t)
     (lsp-ui-doc-show-with-mouse nil)
     (lsp-ui-doc-position 'at-point)
-    (lsp-ui-doc-delay 0.35)
+    (lsp-ui-doc-delay 0.30)
+
+    ;; 鮮やかなタイトルバーではなく、控えめなダークヘッダーを使用する。
     (lsp-ui-doc-header t)
     (lsp-ui-doc-include-signature t)
     (lsp-ui-doc-enhanced-markdown t)
-    (lsp-ui-doc-max-width 100)
-    (lsp-ui-doc-max-height 20)
+
+    ;; VS CodeのHoverに近い、読みやすいカードサイズに抑える。
+    (lsp-ui-doc-max-width 96)
+    (lsp-ui-doc-max-height 18)
+
+    ;; 枠色を本体背景と同じにし、内部余白として利用する。
+    (lsp-ui-doc-border "#0B1324")
 
     ;; 現在のバッファにある型、関数、クラスなどを
     ;; VS CodeのOutlineに近い右側の一覧で表示する。
@@ -2027,10 +2096,47 @@ Language Server Protocol経由で各言語へ提供します。
     (lsp-ui-imenu-window-fix-width t)
     (lsp-ui-imenu-auto-refresh 'after-save)
 
-    ;; 今回は明示的に採用したDocとImenuへ絞る。
-    ;; PeekとSidelineは、必要になった時点で個別に有効化する。
+    ;; Peekは、定義・参照を現在のウィンドウ内へ一時表示するUI。
+    ;; 現在は標準Xrefの操作感を維持するため無効にする。
     (lsp-ui-peek-enable nil)
-    (lsp-ui-sideline-enable nil))
+
+    ;; Sidelineは、診断・Hover・Code Actionを行末付近へ表示するUI。
+    ;; 現在の診断基盤はFlymakeであり、画面の情報量も増えるため無効にする。
+    (lsp-ui-sideline-enable nil)
+
+    :config
+    ;; Child Frameの背景とヘッダーを、白枠のないフラットなカードにする。
+    (set-face-attribute
+     'lsp-ui-doc-background nil
+     :background "#0B1324")
+
+    (set-face-attribute
+     'lsp-ui-doc-header nil
+     :background "#15213A"
+     :foreground "#EAF2FF"
+     :weight 'semi-bold
+     :box nil
+     :overline nil
+     :underline nil)
+
+    (set-face-attribute
+     'lsp-ui-doc-highlight-hover nil
+     :inherit 'highlight
+     :box nil)
+
+    (set-face-attribute
+     'lsp-ui-doc-url nil
+     :inherit 'link
+     :underline t)
+
+    ;; 本体背景と同色の8px領域を設け、カード内に自然な余白を作る。
+    (setf (alist-get 'internal-border-width
+                     lsp-ui-doc-frame-parameters)
+          8)
+
+    (add-hook
+     'lsp-ui-doc-frame-hook
+     #'my/lsp-ui-doc-style-frame))
 #+end_src
 
 ** Haskell開発
