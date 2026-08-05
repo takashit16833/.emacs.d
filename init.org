@@ -156,6 +156,98 @@ Emacs本体の設定を =use-package= 形式で整理するために使用して
     (when (fboundp 'scroll-bar-mode)
       (scroll-bar-mode -1)))
 #+end_src
+** Pixel Scroll：滑らかなスクロール
+
+トラックパッドやマウスではピクセル単位のスクロールを使用します。
+PageUp・PageDownでは、素早く動き始めて徐々に減速する
+ease-out-cubicのアニメーションを使用します。
+
+#+begin_src emacs-lisp
+  (use-package pixel-scroll
+    :ensure nil
+
+    :custom
+    ;; PageUp・PageDownを補間スクロールの対象にする。
+    (pixel-scroll-precision-interpolate-page t)
+
+    ;; PageUp・PageDownのアニメーション時間。
+    (pixel-scroll-precision-interpolation-total-time 0.26)
+
+    :config
+    (pixel-scroll-precision-mode 1)
+
+    (defun my/pixel-scroll-ease-out-cubic (progress)
+      "PROGRESSにease-out-cubicを適用する。"
+      (- 1.0
+         (expt (- 1.0 progress) 3)))
+
+    (defun my/pixel-scroll-interpolate (delta)
+      "DELTAピクセルをイージング付きでスクロールする。"
+      (let ((progress 0.0)
+            (elapsed 0.0)
+            (last-time (float-time))
+            (last-delta 0.0)
+            (total-time
+             pixel-scroll-precision-interpolation-total-time)
+            (interval
+             pixel-scroll-precision-interpolation-between-scroll))
+
+        (condition-case error-data
+            (while-no-input
+              (while (< progress 1.0)
+                (redisplay t)
+                (sleep-for interval)
+
+                (let ((current-time (float-time)))
+                  (setq elapsed
+                        (+ elapsed (- current-time last-time))
+                        last-time current-time
+                        progress
+                        (min 1.0 (/ elapsed total-time)))
+
+                  (let* ((eased-progress
+                          (my/pixel-scroll-ease-out-cubic progress))
+                         (absolute-delta
+                          (* eased-progress delta))
+                         (relative-delta
+                          (abs
+                           (round
+                            (- absolute-delta last-delta)))))
+
+                    (setq last-delta absolute-delta)
+
+                    (unless (zerop relative-delta)
+                      (if (< delta 0)
+                          (pixel-scroll-precision-scroll-down
+                           relative-delta)
+                        (pixel-scroll-precision-scroll-up
+                         relative-delta)))))))
+
+          ((beginning-of-buffer end-of-buffer)
+           (message "%s"
+                    (error-message-string error-data))))))
+
+    (defun my/pixel-scroll-page-down ()
+      "ease-out-cubicで1ページ下へスクロールする。"
+      (interactive)
+      (my/pixel-scroll-interpolate
+       (- (window-text-height nil t))))
+
+    (defun my/pixel-scroll-page-up ()
+      "ease-out-cubicで1ページ上へスクロールする。"
+      (interactive)
+      (my/pixel-scroll-interpolate
+       (window-text-height nil t)))
+
+    ;; pixel-scroll-precision-mode標準のPageUp・PageDownを上書きする。
+    (keymap-set pixel-scroll-precision-mode-map
+                "<next>"
+                #'my/pixel-scroll-page-down)
+
+    (keymap-set pixel-scroll-precision-mode-map
+                "<prior>"
+                #'my/pixel-scroll-page-up))
+#+end_src
 ** Dashboard：起動時の作業ハブ
 
 最近開いたファイル、プロジェクト、ブックマークを表示し、
