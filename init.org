@@ -136,7 +136,17 @@ Emacs本体の設定を =use-package= 形式で整理するために使用して
 
     ;; 折り返しを示す左右の矢印を表示しない
     (visual-line-fringe-indicators '(nil nil))
+
     :config
+    ;; Shift＋Option＋左右で、単語単位に選択範囲を伸縮する。
+    (define-key key-translation-map
+                (kbd "M-S-<left>")
+                (kbd "M-S-b"))
+
+    (define-key key-translation-map
+                (kbd "M-S-<right>")
+                (kbd "M-S-f"))
+
     ;; Repeat対応コマンドを、短いキーで連続実行できるようにする。
     (repeat-mode 1)
 
@@ -1690,7 +1700,8 @@ Gitリポジトリ内に =cabal.project= がある場合は、
     :ensure nil
 
     :bind
-    (("s-p" . project-find-file))
+    (("s-p" . project-find-file)
+     ("s-F" . project-find-regexp))
 
     :custom
     ;; Gitバックエンドを持たない分割プロジェクトでも、
