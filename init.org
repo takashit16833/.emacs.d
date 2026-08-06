@@ -37,6 +37,38 @@ Emacs設定の生成、パッケージ管理、Emacs本体の共通設定をま�
 ;;; Code:
 #+end_src
 
+** 起動時のメモリ管理
+
+起動中だけGarbage Collectionの発生を抑え、
+初期化が完了したら変更前の設定へ戻します。
+
+=init.el= を起動後に再読み込みした場合は、
+高い閾値を残さず通常値へ戻します。
+#+begin_src emacs-lisp
+(defvar my/gc-cons-threshold-default gc-cons-threshold
+  "Emacs起動後に復元するgc-cons-thresholdの値。")
+
+(defvar my/gc-cons-percentage-default gc-cons-percentage
+  "Emacs起動後に復元するgc-cons-percentageの値。")
+
+(defun my/restore-gc-settings ()
+  "起動中だけ変更したGarbage Collection設定を復元する。"
+  (setq gc-cons-threshold my/gc-cons-threshold-default
+        gc-cons-percentage my/gc-cons-percentage-default))
+
+(if after-init-time
+    ;; 起動後にinit.elを再読み込みした場合は、通常値を維持する。
+    (my/restore-gc-settings)
+
+  ;; 起動中だけ閾値を64MiBへ引き上げ、GCの頻発を避ける。
+  (setq gc-cons-threshold (* 64 1024 1024)
+        gc-cons-percentage 0.6)
+
+  ;; 起動処理が完了したら、変更前の値へ戻す。
+  (add-hook 'emacs-startup-hook
+            #'my/restore-gc-settings))
+#+end_src
+
 ** パッケージ管理とuse-package
 
 Emacs 29以降では =use-package= が標準搭載されています。
