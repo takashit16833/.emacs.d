@@ -2626,14 +2626,9 @@ DiredではGit状態をファイル単位で表示し、
   (use-package diff-hl
     :ensure t
 
-    :init
-    ;; Gitなどのバージョン管理下にあるファイルで自動的に有効化する。
-    (global-diff-hl-mode 1)
-
     :hook
     ;; 通常のファイルでは、変更された行をウィンドウ左端に表示する。
-    ((prog-mode . diff-hl-mode)
-     (text-mode . diff-hl-mode)
+    ((find-file . diff-hl-mode)
 
      ;; Diredでは、Git状態に応じてファイル単位の印を表示する。
      (dired-mode . diff-hl-dired-mode))
