@@ -9,7 +9,8 @@
 - 編集するファイル: =init.org=
 - 自動生成されるファイル: =init.el=
 - =init.el= は直接編集しない
-- 設定は役割ごとの見出しに追加する
+- 設定は、主に実現する機能の見出しへ配置する
+- パッケージ固有の関数、変数、キーバインドは、そのパッケージの見出しへまとめる
 
 初回のみ、次のコマンドで =init.el= を生成します。
 
@@ -19,12 +20,9 @@ M-x org-babel-tangle
 
 以降は、このファイルを保存すると自動的に =init.el= を生成します。
 
-パッケージを追加するときは、原則として1パッケージにつき1つの小見出しと
-1つの =use-package= ブロックを作成します。
+* 設定基盤
 
-* 起動と設定基盤
-
-Emacsの起動時に必要となる、生成ファイルの形式とパッケージ設定の基盤です。
+Emacs設定の生成、パッケージ管理、Emacs本体の共通設定をまとめます。
 
 ** 生成されるinit.elのヘッダー
 
@@ -38,6 +36,7 @@ Emacsの起動時に必要となる、生成ファイルの形式とパッケー
 
 ;;; Code:
 #+end_src
+
 ** パッケージ管理とuse-package
 
 Emacs 29以降では =use-package= が標準搭載されています。
@@ -53,6 +52,7 @@ MELPAをパッケージ取得先へ追加し、=use-package= の自動インス�
 (require 'use-package)
 (require 'use-package-ensure)
 #+end_src
+
 *** use-packageの追加テンプレート
 
 今後、パッケージの設定は基本的に次の形で追加します。
@@ -73,7 +73,7 @@ MELPAをパッケージ取得先へ追加し、=use-package= の自動インス�
   )
 #+end_example
 
-** Emacs本体の基本設定
+** Emacs本体の共通設定
 
 Emacs標準の基本動作、ファイル保護、表示、編集支援をまとめて設定します。
 
@@ -171,7 +171,266 @@ Emacs本体の設定を =use-package= 形式で整理するために使用して
     (when (fboundp 'scroll-bar-mode)
       (scroll-bar-mode -1)))
 #+end_src
-** Pixel Scroll：滑らかなスクロール
+
+** Emacs設定ファイルの操作
+
+=init.org= を開くコマンド、=init.el= を生成するコマンド、
+生成した設定を再読み込みするコマンドを定義します。
+
+- =C-c e i=: init.orgを開く
+- =C-c e t=: init.orgからinit.elを生成する
+- =C-c e r=: init.elを再読み込みする
+#+begin_src emacs-lisp
+(defconst my/init-org-file
+  (expand-file-name "init.org" user-emacs-directory)
+  "Emacs設定の原本となるOrgファイル。")
+
+(defconst my/init-el-file
+  (expand-file-name "init.el" user-emacs-directory)
+  "init.orgから生成されるEmacs Lispファイル。")
+
+(defun my/open-init-org ()
+  "Emacs設定ファイルinit.orgを開く。"
+  (interactive)
+  (find-file my/init-org-file))
+
+(defun my/tangle-init-org ()
+  "init.orgからinit.elを生成する。"
+  (interactive)
+  (require 'org)
+  (require 'ob-tangle)
+
+  (org-babel-tangle-file
+   my/init-org-file
+   my/init-el-file
+   "emacs-lisp")
+
+  (message "init.orgからinit.elを生成しました"))
+
+(defun my/reload-init-file ()
+  "生成済みのinit.elを再読み込みする。"
+  (interactive)
+  (if (file-exists-p my/init-el-file)
+      (progn
+        (load-file my/init-el-file)
+        (message "init.elを再読み込みしました"))
+    (user-error
+     "init.elが存在しません。先にC-c e tで生成してください")))
+
+;; C-c eをEmacs設定操作用のプレフィックスキーにする。
+(defvar-keymap my/emacs-config-map
+  :doc "Emacs設定ファイルを操作するキーマップ。"
+  "i" #'my/open-init-org
+  "t" #'my/tangle-init-org
+  "r" #'my/reload-init-file)
+
+(keymap-global-set "C-c e" my/emacs-config-map)
+#+end_src
+
+* OS・実行環境
+
+OS固有の入力と、Emacsが利用する実行環境を設定します。
+
+** macOSの修飾キー
+
+OptionキーをEmacsのMetaキーとして使用します。
+CommandキーはSuperキーとして使用し、macOS風のショートカットへ割り当てます。
+#+begin_src emacs-lisp
+(when (eq window-system 'mac)
+  ;; OptionをMetaとして使う。
+  (setq mac-option-modifier 'meta)
+
+  ;; Commandを独立したSuper修飾キーとして使う。
+  (setq mac-command-modifier 'super))
+#+end_src
+
+** シェル環境の読み込み
+
+GUI版Emacsから、ターミナルと同じPATHを利用できるようにします。
+#+begin_src emacs-lisp
+(use-package exec-path-from-shell
+  :ensure t
+  :if (eq window-system 'mac)
+
+  :init
+  (exec-path-from-shell-initialize))
+#+end_src
+
+* 状態の保存と同期
+
+Emacsを終了・再起動しても引き継ぎたい状態と、外部で変更されたファイルの同期を設定します。
+
+** Savehist：ミニバッファ履歴
+
+検索履歴や実行したコマンドなどを、Emacs終了後も保存します。
+#+begin_src emacs-lisp
+(use-package savehist
+  :ensure nil
+
+  :custom
+  (history-length 200)
+
+  :init
+  (savehist-mode 1))
+#+end_src
+
+** Recentf：最近開いたファイル
+
+最近開いたファイルの一覧を保存します。
+#+begin_src emacs-lisp
+(use-package recentf
+  :ensure nil
+
+  :custom
+  (recentf-max-saved-items 100)
+
+  :init
+  (recentf-mode 1))
+#+end_src
+
+** Saveplace：カーソル位置
+
+ファイルを開き直したとき、前回のカーソル位置へ戻ります。
+#+begin_src emacs-lisp
+(use-package saveplace
+  :ensure nil
+
+  :init
+  (save-place-mode 1))
+#+end_src
+
+** Auto Revert：外部変更の自動反映
+
+外部プログラムやGitなどによってファイルが変更されたとき、
+Emacs上のバッファも自動的に更新します。
+#+begin_src emacs-lisp
+(use-package autorevert
+  :ensure nil
+
+  :custom
+  (global-auto-revert-non-file-buffers t)
+
+  :init
+  (global-auto-revert-mode 1))
+#+end_src
+
+* 表示
+
+Emacs全体と各バッファの見た目、構造表示、スクロールを設定します。
+
+** 外観
+
+*** フォント
+
+GUI版Emacsで使用する等幅フォントを設定します。
+
+#+begin_src emacs-lisp
+  (defun my/apply-default-font (&optional frame)
+    "FRAMEへ通常バッファ用の標準フォントを設定する。"
+    (with-selected-frame (or frame (selected-frame))
+      (when (display-graphic-p)
+        (set-face-attribute
+         'default
+         (selected-frame)
+;         :family "SauceCodePro Nerd Font Mono"
+         :family "UDEV Gothic NF"
+         :height 140))))
+
+  (defun my/apply-org-font ()
+    "現在のOrgバッファへUDEV Gothic NFを適用する。"
+    ;; Org本文や通常テキスト。
+    (face-remap-add-relative
+     'default
+     :family "UDEV Gothic NF")
+
+    ;; Orgテーブル、コード、verbatimなどで使われることがある。
+    (face-remap-add-relative
+     'fixed-pitch
+     :family "UDEV Gothic NF")
+
+    ;; 見出しなどがvariable-pitchを継承していてもUDEVへ統一する。
+    (face-remap-add-relative
+     'variable-pitch
+     :family "UDEV Gothic NF"))
+
+  ;; 標準行高の25%を行間として追加する。
+  (setq-default line-spacing 0.25)
+
+  ;; 現在のフレームへ通常フォントを適用する。
+  (my/apply-default-font)
+
+  ;; 後から作られたフレームにも通常フォントを適用する。
+  (add-hook
+   'after-make-frame-functions
+   #'my/apply-default-font)
+
+  ;; OrgバッファだけUDEV Gothic NFへ変更する。
+  (add-hook
+   'org-mode-hook
+   #'my/apply-org-font)
+#+end_src
+
+*** Retro Hacker Blueテーマ
+
+VS CodeのRetro Hacker Blueを元にしたカラーテーマを使用します。
+#+begin_src emacs-lisp
+(add-to-list
+ 'custom-theme-load-path
+ (expand-file-name "themes/" user-emacs-directory))
+
+;; 複数テーマが重なって有効になるのを防ぐ。
+(mapc #'disable-theme custom-enabled-themes)
+
+(load-theme 'retro-hacker-blue t)
+#+end_src
+
+** アイコン表示
+
+*** Nerd Icons：アイコン表示の基盤
+
+ファイル、補完候補、LSPのシンボル表示で利用するアイコンの基盤です。
+#+begin_src emacs-lisp
+(use-package nerd-icons
+  :ensure t)
+#+end_src
+
+** プログラム構造の表示
+
+*** Indent Bars：インデントガイド
+
+プログラム用バッファで、空白によるインデント位置へ細い縦線を表示します。
+Tree-sitterのスコープ解析には依存せず、各メジャーモードとEditorConfigが決めた
+インデント幅をそのまま表示へ使用します。
+
+#+begin_src emacs-lisp
+(use-package indent-bars
+  :ensure t
+
+  :hook
+  (prog-mode . indent-bars-mode)
+
+  :custom
+  ;; Retro Hacker Blueの背景で主張しすぎない暗い青灰色。
+  (indent-bars-color '("#252632" :blend 1.0))
+
+  ;; すべての深さで同じ色を使う。
+  (indent-bars-color-by-depth nil)
+
+  ;; キャプチャのような細い実線を表示する。
+  (indent-bars-width-frac 0.10)
+  (indent-bars-pad-frac 0.10)
+  (indent-bars-pattern ".")
+
+  ;; 現在位置だけを強調せず、すべてのガイドを同じ濃さで表示する。
+  (indent-bars-highlight-current-depth nil)
+
+  ;; 空行にも前後のインデントを引き継いでガイドを表示する。
+  (indent-bars-display-on-blank-lines t))
+#+end_src
+
+** スクロール
+
+*** Pixel Scroll：滑らかなスクロール
 
 トラックパッドやマウスではピクセル単位のスクロールを使用します。
 PageUp・PageDownでは、素早く動き始めて徐々に減速する
@@ -276,7 +535,7 @@ ease-out-cubicのアニメーションを使用します。
     (keymap-set pixel-scroll-precision-mode-map
                 "<prior>"
                 #'my/pixel-scroll-page-up)
-    
+
     ;; Command＋PageDown・PageUpでは半ページずつスクロールする。
     (keymap-set pixel-scroll-precision-mode-map
                 "s-<next>"
@@ -284,10 +543,14 @@ ease-out-cubicのアニメーションを使用します。
 
     (keymap-set pixel-scroll-precision-mode-map
                 "s-<prior>"
-                #'my/pixel-scroll-half-page-up)
-    )
-                    #+end_src
-** Dashboard：起動時の作業ハブ
+                #'my/pixel-scroll-half-page-up))
+#+end_src
+
+* ウィンドウ・バッファ・ワークスペース
+
+作業画面全体、ウィンドウ、各ウィンドウ内のバッファを管理します。
+
+** Dashboard：作業場所の入口
 
 最近開いたファイル、プロジェクト、ブックマークを表示し、
 各作業場所へ移動するための入口として使用します。
@@ -317,95 +580,1034 @@ ease-out-cubicのアニメーションを使用します。
     (dashboard-setup-startup-hook))
 #+end_src
 
-* macOSとの連携
+** Windmove：バッファの表示先指定
 
-macOS版Emacs固有の修飾キーと、GUI起動時のシェル環境を設定します。
+次に実行するコマンドが表示するバッファの行き先を予約します。
 
-** 修飾キー
-
-OptionキーをEmacsのMetaキーとして使用します。
-CommandキーはSuperキーとして使用し、macOS風のショートカットへ割り当てます。
 #+begin_src emacs-lisp
-(when (eq window-system 'mac)
-  ;; OptionをMetaとして使う。
-  (setq mac-option-modifier 'meta)
+  (use-package windmove
+    :ensure nil
 
-  ;; Commandを独立したSuper修飾キーとして使う。
-  (setq mac-command-modifier 'super))
+    :bind
+    (("C-x <left>"  . windmove-display-left)
+     ("C-x <right>" . windmove-display-right)
+     ("C-x <up>"    . windmove-display-up)
+     ("C-x <down>"  . windmove-display-down)))
 #+end_src
-** シェル環境の読み込み
 
-GUI版Emacsから、ターミナルと同じPATHを利用できるようにします。
+** Tab Bar：作業画面全体の切り替え
+
+画面分割を含む作業画面全体を、タブとして切り替えます。
+
 #+begin_src emacs-lisp
-(use-package exec-path-from-shell
+  (defun my/tab-bar-reset-dashboard-tab (_tab)
+    "新しく作成されたDashboardタブを、Dashboardだけの状態にする。"
+    (when (derived-mode-p 'dashboard-mode)
+      (let ((window (selected-window)))
+        ;; Tab Lineが参照するウィンドウ固有の履歴を初期化する。
+        (set-window-prev-buffers window nil)
+        (set-window-next-buffers window nil)
+
+        ;; 独自Tab Lineの固定順もDashboardだけにする。
+        (set-window-parameter
+         window
+         'tab-line-buffers
+         (list (window-buffer window))))
+
+      ;; 新しいTab BarのBufferlo一覧を、
+      ;; 現在表示中のDashboardだけにする。
+      (bufferlo-clear)
+
+      ;; Tab Lineを再描画する。
+      (force-mode-line-update t)))
+
+  (defun my/close-window-or-tab ()
+    "複数ウィンドウなら現在のウィンドウを閉じる。
+    1ウィンドウかつ複数Tab Barなら現在のTab Barを閉じる。
+    最後のウィンドウかつ最後のTab Barでは何もしない。"
+    (interactive)
+    (cond
+     ;; ミニバッファを除く通常ウィンドウが複数ある場合。
+     ((not (one-window-p t))
+      (delete-window))
+
+     ;; 通常ウィンドウが1つで、Tab Barが複数ある場合。
+     ((> (length
+          (funcall tab-bar-tabs-function))
+         1)
+      (tab-close))
+
+     ;; 最後のウィンドウかつ最後のTab Bar。
+     (t
+      (message "最後のウィンドウとTab Barは閉じません"))))
+
+  (use-package tab-bar
+    :ensure nil
+
+    :custom
+    ;; 新しいTab BarはDashboardから始める。
+    (tab-bar-new-tab-choice #'dashboard-open)
+
+    ;; 新しいタブを作る「＋」ボタンを表示しない。
+    (tab-bar-new-button-show nil)
+
+    ;; 各タブの「×」ボタンを表示しない。
+    (tab-bar-close-button-show nil)
+
+    :config
+    ;; Emacs標準のTab Barを有効にする。
+    (tab-bar-mode 1)
+
+    ;; Ctrl+PageDown：右隣のTab Barへ移動する。
+    ;; 右端では左端へ戻り、循環する。
+    (keymap-global-set "C-<next>" #'tab-next)
+
+    ;; Ctrl+PageUp：左隣のTab Barへ移動する。
+    ;; 左端では右端へ戻り、循環する。
+    (keymap-global-set "C-<prior>" #'tab-previous)
+
+    ;; 新規タブの構築が完了したあとに状態を整理する。
+    (add-hook
+     'tab-bar-tab-post-open-functions
+     #'my/tab-bar-reset-dashboard-tab))
+#+end_src
+
+** Bufferlo：Tab Barごとのバッファ管理
+
+各Tab Barが独立したバッファ一覧を持つようにします。
+
+#+begin_src emacs-lisp
+  (use-package bufferlo
+    :ensure t
+    :demand t
+
+    :init
+    ;; next-bufferとprevious-bufferも現在のTab Bar内に限定する。
+    ;; bufferlo-modeを有効にする前に設定する必要がある。
+    (setq bufferlo-prefer-local-buffers 'tabs)
+
+    :bind
+    ;; 現在のTab Barに属するバッファから選択する。
+    ;; Prefix引数を付けると、Emacs全体のバッファから選択できる。
+    (("C-x b" . bufferlo-switch-to-buffer))
+
+    :config
+    ;; フレーム・Tab Barごとのローカルバッファ管理を有効にする。
+    (bufferlo-mode 1))
+#+end_src
+
+** Tab Line：ウィンドウ内のバッファ切り替え
+
+各ウィンドウで表示したバッファを、タブとして切り替えます。
+
+| キー           | 操作                 |
+|----------------+----------------------|
+| =Cmd+Option+←= | 左隣のTab Lineへ移動 |
+| =Cmd+Option+→= | 右隣のTab Lineへ移動 |
+
+どちらも端まで移動すると、反対側へ戻って循環します。
+
+Tab Lineのバッファ名は並び順を維持し、
+新しく表示したバッファだけを右端へ追加します。
+#+begin_src emacs-lisp
+  (use-package tab-line
+    :ensure nil
+    :after bufferlo
+
+    :init
+    (require 'seq)
+
+    ;; Tab Lineに表示しないバッファ名。
+    (defconst my/tab-line-excluded-buffer-names
+      '("*scratch*")
+      "Tab Lineに表示しないバッファ名の一覧。")
+
+    (defun my/tab-line-buffer-visible-p (buffer)
+      "BUFFERをTab Lineに表示するとき、非nilを返す。"
+      (and
+       ;; 削除済みのバッファは表示しない。
+       (buffer-live-p buffer)
+
+       ;; ミニバッファはTab Lineへ表示しない。
+       (not (minibufferp buffer))
+
+       ;; 通常のScratchと、Bufferloが作るタブ専用Scratchを表示しない。
+       (not
+        (string-prefix-p
+         "*scratch*"
+         (buffer-name buffer)))
+
+       ;; 表示しないバッファはここに定義する。
+       (not
+        (with-current-buffer buffer
+          (derived-mode-p
+           'dired-mode
+           'magit-mode
+           'vterm-mode)))))
+
+    (defun my/tab-line-tabs ()
+      "不要なバッファを除外し、固定順でTab Lineへ表示する。"
+      (let* (;; このウィンドウで保存している、前回までの並び順。
+             (old-buffers
+              (seq-filter
+               #'my/tab-line-buffer-visible-p
+               (window-parameter nil 'tab-line-buffers)))
+
+             ;; 現在、このウィンドウに関連付いているバッファ。
+             (current-buffers
+              (seq-filter
+               #'my/tab-line-buffer-visible-p
+               (tab-line-tabs-window-buffers)))
+
+             ;; 以前からあるバッファは、保存済みの順番を維持する。
+             (kept-buffers
+              (seq-filter
+               (lambda (buffer)
+                 (memq buffer current-buffers))
+               old-buffers))
+
+             ;; 新しく表示されたバッファは、右端へ追加する。
+             (added-buffers
+              (seq-remove
+               (lambda (buffer)
+                 (memq buffer kept-buffers))
+               current-buffers))
+
+             (buffers
+              (append kept-buffers added-buffers)))
+
+        ;; ウィンドウごとのTab Lineの並び順として保存する。
+        (set-window-parameter nil 'tab-line-buffers buffers)
+
+        buffers))
+
+    ;; Tab Barを切り替えても、ウィンドウごとの並び順を保持する。
+    (add-to-list
+     'window-persistent-parameters
+     '(tab-line-buffers . t))
+
+    :custom
+    ;; Tab Lineへ表示するバッファを独自に絞り込む。
+    (tab-line-tabs-function #'my/tab-line-tabs)
+
+    ;; 右端・左端へ到達したら、反対側へ戻って循環する。
+    (tab-line-switch-cycling t)
+
+    ;; 各タブの閉じるボタンを表示しない。
+    (tab-line-close-button-show nil)
+
+    :config
+    ;; すべてのウィンドウでTab Lineを有効にする。
+    (global-tab-line-mode 1)
+
+    ;; Cmd+Option+←：左隣のTab Lineへ移動する。
+    (keymap-global-set
+     "M-s-<left>"
+     #'tab-line-switch-to-prev-tab)
+
+    ;; Cmd+Option+→：右隣のTab Lineへ移動する。
+    (keymap-global-set
+     "M-s-<right>"
+     #'tab-line-switch-to-next-tab))
+#+end_src
+
+** バッファとウィンドウを閉じる操作
+
+#+begin_src emacs-lisp
+  (defun my/close-current-buffer ()
+    "複数Tab Barでは現在のTab Barから外し、
+  最後の1つのTab Barではバッファ自体を削除する。"
+    (interactive)
+    (if (> (length
+            (funcall tab-bar-tabs-function))
+           1)
+        (bufferlo-bury)
+      (kill-current-buffer)))
+
+  (keymap-global-set "s-w" #'my/close-current-buffer)
+
+  ;; 複数ウィンドウなら現在のウィンドウを閉じ、
+  ;; 1ウィンドウかつ複数Tab Barなら現在のTab Barを閉じる。
+  (keymap-global-set "s-W" #'my/close-window-or-tab)
+#+end_src
+
+* 編集
+
+選択、クリップボード、行や単語の変更、アンドゥ・リドゥを設定します。
+
+** Emacs本体の編集操作
+
+*** 選択とクリップボード
+
+#+begin_src emacs-lisp
+  ;; macOS風の全選択。
+  (keymap-global-set "s-a" #'mark-whole-buffer)
+
+  ;; macOS風のコピー。
+  (keymap-global-set "s-c" #'kill-ring-save)
+
+  ;; macOS風の切り取り。
+  (keymap-global-set "s-x" #'kill-region)
+
+  ;; macOS風の貼り付け。
+  (keymap-global-set "s-v" #'yank)
+#+end_src
+
+*** 行の編集
+
+**** 現在の行を選択
+#+begin_src emacs-lisp
+(defun my/select-current-line ()
+  "カーソル行全体を選択し、カーソルを次の行頭へ移動する。
+ 続けて実行すると、選択範囲を次の行まで広げる。"
+  (interactive)
+  (if (and (region-active-p)
+           (eq last-command 'my/select-current-line))
+      ;; 連続実行時は、選択範囲を次の行まで広げる。
+      (goto-char (line-beginning-position 2))
+
+    ;; 最初の実行では、現在行の先頭から次の行頭までを選択する。
+    (let ((start (line-beginning-position)))
+      (goto-char (line-beginning-position 2))
+      (set-mark start)
+      (activate-mark))))
+
+;; VS Code風にカーソル行を選択する。
+(keymap-global-set "s-l" #'my/select-current-line)
+#+end_src
+
+**** カーソル行の上下に新しい行を挿入
+
+VS Codeの「Insert Line Below」「Insert Line Above」に相当する操作です。
+カーソルが行の途中にあっても、現在行の内容は分割しません。
+
+- =Cmd+Enter=: カーソル行の下に新しい行を追加し、その行へ移動する
+- =Cmd+Shift+Enter=: カーソル行の上に新しい行を追加し、その行へ移動する
+
+#+begin_src emacs-lisp
+(defun my/insert-line-below ()
+  "カーソル行の下に新しい行を挿入し、その行へ移動する。"
+  (interactive)
+  (end-of-line)
+  (newline-and-indent))
+
+(defun my/insert-line-above ()
+  "カーソル行の上に新しい行を挿入し、その行へ移動する。"
+  (interactive)
+  (beginning-of-line)
+  (open-line 1)
+  (indent-according-to-mode))
+
+;; VS Code風に、現在行の下へ新しい行を挿入する。
+(keymap-global-set "s-<return>" #'my/insert-line-below)
+
+;; VS Code風に、現在行の上へ新しい行を挿入する。
+(keymap-global-set "S-s-<return>" #'my/insert-line-above)
+#+end_src
+
+**** 現在行の削除
+
+VS Codeに近い行単位の操作を追加します。
+
+- =Cmd+Shift+k=: カーソル行を削除する
+#+begin_src emacs-lisp
+(defun my/delete-current-line ()
+  "カーソルのある行を、Kill Ringへ入れずに削除する。"
+  (interactive)
+  (delete-region
+   (line-beginning-position)
+   (line-beginning-position 2)))
+
+(keymap-global-set "s-K" #'my/delete-current-line)
+#+end_src
+
+**** 行・選択範囲の複製
+#+begin_src emacs-lisp
+  (defun my/line-block-bounds ()
+    "現在行、または選択範囲を含む行全体の範囲を返す。"
+    (if (use-region-p)
+        (let ((beg (region-beginning))
+              (end (region-end)))
+          (cons
+           (save-excursion
+             (goto-char beg)
+             (line-beginning-position))
+           (save-excursion
+             (goto-char end)
+             ;; 選択範囲の末尾が行頭の場合、その行は含めない。
+             (if (and (bolp) (> end beg))
+                 end
+               (line-beginning-position 2)))))
+      (cons (line-beginning-position)
+            (line-beginning-position 2))))
+
+  (defun my/duplicate-lines (direction)
+    "現在行または選択した行をDIRECTION方向へ複製する。"
+    (let* ((region-active-p (use-region-p))
+           (original-point (point))
+           (original-mark (and region-active-p (mark)))
+           (bounds (my/line-block-bounds))
+           (beg (car bounds))
+           (end (cdr bounds))
+           (text (buffer-substring beg end))
+           (point-offset (- original-point beg))
+           (mark-offset
+            (and region-active-p
+                 (- original-mark beg)))
+           (ends-with-newline-p
+            (and (> end beg)
+                 (eq (char-before end) ?\n)))
+           copy-beg)
+
+      (atomic-change-group
+        (pcase direction
+          ('down
+           (goto-char end)
+
+           ;; ファイル末尾に改行がない場合は、行を分離する。
+           (unless ends-with-newline-p
+             (insert "\n"))
+
+           (setq copy-beg (point))
+           (insert text))
+
+          ('up
+           (goto-char beg)
+           (setq copy-beg (point))
+           (insert text)
+
+           ;; ファイル末尾に改行がない行を上へ複製する場合も分離する。
+           (unless ends-with-newline-p
+             (insert "\n"))))
+
+        ;; 複製された側へカーソルと選択範囲を移動する。
+        (if region-active-p
+            (let ((new-point (+ copy-beg point-offset))
+                  (new-mark (+ copy-beg mark-offset)))
+              (goto-char new-mark)
+              (set-mark (point))
+              (goto-char new-point)
+              (activate-mark))
+          (goto-char (+ copy-beg point-offset))))))
+
+  (defun my/duplicate-lines-up ()
+    "現在行または選択した行を上へ複製する。"
+    (interactive)
+    (my/duplicate-lines 'up))
+
+  (defun my/duplicate-lines-down ()
+    "現在行または選択した行を下へ複製する。"
+    (interactive)
+    (my/duplicate-lines 'down))
+
+  (global-set-key (kbd "S-M-<up>")
+                  #'my/duplicate-lines-up)
+
+  (global-set-key (kbd "S-M-<down>")
+                  #'my/duplicate-lines-down)
+#+end_src
+
+*** 単語と文字の削除
+
+#+begin_src emacs-lisp
+  (defun my/delete-to-line-beginning ()
+    "カーソル位置から行頭までを削除する。"
+    (interactive)
+    (delete-region (line-beginning-position) (point)))
+
+  (defun my/delete-to-line-end ()
+    "カーソル位置から行末までを削除する。"
+    (interactive)
+    (delete-region (point) (line-end-position)))
+
+  ;; カーソル位置から行頭までを削除する。
+  (global-set-key (kbd "s-<backspace>")
+                  #'my/delete-to-line-beginning)
+
+  ;; カーソル位置から行末までを削除する。
+  (global-set-key (kbd "s-<delete>")
+                  #'my/delete-to-line-end)
+
+  (defun my/delete-word-forward (arg)
+    "カーソルからARG語先までを、Kill Ringへ保存せずに削除する。"
+    (interactive "p")
+    (let ((start (point)))
+      (forward-word arg)
+      (delete-region start (point))))
+
+  (defun my/delete-word-backward (arg)
+    "カーソルからARG語前までを、Kill Ringへ保存せずに削除する。"
+    (interactive "p")
+    (my/delete-word-forward (- arg)))
+
+  ;; Option+Backspace：カーソル左側の単語を削除する。
+  (keymap-global-set "M-DEL" #'my/delete-word-backward)
+
+  ;; Option+Delete：カーソル右側の単語を削除する。
+  (keymap-global-set "M-<delete>" #'my/delete-word-forward)
+#+end_src
+
+** Move Text：行・選択範囲の上下移動
+
+VS Codeと同様に、Option＋上下キーで
+現在行または選択中の複数行を上下へ移動します。
+
+#+begin_src emacs-lisp
+  (use-package move-text
+    :ensure t
+
+    :bind
+    (("M-<up>"   . move-text-up)
+     ("M-<down>" . move-text-down)))
+#+end_src
+
+** Undo Fu：アンドゥ・リドゥ
+
+#+begin_src emacs-lisp
+  (use-package undo-fu
+    :ensure t
+
+    :bind
+    (("s-z" . undo-fu-only-undo)
+     ("s-Z" . undo-fu-only-redo)
+     ("s-X" . undo-fu-clear-all)))
+#+end_src
+
+* ナビゲーション
+
+カーソル移動、画面内ジャンプ、移動履歴を設定します。
+
+** カーソル移動
+
+#+begin_src emacs-lisp
+  ;; Cmd+←：行頭へ移動する。
+  (keymap-global-set "s-<left>" #'move-beginning-of-line)
+
+  ;; Cmd+→：行末へ移動する。
+  (keymap-global-set "s-<right>" #'move-end-of-line)
+
+  ;; Cmd+↑：バッファの先頭へ移動する。
+  (keymap-global-set "s-<up>" #'beginning-of-buffer)
+
+  ;; Cmd+↓：バッファの末尾へ移動する。
+  (keymap-global-set "s-<down>" #'end-of-buffer)
+#+end_src
+
+** Avy：画面内の任意位置へジャンプ
+
+画面内に表示されている文字列を指定し、
+表示されたラベルを入力して、その位置へ移動します。
+
+- =Cmd+t=: 入力した文字の位置へジャンプ
+
+#+begin_src emacs-lisp
+  (use-package avy
+    :ensure t
+
+    :bind
+    (("s-t" . avy-goto-word-1)))
+#+end_src
+
+** Better Jumper：ナビゲーション履歴の戻る・進む
+
+ファイルバッファ内の明示的なジャンプと、同じウィンドウでの
+ファイルバッファ切り替えを、共通のナビゲーション履歴へ記録します。
+通常のカーソル移動や、Diredなどの非ファイルバッファは記録しません。
+
+異なるウィンドウへ新しいファイルを開いた場合は、
+移動元のウィンドウとカーソル位置も履歴として保持します。
+戻る・進むでは同じファイルを現在のウィンドウへ開き直さず、
+元のウィンドウそのものを選択します。
+
+- =<mouse-4>=: 1つ前の場所へ戻る
+- =<mouse-5>=: 戻る前の場所へ進む
+
+初期状態では、定義ジャンプ、Consultによるファイル内検索、
+行番号指定のジャンプを明示的なジャンプとして扱います。
+追跡対象と除外対象は、利用しながらコマンド単位で調整できます。
+
+#+begin_src emacs-lisp
+  (defcustom my/navigation-history-jump-commands
+    '(xref-find-definitions
+      consult-line
+      consult-goto-line
+      goto-line)
+    "同一ファイル内でもナビゲーション履歴へ記録するジャンプコマンド。"
+    :type '(repeat function)
+    :group 'convenience)
+
+  (defcustom my/navigation-history-ignored-buffer-switch-commands
+    nil
+    "ファイルバッファを切り替えても履歴へ記録しないコマンド。"
+    :type '(repeat function)
+    :group 'convenience)
+
+  (defconst my/navigation-history--back-location-parameter
+    'my/navigation-history-back-location
+    "ウィンドウをまたいで戻る位置を保持するウィンドウパラメーター。")
+
+  (defconst my/navigation-history--forward-location-parameter
+    'my/navigation-history-forward-location
+    "ウィンドウをまたいで進む位置を保持するウィンドウパラメーター。")
+
+  (defvar my/navigation-history--before-location nil
+    "現在のコマンドを実行する直前のファイル位置。")
+
+  (defvar my/navigation-history--explicit-jump-p nil
+    "現在のコマンドを明示的なジャンプとして扱うとき非nil。")
+
+  (defvar my/navigation-history--skip-current-command-p nil
+    "現在のコマンドによる移動を履歴へ記録しないとき非nil。")
+
+  (defun my/navigation-history--file-buffer-p (&optional buffer)
+    "BUFFERが通常のファイルを訪問しているとき非nilを返す。"
+    (with-current-buffer (or buffer (current-buffer))
+      (and buffer-file-name
+           (not (minibufferp)))))
+
+  (defun my/navigation-history--location-at-window
+      (window &optional marker)
+    "WINDOWのファイル位置を返す。
+MARKERが有効なら、WINDOWの現在位置ではなくMARKERを使用する。"
+    (when (window-live-p window)
+      (let* ((buffer
+              (if (and (markerp marker)
+                       (marker-buffer marker))
+                  (marker-buffer marker)
+                (window-buffer window)))
+             (position
+              (if (and (markerp marker)
+                       (marker-position marker))
+                  (marker-position marker)
+                (window-point window))))
+        (when (and position
+                   (buffer-live-p buffer)
+                   (my/navigation-history--file-buffer-p buffer))
+          (with-current-buffer buffer
+            (list :buffer buffer
+                  :marker (copy-marker position)
+                  :window window))))))
+
+  (defun my/navigation-history--capture-location ()
+    "現在のファイル位置をナビゲーション履歴用に保存する。"
+    (when (and (my/navigation-history--file-buffer-p)
+               (bound-and-true-p better-jumper-local-mode))
+      (my/navigation-history--location-at-window
+       (selected-window))))
+
+  (defun my/navigation-history--release-location (location)
+    "LOCATIONが保持しているマーカーを解放する。"
+    (let ((marker (plist-get location :marker)))
+      (when (markerp marker)
+        (set-marker marker nil))))
+
+  (defun my/navigation-history--set-window-location
+      (window parameter location)
+    "WINDOWのPARAMETERへLOCATIONを設定する。
+以前の位置があれば、そのマーカーを先に解放する。"
+    (when (window-live-p window)
+      (my/navigation-history--release-location
+       (window-parameter window parameter))
+      (set-window-parameter window parameter location)))
+
+  (defun my/navigation-history--take-window-location
+      (window parameter)
+    "WINDOWのPARAMETERから位置を取り出し、PARAMETERを空にする。"
+    (when (window-live-p window)
+      (prog1 (window-parameter window parameter)
+        (set-window-parameter window parameter nil))))
+
+  (defun my/navigation-history--clear-forward-location (&optional window)
+    "WINDOWに残っているウィンドウ間の進む履歴を破棄する。"
+    (my/navigation-history--set-window-location
+     (or window (selected-window))
+     my/navigation-history--forward-location-parameter
+     nil))
+
+  (defun my/navigation-history--clear-command-state ()
+    "コマンド間で保持しているナビゲーション判定用の状態を破棄する。"
+    (my/navigation-history--release-location
+     my/navigation-history--before-location)
+    (setq my/navigation-history--before-location nil
+          my/navigation-history--explicit-jump-p nil
+          my/navigation-history--skip-current-command-p nil))
+
+  (defun my/navigation-history--history-command-p (command)
+    "COMMANDがナビゲーション履歴自体を移動するコマンドなら非nil。"
+    (memq command
+          '(my/navigation-history-backward
+            my/navigation-history-forward
+            better-jumper-jump-backward
+            better-jumper-jump-forward
+            better-jumper-jump-newest)))
+
+  (defun my/navigation-history--record-location (location)
+    "LOCATIONを現在のウィンドウのBetter Jumper履歴へ追加する。"
+    (let ((buffer (plist-get location :buffer))
+          (marker (plist-get location :marker)))
+      (when (and (buffer-live-p buffer)
+                 (markerp marker)
+                 (marker-position marker))
+        ;; 戻ったあとに新しいナビゲーションを行った場合は、
+        ;; ウィンドウをまたぐ進む履歴もブラウザと同様に破棄する。
+        (my/navigation-history--clear-forward-location)
+        (with-current-buffer buffer
+          (when (bound-and-true-p better-jumper-local-mode)
+            (save-excursion
+              (goto-char marker)
+              (better-jumper-set-jump)))))))
+
+  (defun my/navigation-history--before-command ()
+    "コマンド実行前のファイル位置と移動種別を保存する。"
+    ;; ミニバッファ内の再帰的なコマンドでは、
+    ;; 呼び出し元で保存した位置を上書きしない。
+    (unless (minibufferp)
+      (my/navigation-history--clear-command-state)
+      (setq my/navigation-history--before-location
+            (my/navigation-history--capture-location)
+            my/navigation-history--explicit-jump-p
+            (memq this-command
+                  my/navigation-history-jump-commands)
+            my/navigation-history--skip-current-command-p
+            (my/navigation-history--history-command-p
+             this-command))))
+
+  (defun my/navigation-history--location-changed-p (location)
+    "LOCATIONから現在位置へ移動しているとき非nilを返す。"
+    (let ((buffer (plist-get location :buffer))
+          (marker (plist-get location :marker)))
+      (or (not (eq buffer (current-buffer)))
+          (and (eq buffer (current-buffer))
+               (markerp marker)
+               (marker-position marker)
+               (/= (marker-position marker)
+                   (point))))))
+
+  (defun my/navigation-history--after-command ()
+    "必要なナビゲーションだけ、実行前の位置を履歴へ追加する。"
+    ;; ミニバッファのコマンド終了時は状態を維持し、
+    ;; 元のコマンドが完了した時点で最終的な移動先を判定する。
+    (unless (minibufferp)
+      (let* ((location my/navigation-history--before-location)
+             (source-buffer
+              (and location
+                   (plist-get location :buffer)))
+             (source-window
+              (and location
+                   (plist-get location :window)))
+             (buffer-switched-p
+              (and source-buffer
+                   (not (eq source-buffer
+                            (current-buffer)))))
+             (ignored-buffer-switch-p
+              (memq this-command
+                    my/navigation-history-ignored-buffer-switch-commands)))
+        (unwind-protect
+            (when (and location
+                       (not my/navigation-history--skip-current-command-p)
+                       (eq source-window (selected-window))
+                       (my/navigation-history--file-buffer-p)
+                       (bound-and-true-p better-jumper-local-mode)
+                       (my/navigation-history--location-changed-p
+                        location)
+                       (or my/navigation-history--explicit-jump-p
+                           (and buffer-switched-p
+                                (not ignored-buffer-switch-p))))
+              (my/navigation-history--record-location location))
+          (my/navigation-history--clear-command-state)))))
+
+  (defun my/navigation-history--position-state ()
+    "現在のウィンドウ、バッファ、カーソル位置を返す。"
+    (list (selected-window)
+          (current-buffer)
+          (point)))
+
+  (defun my/navigation-history--position-state-changed-p (state)
+    "現在位置がSTATEから変わっているとき非nilを返す。"
+    (not (equal state
+                (my/navigation-history--position-state))))
+
+  (defun my/navigation-history--visit-location (location)
+    "LOCATIONが指すウィンドウとファイル位置へ移動する。"
+    (let ((window (plist-get location :window))
+          (buffer (plist-get location :buffer))
+          (marker (plist-get location :marker)))
+      (when (and (window-live-p window)
+                 (buffer-live-p buffer)
+                 (markerp marker)
+                 (marker-position marker))
+        (select-window window)
+        (unless (eq (window-buffer window) buffer)
+          (set-window-buffer window buffer))
+        (goto-char marker)
+        t)))
+
+  (defun my/navigation-history--follow-window-location
+      (source-parameter target-parameter)
+    "SOURCE-PARAMETERの位置へ移動し、戻り先をTARGET-PARAMETERへ保存する。"
+    (let* ((source-window (selected-window))
+           (target-location
+            (my/navigation-history--take-window-location
+             source-window
+             source-parameter))
+           (return-location
+            (my/navigation-history--location-at-window
+             source-window)))
+      (cond
+       ((and target-location
+             return-location
+             (my/navigation-history--visit-location
+              target-location))
+        ;; 移動後に選択されたウィンドウへ、逆方向の移動先を保存する。
+        (my/navigation-history--set-window-location
+         (selected-window)
+         target-parameter
+         return-location)
+        (my/navigation-history--release-location
+         target-location)
+        t)
+
+       (t
+        (my/navigation-history--release-location
+         target-location)
+        (my/navigation-history--release-location
+         return-location)
+        nil))))
+
+  (defun my/navigation-history--follow-back-location ()
+    "ウィンドウをまたぐ直前の位置へ戻る。"
+    (my/navigation-history--follow-window-location
+     my/navigation-history--back-location-parameter
+     my/navigation-history--forward-location-parameter))
+
+  (defun my/navigation-history--follow-forward-location ()
+    "ウィンドウをまたいで戻る前の位置へ進む。"
+    (my/navigation-history--follow-window-location
+     my/navigation-history--forward-location-parameter
+     my/navigation-history--back-location-parameter))
+
+  (defun my/navigation-history-backward ()
+    "同一ウィンドウの履歴を戻り、なければ移動元ウィンドウへ戻る。"
+    (interactive)
+    (let ((before (my/navigation-history--position-state)))
+      (better-jumper-jump-backward)
+      (unless (my/navigation-history--position-state-changed-p
+               before)
+        (my/navigation-history--follow-back-location))))
+
+  (defun my/navigation-history-forward ()
+    "移動先ウィンドウへ進み、なければ同一ウィンドウの履歴を進む。"
+    (interactive)
+    ;; ウィンドウをまたいで戻った直後は、まず元のウィンドウへ進む。
+    ;; その後はBetter Jumperの同一ウィンドウ内履歴を使用する。
+    (unless (my/navigation-history--follow-forward-location)
+      (better-jumper-jump-forward)))
+
+  (defun my/navigation-history-register-window-transition
+      (source-window source-marker destination-window)
+    "SOURCE-WINDOWからDESTINATION-WINDOWへの移動を履歴へ登録する。
+SOURCE-MARKERは移動前の正確なカーソル位置を指す。"
+    (let ((source-location
+           (my/navigation-history--location-at-window
+            source-window
+            source-marker)))
+      (when (and source-location
+                 (window-live-p destination-window)
+                 (not (eq source-window destination-window)))
+        ;; 新しいウィンドウには分割元のBetter Jumper履歴を持ち込まない。
+        (better-jumper-clear-jumps destination-window)
+        (my/navigation-history--set-window-location
+         destination-window
+         my/navigation-history--back-location-parameter
+         source-location)
+        (my/navigation-history--clear-forward-location
+         destination-window))))
+
+  (use-package better-jumper
+    :ensure t
+    :demand t
+
+    :custom
+    ;; 同じウィンドウ内で、ファイルをまたぐ履歴を管理する。
+    (better-jumper-context 'window)
+
+    ;; 新しく分割したウィンドウへ、分割元の履歴をコピーしない。
+    (better-jumper-new-window-behavior 'empty)
+
+    ;; 戻ったあとに別の場所へ移動した場合は、古い進む履歴を破棄する。
+    (better-jumper-add-jump-behavior 'replace)
+
+    :bind
+    (("<mouse-4>" . my/navigation-history-backward)
+     ("<mouse-5>" . my/navigation-history-forward))
+
+    :config
+    (better-jumper-mode 1)
+
+    ;; すべてのコマンドを監視するが、履歴へ追加するのは
+    ;; 明示的なジャンプか、同じウィンドウでのファイル切り替えだけ。
+    (add-hook 'pre-command-hook
+              #'my/navigation-history--before-command)
+    (add-hook 'post-command-hook
+              #'my/navigation-history--after-command))
+#+end_src
+
+* 検索と補完
+
+ミニバッファと編集中のバッファで利用する検索・補完機能をまとめます。
+
+** ミニバッファ補完
+
+*** Vertico：候補の縦表示
+
+Verticoは、ミニバッファの補完候補を縦方向に表示します。
+#+begin_src emacs-lisp
+(use-package vertico
   :ensure t
-  :if (eq window-system 'mac)
-
-  :init
-  (exec-path-from-shell-initialize))
-#+end_src
-* 状態の保存とファイル同期
-
-Emacsを終了・再起動しても引き継ぎたい状態と、外部で変更されたファイルの同期を設定します。
-
-** セッションをまたいで保存する状態
-
-*** ミニバッファの履歴
-
-検索履歴や実行したコマンドなどを、Emacs終了後も保存します。
-#+begin_src emacs-lisp
-(use-package savehist
-  :ensure nil
 
   :custom
-  (history-length 200)
+  ;; 最大20件の候補を表示する。
+  (vertico-count 20)
+
+  ;; 候補数に応じて高さを伸縮する。
+  (vertico-resize t)
+
+  ;; ミニバッファの最大高さをフレームの30%にする。
+  (max-mini-window-height 0.30)
 
   :init
-  (savehist-mode 1))
+  (vertico-mode))
 #+end_src
-*** 最近開いたファイル
 
-最近開いたファイルの一覧を保存します。
+*** Marginalia：候補の補足情報
+
+ミニバッファの補完候補に説明を表示します。
 #+begin_src emacs-lisp
-(use-package recentf
-  :ensure nil
+(use-package marginalia
+  :ensure t
+
+  :init
+  (marginalia-mode 1))
+#+end_src
+
+*** Nerd Icons Completion：候補のアイコン表示
+
+Verticoなどのミニバッファ補完候補に、
+ファイル、ディレクトリ、バッファ、コマンドなどに応じたアイコンを表示します。
+
+#+begin_src emacs-lisp
+  (use-package nerd-icons-completion
+    :ensure t
+    :after marginalia
+
+    :config
+    ;; ミニバッファの補完候補へNerd Iconsを表示する。
+    (nerd-icons-completion-mode)
+
+    ;; Marginaliaの有効・無効とアイコン表示を連動させる。
+    (add-hook
+     'marginalia-mode-hook
+     #'nerd-icons-completion-marginalia-setup))
+#+end_src
+
+*** Orderless：候補の絞り込み
+
+スペースで区切った複数の文字列を使って、
+補完候補を柔軟に絞り込みます。
+#+begin_src emacs-lisp
+(use-package orderless
+  :ensure t
 
   :custom
-  (recentf-max-saved-items 100)
+  (completion-styles '(orderless basic))
 
-  :init
-  (recentf-mode 1))
+  ;; ファイル名では、ディレクトリの部分入力を使いやすくする。
+  (completion-category-overrides
+   '((file (styles partial-completion)))))
 #+end_src
-*** カーソル位置
 
-ファイルを開き直したとき、前回のカーソル位置へ戻ります。
+** 検索
+
+*** Consult：検索と候補選択
+
+ミニバッファを利用した検索・移動機能を強化します。
+
 #+begin_src emacs-lisp
-(use-package saveplace
-  :ensure nil
+  (use-package consult
+    :ensure t
+    :after bufferlo
 
-  :init
-  (save-place-mode 1))
+    :custom
+    ;; 現在のTab Barに属するバッファを既定の候補にする。
+    (consult-buffer-list-function
+     #'bufferlo-buffer-list)
+
+    :bind
+    (("s-r" . consult-buffer)
+
+     ;; ブックマークをミニバッファで選択する。
+     ("s-m" . consult-bookmark)
+
+     ("s-f" . consult-line)
+     ("M-g f" . consult-flymake)))
 #+end_src
-** 外部変更の自動反映
 
-外部プログラムやGitなどによってファイルが変更されたとき、
-Emacs上のバッファも自動的に更新します。
+** バッファ内補完
+
+*** Corfu：バッファ内補完
+
+Emacs標準の補完機構を利用して、コード編集中の候補をポップアップ表示します。
+LSP Modeなどが提供する補完候補も同じ画面で扱います。
+
 #+begin_src emacs-lisp
-(use-package autorevert
-  :ensure nil
+  (use-package corfu
+    :ensure t
 
-  :custom
-  (global-auto-revert-non-file-buffers t)
+    :custom
+    ;; 候補の末尾と先頭を循環できるようにする。
+    (corfu-cycle t)
 
-  :init
-  (global-auto-revert-mode 1))
+    ;; 入力中に候補を自動表示する。
+    (corfu-auto t)
+
+    ;; TRAMPや言語サーバー利用時に過剰な問い合わせを避ける。
+    (corfu-auto-delay 0.25)
+    (corfu-auto-prefix 2)
+
+    ;; 候補を自動選択せず、明示的に選んだときだけ確定する。
+    (corfu-preselect 'prompt)
+
+    :init
+    (global-corfu-mode 1)
+
+    :config
+    ;; RETによる候補確定を無効にし、改行時の誤確定を防ぐ。
+    ;; 候補の補完・確定にはTABを使用する。
+    (keymap-unset corfu-map "RET")
+
+    ;; 選択中の候補について、利用可能な説明を表示する。
+    (corfu-popupinfo-mode 1))
 #+end_src
-* ファイルとディレクトリ
 
-ファイルとディレクトリの表示、移動、コピー、削除、
-階層表示、プレビューに関する設定をまとめます。
+* ファイルとプロジェクト
 
-** Dired：標準のファイル管理
+ファイルとディレクトリの操作、プロジェクトの認識、リモートファイルを設定します。
+
+** ファイルの保存
+
+#+begin_src emacs-lisp
+  ;; macOS風の保存。
+  (keymap-global-set "s-s" #'save-buffer)
+
+  ;; wordwrapのトグル。
+  (keymap-global-set "C-c x" #'visual-line-mode)
+#+end_src
+
+** Dired
+
+*** Dired本体
+
+ファイルとディレクトリの表示、移動、コピー、削除、プレビューを行います。
 #+begin_src emacs-lisp
   (defface my-dired-file-face
     '((t (:inherit default)))
@@ -689,13 +1891,8 @@ NEW-WINDOW-Pが非nilなら、新しいウィンドウへファイルを表示�
      ((t (:inherit font-lock-type-face
                    :weight bold)))))
 #+end_src
-** Nerd Icons：ファイルアイコンの基盤
-#+begin_src emacs-lisp
-(use-package nerd-icons
-  :ensure t)
-#+end_src
 
-** Nerd Icons Dired：Diredのアイコン表示
+*** Nerd Icons Dired：Diredのアイコン表示
 #+begin_src emacs-lisp
   (defun my-nerd-icons-dired-refresh ()
     "Diredの内容が部分的に変化した後、Nerd Iconsを再描画する。"
@@ -711,7 +1908,7 @@ NEW-WINDOW-Pが非nilなら、新しいウィンドウへファイルを表示�
     (dired-mode . nerd-icons-dired-mode))
 #+end_src
 
-** Dired Subtree：ディレクトリのツリー展開
+*** Dired Subtree：ディレクトリのツリー展開
 #+begin_src emacs-lisp
   (use-package dired-subtree
     :ensure t
@@ -746,270 +1943,68 @@ NEW-WINDOW-Pが非nilなら、新しいウィンドウへファイルを表示�
               #'my-nerd-icons-dired-refresh))
 #+end_src
 
-** Diff HL：Git差分の表示
-#+begin_src emacs-lisp
-  (use-package diff-hl
-    :ensure t
+** Project：プロジェクト管理
 
-    :hook
-    ;; 通常のファイルでは、変更された行をウィンドウ左端に表示する。
-    ((prog-mode . diff-hl-mode)
-     (text-mode . diff-hl-mode)
+Emacs標準のプロジェクト管理機能を使用します。
+Gitリポジトリ内に =cabal.project= がある場合は、
+そのディレクトリを独立したプロジェクトルートとして認識します。
 
-     ;; Diredでは、Git状態に応じてファイル単位の印を表示する。
-     (dired-mode . diff-hl-dired-mode))
-
-    :custom
-    ;; .gitignore対象のファイルまでは表示しない。
-    ;; 未追跡ファイルは引き続き表示される。
-    (diff-hl-dired-extra-indicators nil)
-
-    :config
-    ;; dired-subtreeで後から挿入されたファイルについても、
-    ;; Git状態を再取得して表示する。
-    (with-eval-after-load 'dired-subtree
-      (add-hook 'dired-subtree-after-insert-hook
-                #'diff-hl-dired-update)))
-#+end_src
-* ウィンドウとバッファの移動
-
-作業画面全体と、各ウィンドウ内のバッファをタブとして切り替える設定です。
-** Window Move：次に実行したコマンドが表示するバッファの行き先を予約する
+- =Cmd+p=: 現在のプロジェクト内のファイルを開く
 
 #+begin_src emacs-lisp
-  (use-package windmove
+  (use-package project
     :ensure nil
 
     :bind
-    (("C-x <left>"  . windmove-display-left)
-     ("C-x <right>" . windmove-display-right)
-     ("C-x <up>"    . windmove-display-up)
-     ("C-x <down>"  . windmove-display-down)))
-#+end_src
-
-** Tab Bar：作業画面全体の切り替え
-
-画面分割を含む作業画面全体を、タブとして切り替えます。
-
-#+begin_src emacs-lisp
-  (defun my/tab-bar-reset-dashboard-tab (_tab)
-    "新しく作成されたDashboardタブを、Dashboardだけの状態にする。"
-    (when (derived-mode-p 'dashboard-mode)
-      (let ((window (selected-window)))
-        ;; Tab Lineが参照するウィンドウ固有の履歴を初期化する。
-        (set-window-prev-buffers window nil)
-        (set-window-next-buffers window nil)
-
-        ;; 独自Tab Lineの固定順もDashboardだけにする。
-        (set-window-parameter
-         window
-         'tab-line-buffers
-         (list (window-buffer window))))
-
-      ;; 新しいTab BarのBufferlo一覧を、
-      ;; 現在表示中のDashboardだけにする。
-      (bufferlo-clear)
-
-      ;; Tab Lineを再描画する。
-      (force-mode-line-update t)))
-
-  (defun my/close-window-or-tab ()
-    "複数ウィンドウなら現在のウィンドウを閉じる。
-    1ウィンドウかつ複数Tab Barなら現在のTab Barを閉じる。
-    最後のウィンドウかつ最後のTab Barでは何もしない。"
-    (interactive)
-    (cond
-     ;; ミニバッファを除く通常ウィンドウが複数ある場合。
-     ((not (one-window-p t))
-      (delete-window))
-
-     ;; 通常ウィンドウが1つで、Tab Barが複数ある場合。
-     ((> (length
-          (funcall tab-bar-tabs-function))
-         1)
-      (tab-close))
-
-     ;; 最後のウィンドウかつ最後のTab Bar。
-     (t
-      (message "最後のウィンドウとTab Barは閉じません"))))
-
-  (use-package tab-bar
-    :ensure nil
+    (("s-p" . project-find-file)
+     ("s-F" . project-find-regexp))
 
     :custom
-    ;; 新しいTab BarはDashboardから始める。
-    (tab-bar-new-tab-choice #'dashboard-open)
-
-    ;; 新しいタブを作る「＋」ボタンを表示しない。
-    (tab-bar-new-button-show nil)
-
-    ;; 各タブの「×」ボタンを表示しない。
-    (tab-bar-close-button-show nil)
+    ;; Gitバックエンドを持たない分割プロジェクトでも、
+    ;; Haskellのビルド生成物を候補から除外する。
+    (project-vc-ignores
+     '("dist-newstyle/"))
 
     :config
-    ;; Emacs標準のTab Barを有効にする。
-    (tab-bar-mode 1)
-
-    ;; Ctrl+PageDown：右隣のTab Barへ移動する。
-    ;; 右端では左端へ戻り、循環する。
-    (keymap-global-set "C-<next>" #'tab-next)
-
-    ;; Ctrl+PageUp：左隣のTab Barへ移動する。
-    ;; 左端では右端へ戻り、循環する。
-    (keymap-global-set "C-<prior>" #'tab-previous)
-
-    ;; 新規タブの構築が完了したあとに状態を整理する。
-    (add-hook
-     'tab-bar-tab-post-open-functions
-     #'my/tab-bar-reset-dashboard-tab))
-#+end_src
-
-** Bufferlo：Tab Barごとのバッファ管理
-
-各Tab Barが独立したバッファ一覧を持つようにします。
-
-#+begin_src emacs-lisp
-  (use-package bufferlo
-    :ensure t
-    :demand t
-
-    :init
-    ;; next-bufferとprevious-bufferも現在のTab Bar内に限定する。
-    ;; bufferlo-modeを有効にする前に設定する必要がある。
-    (setq bufferlo-prefer-local-buffers 'tabs)
-
-    :bind
-    ;; 現在のTab Barに属するバッファから選択する。
-    ;; Prefix引数を付けると、Emacs全体のバッファから選択できる。
-    (("C-x b" . bufferlo-switch-to-buffer))
-
-    :config
-    ;; フレーム・Tab Barごとのローカルバッファ管理を有効にする。
-    (bufferlo-mode 1))
-#+end_src
-** Tab Line：ウィンドウ内のバッファ切り替え
-
-各ウィンドウで表示したバッファを、タブとして切り替えます。
-
-| キー         | 操作                 |
-|--------------+----------------------|
-| =Cmd+Option+←= | 左隣のTab Lineへ移動 |
-| =Cmd+Option+→= | 右隣のTab Lineへ移動 |
-
-どちらも端まで移動すると、反対側へ戻って循環します。
-
-Tab Lineのバッファ名は並び順を維持し、
-新しく表示したバッファだけを右端へ追加します。
-#+begin_src emacs-lisp
-  (use-package tab-line
-    :ensure nil
-    :after bufferlo
-
-    :init
-    (require 'seq)
-
-    ;; Tab Lineに表示しないバッファ名。
-    (defconst my/tab-line-excluded-buffer-names
-      '("*scratch*")
-      "Tab Lineに表示しないバッファ名の一覧。")
-
-    (defun my/tab-line-buffer-visible-p (buffer)
-      "BUFFERをTab Lineに表示するとき、非nilを返す。"
-      (and
-       ;; 削除済みのバッファは表示しない。
-       (buffer-live-p buffer)
-
-       ;; ミニバッファはTab Lineへ表示しない。
-       (not (minibufferp buffer))
-
-       ;; 通常のScratchと、Bufferloが作るタブ専用Scratchを表示しない。
-       (not
-        (string-prefix-p
-         "*scratch*"
-         (buffer-name buffer)))
-
-       ;; 表示しないバッファはここに定義する。
-       (not
-        (with-current-buffer buffer
-          (derived-mode-p
-           'dired-mode
-           'magit-mode
-           'vterm-mode)))))
-
-    (defun my/tab-line-tabs ()
-      "不要なバッファを除外し、固定順でTab Lineへ表示する。"
-      (let* (;; このウィンドウで保存している、前回までの並び順。
-             (old-buffers
-              (seq-filter
-               #'my/tab-line-buffer-visible-p
-               (window-parameter nil 'tab-line-buffers)))
-
-             ;; 現在、このウィンドウに関連付いているバッファ。
-             (current-buffers
-              (seq-filter
-               #'my/tab-line-buffer-visible-p
-               (tab-line-tabs-window-buffers)))
-
-             ;; 以前からあるバッファは、保存済みの順番を維持する。
-             (kept-buffers
-              (seq-filter
-               (lambda (buffer)
-                 (memq buffer current-buffers))
-               old-buffers))
-
-             ;; 新しく表示されたバッファは、右端へ追加する。
-             (added-buffers
-              (seq-remove
-               (lambda (buffer)
-                 (memq buffer kept-buffers))
-               current-buffers))
-
-             (buffers
-              (append kept-buffers added-buffers)))
-
-        ;; ウィンドウごとのTab Lineの並び順として保存する。
-        (set-window-parameter nil 'tab-line-buffers buffers)
-
-        buffers))
-
-    ;; Tab Barを切り替えても、ウィンドウごとの並び順を保持する。
     (add-to-list
-     'window-persistent-parameters
-     '(tab-line-buffers . t))
-
-    :custom
-    ;; Tab Lineへ表示するバッファを独自に絞り込む。
-    (tab-line-tabs-function #'my/tab-line-tabs)
-
-    ;; 右端・左端へ到達したら、反対側へ戻って循環する。
-    (tab-line-switch-cycling t)
-
-    ;; 各タブの閉じるボタンを表示しない。
-    (tab-line-close-button-show nil)
-
-    :config
-    ;; すべてのウィンドウでTab Lineを有効にする。
-    (global-tab-line-mode 1)
-
-    ;; Cmd+Option+←：左隣のTab Lineへ移動する。
-    (keymap-global-set
-     "M-s-<left>"
-     #'tab-line-switch-to-prev-tab)
-
-    ;; Cmd+Option+→：右隣のTab Lineへ移動する。
-    (keymap-global-set
-     "M-s-<right>"
-     #'tab-line-switch-to-next-tab))
+     'project-vc-extra-root-markers
+     "cabal.project"))
 #+end_src
-* Org mode
 
-Org mode本体、Capture、Agenda、表示補助をまとめます。
+** TRAMP：リモートファイル
 
-** 管理対象ファイル
+TRAMP接続先の通常PATHに加えて、GHCupとユーザー単位の
+実行ファイル置き場をリモートプログラムの検索対象にします。
+特定のプロジェクト名、コンテナ名、接続先ユーザーには依存しません。
 
-Org関連の設定やコマンドから参照するファイルパスを定義します。
+#+begin_src emacs-lisp
+(use-package tramp
+  :ensure nil
 
-*** 個人作業管理ファイル
+  :config
+  ;; 接続先ユーザー自身のPATHを取り込む。
+  (add-to-list
+   'tramp-remote-path
+   'tramp-own-remote-path)
+
+  ;; GHCupで導入したGHC、Cabal、HLSなど。
+  (add-to-list
+   'tramp-remote-path
+   "~/.ghcup/bin")
+
+  ;; cabal installなどでユーザー単位に導入したコマンド。
+  (add-to-list
+   'tramp-remote-path
+   "~/.local/bin"))
+#+end_src
+
+* 文書とデータ
+
+文書や構造化データの編集・管理機能をまとめます。
+
+** Org mode
+
+*** 管理対象ファイル
 
 個人の気づきや作業状態を管理するOrgファイルの場所を定義します。
 
@@ -1028,52 +2023,8 @@ Org関連の設定やコマンドから参照するファイルパスを定義�
   (expand-file-name "cockpit.org" my/task-org-directory)
   "状態を持つ作業項目を保存するOrgファイル。")
 #+end_src
-*** Emacs設定ファイル
 
-=init.org= を開くコマンド、=init.el= を生成するコマンド、
-生成した設定を再読み込みするコマンドを定義します。
-
-- =C-c e i=: init.orgを開く
-- =C-c e t=: init.orgからinit.elを生成する
-- =C-c e r=: init.elを再読み込みする
-#+begin_src emacs-lisp
-(defconst my/init-org-file
-  (expand-file-name "init.org" user-emacs-directory)
-  "Emacs設定の原本となるOrgファイル。")
-
-(defconst my/init-el-file
-  (expand-file-name "init.el" user-emacs-directory)
-  "init.orgから生成されるEmacs Lispファイル。")
-
-(defun my/open-init-org ()
-  "Emacs設定ファイルinit.orgを開く。"
-  (interactive)
-  (find-file my/init-org-file))
-
-(defun my/tangle-init-org ()
-  "init.orgからinit.elを生成する。"
-  (interactive)
-  (require 'org)
-  (require 'ob-tangle)
-
-  (org-babel-tangle-file
-   my/init-org-file
-   my/init-el-file
-   "emacs-lisp")
-
-  (message "init.orgからinit.elを生成しました"))
-
-(defun my/reload-init-file ()
-  "生成済みのinit.elを再読み込みする。"
-  (interactive)
-  (if (file-exists-p my/init-el-file)
-      (progn
-        (load-file my/init-el-file)
-        (message "init.elを再読み込みしました"))
-    (user-error
-     "init.elが存在しません。先にC-c e tで生成してください")))
-#+end_src
-** Org mode本体の設定
+*** Org mode本体
 
 Orgファイルの初期表示、TODO状態、Agenda対象ファイルを設定します。
 #+begin_src emacs-lisp
@@ -1108,23 +2059,22 @@ Orgファイルの初期表示、TODO状態、Agenda対象ファイルを設定�
           (list my/task-inbox-file
                 my/task-cockpit-file)))
 #+end_src
-** 作業項目の登録
 
-*** Org Capture
+*** Org Capture：作業項目の登録
 
 未整理の気づきは =inbox.org= へ追加します。
 作業状態として管理する項目は =cockpit.org= へ追加します。
 
 =C-c c= でCaptureメニューを開きます。
 
-| 操作 | 追加先      | 初期状態 |
-|------+-------------+----------|
-| =i=    | =inbox.org=   | =TODO=     |
-| =c t=  | =cockpit.org= | =TODO=     |
-| =c n=  | =cockpit.org= | =NEXT=     |
-| =c d=  | =cockpit.org= | =DOING=    |
-| =c h=  | =cockpit.org= | =HOLD=     |
-| =c w=  | =cockpit.org= | =WAIT=     |
+| 操作 | 追加先        | 初期状態 |
+|------+---------------+----------|
+| =i=  | =inbox.org=   | =TODO=   |
+| =c t=| =cockpit.org= | =TODO=   |
+| =c n=| =cockpit.org= | =NEXT=   |
+| =c d=| =cockpit.org= | =DOING=  |
+| =c h=| =cockpit.org= | =HOLD=   |
+| =c w=| =cockpit.org= | =WAIT=   |
 #+begin_src emacs-lisp
 (use-package org-capture
   :ensure nil
@@ -1166,7 +2116,8 @@ Orgファイルの初期表示、TODO状態、Agenda対象ファイルを設定�
            (file+headline ,my/task-cockpit-file "Work Items")
            "* WAIT %?\n- 待っているもの: \n- 解除条件: \n- 次に確認する時点: \n- 解除後の一手: \n%a"))))
 #+end_src
-** 作業項目の移動
+
+*** InboxからCockpitへの移動
 
 =inbox.org= の項目上で =C-c w= を押すと、
 現在項目を =cockpit.org= の =Work Items= へ移動します。
@@ -1235,19 +2186,18 @@ Orgファイルの初期表示、TODO状態、Agenda対象ファイルを設定�
    "C-c w"
    #'my/move-inbox-item-to-work-items))
 #+end_src
-** 作業状態の一覧表示
 
-*** Cockpit Agenda
+*** Cockpit Agenda：作業状態の一覧
 
 =C-c a c= で、Cockpitの作業状態を一覧表示します。
 表示上の分類はTODO状態から自動生成します。
 
 | 表示      | 対象状態            |
 |-----------+---------------------|
-| Active    | =DOING=               |
-| Next      | =NEXT=                |
-| Suspended | =HOLD=                |
-| Waiting   | =WAIT=                |
+| Active    | =DOING=             |
+| Next      | =NEXT=              |
+| Suspended | =HOLD=              |
+| Waiting   | =WAIT=              |
 | Planned   | =TODO=のCockpit項目 |
 | Inbox     | =TODO=のInbox項目   |
 
@@ -1255,12 +2205,12 @@ Agenda項目上では、次のキーで表示順に隣接するレーンへ移�
 移動後は同じ項目へカーソルも追従するため、
 Cmdを押したまま上下を連続入力できます。
 
-| キー      | 操作                              |
-|-----------+-----------------------------------|
-| =Cmd+↑=     | 1つ上のワークフローレーンへ移動 |
-| =Cmd+↓=     | 1つ下のワークフローレーンへ移動 |
-| =Option+↑=  | Agenda標準の行移動               |
-| =Option+↓=  | Agenda標準の行移動               |
+| キー       | 操作                              |
+|------------+-----------------------------------|
+| =Cmd+↑=    | 1つ上のワークフローレーンへ移動 |
+| =Cmd+↓=    | 1つ下のワークフローレーンへ移動 |
+| =Option+↑= | Agenda標準の行移動               |
+| =Option+↓= | Agenda標準の行移動               |
 
 Cockpit内の移動ではTODO状態を変更し、
 PlannedとInboxの境界では項目をファイル間で移動します。
@@ -1485,9 +2435,8 @@ PlannedとInboxの境界では項目をファイル間で移動します。
                    (org-agenda-files
                     '(,my/task-inbox-file)))))))))
 #+end_src
-** 集中時間の管理
 
-*** Org Pomodoro
+*** Org Pomodoro：集中時間の管理
 
 Orgの作業項目に対してポモドーロタイマーを開始します。
 
@@ -1513,11 +2462,8 @@ Orgの作業項目に対してポモドーロタイマーを開始します。
   ;; 4回のポモドーロごとに長い休憩を入れる。
   (org-pomodoro-long-break-frequency 4))
 #+end_src
-** Org modeの表示
 
-Orgファイルの見出しやテーブルを読みやすく表示するための設定です。
-
-*** Org Modern
+*** Org Modern：Orgの表示
 
 Org modeの見た目を整えます。
 
@@ -1545,7 +2491,7 @@ org-modernによるテーブル装飾は無効にします。
 
     ;; テーブルの縦線を1pxにする
     (org-modern-table-vertical 1)
-  
+
     :config
     ;; Org Modernの記号にはNerd Fontを明示的に使用する。
     (set-face-attribute
@@ -1553,258 +2499,23 @@ org-modernによるテーブル装飾は無効にします。
      :family "SauceCodePro Nerd Font Mono"))
 #+end_src
 
-* 補完と検索
-** ミニバッファ補完
-*** Vertico：候補の縦表示
-
-Verticoは、ミニバッファの補完候補を縦方向に表示します。
-#+begin_src emacs-lisp
-(use-package vertico
-  :ensure t
-
-  :custom
-  ;; 最大20件の候補を表示する。
-  (vertico-count 20)
-
-  ;; 候補数に応じて高さを伸縮する。
-  (vertico-resize t)
-
-  ;; ミニバッファの最大高さをフレームの30%にする。
-  (max-mini-window-height 0.30)
-
-  :init
-  (vertico-mode))
-#+end_src
-
-*** Marginalia：候補の補足情報
-
-ミニバッファの補完候補に説明を表示します。
-#+begin_src emacs-lisp
-(use-package marginalia
-  :ensure t
-
-  :init
-  (marginalia-mode 1))
-#+end_src
-*** Nerd Icons Completion：補完候補のアイコン表示
-
-Verticoなどのミニバッファ補完候補に、
-ファイル、ディレクトリ、バッファ、コマンドなどに応じたアイコンを表示します。
+*** Orgコマンドのキーバインド
 
 #+begin_src emacs-lisp
-  (use-package nerd-icons-completion
-    :ensure t
-    :after marginalia
+;; Org Captureを開く。
+(keymap-global-set "C-c c" #'org-capture)
 
-    :config
-    ;; ミニバッファの補完候補へNerd Iconsを表示する。
-    (nerd-icons-completion-mode)
-
-    ;; Marginaliaの有効・無効とアイコン表示を連動させる。
-    (add-hook
-     'marginalia-mode-hook
-     #'nerd-icons-completion-marginalia-setup))
-#+end_src
-*** Orderless：柔軟な絞り込み
-
-スペースで区切った複数の文字列を使って、
-補完候補を柔軟に絞り込みます。
-#+begin_src emacs-lisp
-(use-package orderless
-  :ensure t
-
-  :custom
-  (completion-styles '(orderless basic))
-
-  ;; ファイル名では、ディレクトリの部分入力を使いやすくする。
-  (completion-category-overrides
-   '((file (styles partial-completion)))))
+;; Org Agendaを開く。
+(keymap-global-set "C-c a" #'org-agenda)
 #+end_src
 
-*** Consult：検索・移動コマンド
+* ソフトウェア開発
 
-ミニバッファを利用した検索・移動機能を強化します。
-
-#+begin_src emacs-lisp
-  (use-package consult
-    :ensure t
-    :after bufferlo
-
-    :custom
-    ;; 現在のTab Barに属するバッファを既定の候補にする。
-    (consult-buffer-list-function
-     #'bufferlo-buffer-list)
-
-    :bind
-    (("s-r" . consult-buffer)
-
-     ;; ブックマークをミニバッファで選択する。
-     ("s-m" . consult-bookmark)
-
-     ("s-f" . consult-line)
-     ("M-g f" . consult-flymake)))
-#+end_src
-** バッファ補完
-*** Corfu：バッファ内補完
-
-Emacs標準の補完機構を利用して、コード編集中の候補をポップアップ表示します。
-LSP Modeなどが提供する補完候補も同じ画面で扱います。
-
-#+begin_src emacs-lisp
-  (use-package corfu
-    :ensure t
-
-    :custom
-    ;; 候補の末尾と先頭を循環できるようにする。
-    (corfu-cycle t)
-
-    ;; 入力中に候補を自動表示する。
-    (corfu-auto t)
-
-    ;; TRAMPや言語サーバー利用時に過剰な問い合わせを避ける。
-    (corfu-auto-delay 0.25)
-    (corfu-auto-prefix 2)
-
-    ;; 候補を自動選択せず、明示的に選んだときだけ確定する。
-    (corfu-preselect 'prompt)
-
-    :init
-    (global-corfu-mode 1)
-
-    :config
-    ;; RETによる候補確定を無効にし、改行時の誤確定を防ぐ。
-    ;; 候補の補完・確定にはTABを使用する。
-    (keymap-unset corfu-map "RET")
-
-    ;; 選択中の候補について、利用可能な説明を表示する。
-    (corfu-popupinfo-mode 1))
-#+end_src
-
-* 開発ツール
-
-ターミナル、バージョン管理、コード補完、言語サーバーなど、
-開発作業で利用するパッケージをまとめます。
-
-** プロジェクトとリモート開発
-
-*** Project
-
-Emacs標準のプロジェクト管理機能を使用します。
-Gitリポジトリ内に =cabal.project= がある場合は、
-そのディレクトリを独立したプロジェクトルートとして認識します。
-
-- =Cmd+p=: 現在のプロジェクト内のファイルを開く
-
-#+begin_src emacs-lisp
-  (use-package project
-    :ensure nil
-
-    :bind
-    (("s-p" . project-find-file)
-     ("s-F" . project-find-regexp))
-
-    :custom
-    ;; Gitバックエンドを持たない分割プロジェクトでも、
-    ;; Haskellのビルド生成物を候補から除外する。
-    (project-vc-ignores
-     '("dist-newstyle/"))
-
-    :config
-    (add-to-list
-     'project-vc-extra-root-markers
-     "cabal.project"))
-#+end_src
-
-*** TRAMP
-
-TRAMP接続先の通常PATHに加えて、GHCupとユーザー単位の
-実行ファイル置き場をリモートプログラムの検索対象にします。
-特定のプロジェクト名、コンテナ名、接続先ユーザーには依存しません。
-
-#+begin_src emacs-lisp
-(use-package tramp
-  :ensure nil
-
-  :config
-  ;; 接続先ユーザー自身のPATHを取り込む。
-  (add-to-list
-   'tramp-remote-path
-   'tramp-own-remote-path)
-
-  ;; GHCupで導入したGHC、Cabal、HLSなど。
-  (add-to-list
-   'tramp-remote-path
-   "~/.ghcup/bin")
-
-  ;; cabal installなどでユーザー単位に導入したコマンド。
-  (add-to-list
-   'tramp-remote-path
-   "~/.local/bin"))
-#+end_src
-
-** 共通の開発支援
-
-*** EditorConfig
-
-プロジェクトの =.editorconfig= を読み取り、インデント幅や改行コードなどを
-バッファへ反映します。特定のプロジェクト名やパスには依存しません。
-#+begin_src emacs-lisp
-(use-package editorconfig
-  :ensure t
-
-  :config
-  (editorconfig-mode 1))
-#+end_src
-
-*** Rainbow Delimiters
-
-プログラム用バッファで、括弧・角括弧・波括弧を
-入れ子の深さに応じて色分けします。
-配色はRetro Hacker Blueテーマ側で定義します。
-
-#+begin_src emacs-lisp
-(use-package rainbow-delimiters
-  :ensure t
-
-  :hook
-  (prog-mode . rainbow-delimiters-mode))
-#+end_src
-
-*** Indent Bars
-
-プログラム用バッファで、空白によるインデント位置へ細い縦線を表示します。
-Tree-sitterのスコープ解析には依存せず、各メジャーモードとEditorConfigが決めた
-インデント幅をそのまま表示へ使用します。
-
-#+begin_src emacs-lisp
-(use-package indent-bars
-  :ensure t
-
-  :hook
-  (prog-mode . indent-bars-mode)
-
-  :custom
-  ;; Retro Hacker Blueの背景で主張しすぎない暗い青灰色。
-  (indent-bars-color '("#252632" :blend 1.0))
-
-  ;; すべての深さで同じ色を使う。
-  (indent-bars-color-by-depth nil)
-
-  ;; キャプチャのような細い実線を表示する。
-  (indent-bars-width-frac 0.10)
-  (indent-bars-pad-frac 0.10)
-  (indent-bars-pattern ".")
-
-  ;; 現在位置だけを強調せず、すべてのガイドを同じ濃さで表示する。
-  (indent-bars-highlight-current-depth nil)
-
-  ;; 空行にも前後のインデントを引き継いでガイドを表示する。
-  (indent-bars-display-on-blank-lines t))
-#+end_src
+ターミナル、Git、言語横断の開発支援、プログラミング言語固有設定をまとめます。
 
 ** ターミナル
 
-*** Vterm
+*** Vterm：ターミナル
 
 Emacs内で高速なターミナルを利用します。
 #+begin_src emacs-lisp
@@ -1839,7 +2550,8 @@ Emacs内で高速なターミナルを利用します。
     ;; C-yをEmacsで処理せず、ターミナル側へ送る。
     (keymap-set vterm-mode-map "C-y" #'vterm--self-insert))
 #+end_src
-*** Vterm Toggle
+
+*** Vterm Toggle：ターミナルの表示切り替え
 
 Cmd+jでプロジェクト単位のvtermを全画面表示・非表示にします。
 Cmd+Shift+jでは、現在のウィンドウ構成に応じて分割表示します。
@@ -1914,9 +2626,9 @@ Cmd+Shift+jでは、現在のウィンドウ構成に応じて分割表示しま
     (vterm-toggle-project-root t))
 #+end_src
 
-** バージョン管理
+** Git
 
-*** Magit
+*** Magit：Git操作
 
 Emacs上でGitを操作します。
 #+begin_src emacs-lisp
@@ -1927,7 +2639,35 @@ Emacs上でGitを操作します。
   ("C-x g" . magit-status))
 #+end_src
 
-*** Diff HL：変更行の表示
+*** Diff HL
+
+**** Diredでのファイル状態表示
+#+begin_src emacs-lisp
+  (use-package diff-hl
+    :ensure t
+
+    :hook
+    ;; 通常のファイルでは、変更された行をウィンドウ左端に表示する。
+    ((prog-mode . diff-hl-mode)
+     (text-mode . diff-hl-mode)
+
+     ;; Diredでは、Git状態に応じてファイル単位の印を表示する。
+     (dired-mode . diff-hl-dired-mode))
+
+    :custom
+    ;; .gitignore対象のファイルまでは表示しない。
+    ;; 未追跡ファイルは引き続き表示される。
+    (diff-hl-dired-extra-indicators nil)
+
+    :config
+    ;; dired-subtreeで後から挿入されたファイルについても、
+    ;; Git状態を再取得して表示する。
+    (with-eval-after-load 'dired-subtree
+      (add-hook 'dired-subtree-after-insert-hook
+                #'diff-hl-dired-update)))
+#+end_src
+
+**** 変更行の表示
 
 Gitで追加・変更・削除された行を、ウィンドウ左端のフリンジへ表示します。
 保存前の変更も少し待つと自動的に反映されます。
@@ -1956,13 +2696,41 @@ Gitで追加・変更・削除された行を、ウィンドウ左端のフリ�
               #'diff-hl-magit-post-refresh)))
 #+end_src
 
-** Language Server Protocol
+** 共通開発支援
+
+*** EditorConfig：プロジェクトごとの編集設定
+
+プロジェクトの =.editorconfig= を読み取り、インデント幅や改行コードなどを
+バッファへ反映します。特定のプロジェクト名やパスには依存しません。
+#+begin_src emacs-lisp
+(use-package editorconfig
+  :ensure t
+
+  :config
+  (editorconfig-mode 1))
+#+end_src
+
+*** Rainbow Delimiters：括弧の色分け
+
+プログラム用バッファで、括弧・角括弧・波括弧を
+入れ子の深さに応じて色分けします。
+配色はRetro Hacker Blueテーマ側で定義します。
+
+#+begin_src emacs-lisp
+(use-package rainbow-delimiters
+  :ensure t
+
+  :hook
+  (prog-mode . rainbow-delimiters-mode))
+#+end_src
+
+*** LSP
+
+**** LSP Mode：Language Serverの共通基盤
 
 言語に依存しないLSPクライアント基盤を設定します。
 各言語では、対応するLanguage Serverとメジャーモードを追加し、
 その言語のフックから =lsp-deferred= を呼び出します。
-
-*** LSP Mode：共通LSP基盤
 
 補完、診断、定義参照、リネーム、コードアクション、整形などを、
 Language Server Protocol経由で各言語へ提供します。
@@ -2018,7 +2786,7 @@ Language Server Protocol経由で各言語へ提供します。
 
     ;; 現在Yasnippetを導入していないため、snippet展開は無効にする。
     (lsp-enable-snippet nil)
-    
+
     ;; 現在の診断UIであるFlymakeを維持する。
     (lsp-diagnostics-provider :flymake)
 
@@ -2106,7 +2874,7 @@ Language Server Protocol経由で各言語へ提供します。
           ("M-g s" . lsp-workspace-symbol)))
 #+end_src
 
-*** LSP UI：高機能UI
+**** LSP UI：Language Serverの表示機能
 
 =lsp-ui= が提供する高水準UIを有効にします。
 パッケージには =lsp-ui-doc=、=lsp-ui-imenu=、=lsp-ui-peek=、
@@ -2490,12 +3258,14 @@ Language Server Protocol経由で各言語へ提供します。
        #'my/lsp-ui-peek-read-file-with-coding)))
 #+end_src
 
-** Haskell開発
+** プログラミング言語
+
+*** Haskell
 
 Haskellの編集、HLSとの接続、保存時整形、シンボル検索を設定します。
 設定はHaskell全般を対象とし、特定のリポジトリ名やディレクトリには依存しません。
 
-*** Haskell TS Mode
+**** Haskell TS Mode
 
 通常のHaskellソース（=.hs=）では、Tree-sitterを利用した
 =haskell-ts-mode= を既定のメジャーモードとして使用します。
@@ -2526,16 +3296,16 @@ Haskellの編集、HLSとの接続、保存時整形、シンボル検索を設�
      "v0.23.1")))
 #+end_src
 
-*** Haskell Mode
+**** Haskell Mode
 
 Literate HaskellソースとCabalファイルのメジャーモードを提供します。
 LSP ModeのXrefバックエンドを使用するため、Haskell Mode独自の定義ジャンプより
 Emacs標準のXref操作を優先します。
 
-| キー | 操作 |
-|------+------|
-| =M-.= | カーソル位置の識別子の定義へ移動 |
-| =M-?= | カーソル位置の識別子の参照箇所を表示 |
+| キー  | 操作                                     |
+|-------+------------------------------------------|
+| =M-.= | カーソル位置の識別子の定義へ移動       |
+| =M-?= | カーソル位置の識別子の参照箇所を表示   |
 
 #+begin_src emacs-lisp
   (use-package haskell-mode
@@ -2565,9 +3335,9 @@ Emacs標準のXref操作を優先します。
        interactive-haskell-mode-map
        "M-?"
        #'xref-find-references)))
-    #+end_src
+#+end_src
 
-*** LSP Haskell：Haskell固有設定
+**** LSP Haskell：Haskell固有設定
 
 共通のLSP Mode基盤へHaskell Language Serverを接続します。
 ローカル環境でもTRAMP接続先でも、各環境のPATHにある
@@ -2617,8 +3387,9 @@ Haskellバッファでは保存時にFourmoluで整形し、
       my/lsp-haskell-cabal-formatting-provider))))
 #+end_src
 
-** Emacs Lisp開発
-*** Flymake：Emacs Lispのリアルタイム診断
+*** Emacs Lisp
+
+**** Flymake：リアルタイム診断
 
 Emacs LispのバッファでFlymakeを有効にし、
 編集中のエラーや警告をリアルタイムで表示します。
@@ -2630,717 +3401,7 @@ Emacs LispのバッファでFlymakeを有効にし、
     :hook
     (emacs-lisp-mode . flymake-mode))
 #+end_src
-* 外観
 
-Emacs全体のフォント、テーマ、配色に関する設定をまとめます。
-
-** フォント
-
-GUI版Emacsで使用する等幅フォントを設定します。
-
-#+begin_src emacs-lisp
-  (defun my/apply-default-font (&optional frame)
-    "FRAMEへ通常バッファ用の標準フォントを設定する。"
-    (with-selected-frame (or frame (selected-frame))
-      (when (display-graphic-p)
-        (set-face-attribute
-         'default
-         (selected-frame)
-;         :family "SauceCodePro Nerd Font Mono"
-         :family "UDEV Gothic NF"
-         :height 140))))
-
-  (defun my/apply-org-font ()
-    "現在のOrgバッファへUDEV Gothic NFを適用する。"
-    ;; Org本文や通常テキスト。
-    (face-remap-add-relative
-     'default
-     :family "UDEV Gothic NF")
-
-    ;; Orgテーブル、コード、verbatimなどで使われることがある。
-    (face-remap-add-relative
-     'fixed-pitch
-     :family "UDEV Gothic NF")
-
-    ;; 見出しなどがvariable-pitchを継承していてもUDEVへ統一する。
-    (face-remap-add-relative
-     'variable-pitch
-     :family "UDEV Gothic NF"))
-
-  ;; 標準行高の25%を行間として追加する。
-  (setq-default line-spacing 0.25)
-
-  ;; 現在のフレームへ通常フォントを適用する。
-  (my/apply-default-font)
-
-  ;; 後から作られたフレームにも通常フォントを適用する。
-  (add-hook
-   'after-make-frame-functions
-   #'my/apply-default-font)
-
-  ;; OrgバッファだけUDEV Gothic NFへ変更する。
-  (add-hook
-   'org-mode-hook
-   #'my/apply-org-font)
-#+end_src
-
-** Retro Hacker Blueテーマ
-
-VS CodeのRetro Hacker Blueを元にしたカラーテーマを使用します。
-#+begin_src emacs-lisp
-(add-to-list
- 'custom-theme-load-path
- (expand-file-name "themes/" user-emacs-directory))
-
-;; 複数テーマが重なって有効になるのを防ぐ。
-(mapc #'disable-theme custom-enabled-themes)
-
-(load-theme 'retro-hacker-blue t)
-#+end_src
-* 編集操作とキーバインド
-
-独自の編集コマンドと、Emacs全体で使用するキー割り当てをまとめます。
-** Better Jumper：ナビゲーション履歴の戻る・進む
-
-ファイルバッファ内の明示的なジャンプと、同じウィンドウでの
-ファイルバッファ切り替えを、共通のナビゲーション履歴へ記録します。
-通常のカーソル移動や、Diredなどの非ファイルバッファは記録しません。
-
-異なるウィンドウへ新しいファイルを開いた場合は、
-移動元のウィンドウとカーソル位置も履歴として保持します。
-戻る・進むでは同じファイルを現在のウィンドウへ開き直さず、
-元のウィンドウそのものを選択します。
-
-- =<mouse-4>=: 1つ前の場所へ戻る
-- =<mouse-5>=: 戻る前の場所へ進む
-
-初期状態では、定義ジャンプ、Consultによるファイル内検索、
-行番号指定のジャンプを明示的なジャンプとして扱います。
-追跡対象と除外対象は、利用しながらコマンド単位で調整できます。
-
-#+begin_src emacs-lisp
-  (defcustom my/navigation-history-jump-commands
-    '(xref-find-definitions
-      consult-line
-      consult-goto-line
-      goto-line)
-    "同一ファイル内でもナビゲーション履歴へ記録するジャンプコマンド。"
-    :type '(repeat function)
-    :group 'convenience)
-
-  (defcustom my/navigation-history-ignored-buffer-switch-commands
-    nil
-    "ファイルバッファを切り替えても履歴へ記録しないコマンド。"
-    :type '(repeat function)
-    :group 'convenience)
-
-  (defconst my/navigation-history--back-location-parameter
-    'my/navigation-history-back-location
-    "ウィンドウをまたいで戻る位置を保持するウィンドウパラメーター。")
-
-  (defconst my/navigation-history--forward-location-parameter
-    'my/navigation-history-forward-location
-    "ウィンドウをまたいで進む位置を保持するウィンドウパラメーター。")
-
-  (defvar my/navigation-history--before-location nil
-    "現在のコマンドを実行する直前のファイル位置。")
-
-  (defvar my/navigation-history--explicit-jump-p nil
-    "現在のコマンドを明示的なジャンプとして扱うとき非nil。")
-
-  (defvar my/navigation-history--skip-current-command-p nil
-    "現在のコマンドによる移動を履歴へ記録しないとき非nil。")
-
-  (defun my/navigation-history--file-buffer-p (&optional buffer)
-    "BUFFERが通常のファイルを訪問しているとき非nilを返す。"
-    (with-current-buffer (or buffer (current-buffer))
-      (and buffer-file-name
-           (not (minibufferp)))))
-
-  (defun my/navigation-history--location-at-window
-      (window &optional marker)
-    "WINDOWのファイル位置を返す。
-MARKERが有効なら、WINDOWの現在位置ではなくMARKERを使用する。"
-    (when (window-live-p window)
-      (let* ((buffer
-              (if (and (markerp marker)
-                       (marker-buffer marker))
-                  (marker-buffer marker)
-                (window-buffer window)))
-             (position
-              (if (and (markerp marker)
-                       (marker-position marker))
-                  (marker-position marker)
-                (window-point window))))
-        (when (and position
-                   (buffer-live-p buffer)
-                   (my/navigation-history--file-buffer-p buffer))
-          (with-current-buffer buffer
-            (list :buffer buffer
-                  :marker (copy-marker position)
-                  :window window))))))
-
-  (defun my/navigation-history--capture-location ()
-    "現在のファイル位置をナビゲーション履歴用に保存する。"
-    (when (and (my/navigation-history--file-buffer-p)
-               (bound-and-true-p better-jumper-local-mode))
-      (my/navigation-history--location-at-window
-       (selected-window))))
-
-  (defun my/navigation-history--release-location (location)
-    "LOCATIONが保持しているマーカーを解放する。"
-    (let ((marker (plist-get location :marker)))
-      (when (markerp marker)
-        (set-marker marker nil))))
-
-  (defun my/navigation-history--set-window-location
-      (window parameter location)
-    "WINDOWのPARAMETERへLOCATIONを設定する。
-以前の位置があれば、そのマーカーを先に解放する。"
-    (when (window-live-p window)
-      (my/navigation-history--release-location
-       (window-parameter window parameter))
-      (set-window-parameter window parameter location)))
-
-  (defun my/navigation-history--take-window-location
-      (window parameter)
-    "WINDOWのPARAMETERから位置を取り出し、PARAMETERを空にする。"
-    (when (window-live-p window)
-      (prog1 (window-parameter window parameter)
-        (set-window-parameter window parameter nil))))
-
-  (defun my/navigation-history--clear-forward-location (&optional window)
-    "WINDOWに残っているウィンドウ間の進む履歴を破棄する。"
-    (my/navigation-history--set-window-location
-     (or window (selected-window))
-     my/navigation-history--forward-location-parameter
-     nil))
-
-  (defun my/navigation-history--clear-command-state ()
-    "コマンド間で保持しているナビゲーション判定用の状態を破棄する。"
-    (my/navigation-history--release-location
-     my/navigation-history--before-location)
-    (setq my/navigation-history--before-location nil
-          my/navigation-history--explicit-jump-p nil
-          my/navigation-history--skip-current-command-p nil))
-
-  (defun my/navigation-history--history-command-p (command)
-    "COMMANDがナビゲーション履歴自体を移動するコマンドなら非nil。"
-    (memq command
-          '(my/navigation-history-backward
-            my/navigation-history-forward
-            better-jumper-jump-backward
-            better-jumper-jump-forward
-            better-jumper-jump-newest)))
-
-  (defun my/navigation-history--record-location (location)
-    "LOCATIONを現在のウィンドウのBetter Jumper履歴へ追加する。"
-    (let ((buffer (plist-get location :buffer))
-          (marker (plist-get location :marker)))
-      (when (and (buffer-live-p buffer)
-                 (markerp marker)
-                 (marker-position marker))
-        ;; 戻ったあとに新しいナビゲーションを行った場合は、
-        ;; ウィンドウをまたぐ進む履歴もブラウザと同様に破棄する。
-        (my/navigation-history--clear-forward-location)
-        (with-current-buffer buffer
-          (when (bound-and-true-p better-jumper-local-mode)
-            (save-excursion
-              (goto-char marker)
-              (better-jumper-set-jump)))))))
-
-  (defun my/navigation-history--before-command ()
-    "コマンド実行前のファイル位置と移動種別を保存する。"
-    ;; ミニバッファ内の再帰的なコマンドでは、
-    ;; 呼び出し元で保存した位置を上書きしない。
-    (unless (minibufferp)
-      (my/navigation-history--clear-command-state)
-      (setq my/navigation-history--before-location
-            (my/navigation-history--capture-location)
-            my/navigation-history--explicit-jump-p
-            (memq this-command
-                  my/navigation-history-jump-commands)
-            my/navigation-history--skip-current-command-p
-            (my/navigation-history--history-command-p
-             this-command))))
-
-  (defun my/navigation-history--location-changed-p (location)
-    "LOCATIONから現在位置へ移動しているとき非nilを返す。"
-    (let ((buffer (plist-get location :buffer))
-          (marker (plist-get location :marker)))
-      (or (not (eq buffer (current-buffer)))
-          (and (eq buffer (current-buffer))
-               (markerp marker)
-               (marker-position marker)
-               (/= (marker-position marker)
-                   (point))))))
-
-  (defun my/navigation-history--after-command ()
-    "必要なナビゲーションだけ、実行前の位置を履歴へ追加する。"
-    ;; ミニバッファのコマンド終了時は状態を維持し、
-    ;; 元のコマンドが完了した時点で最終的な移動先を判定する。
-    (unless (minibufferp)
-      (let* ((location my/navigation-history--before-location)
-             (source-buffer
-              (and location
-                   (plist-get location :buffer)))
-             (source-window
-              (and location
-                   (plist-get location :window)))
-             (buffer-switched-p
-              (and source-buffer
-                   (not (eq source-buffer
-                            (current-buffer)))))
-             (ignored-buffer-switch-p
-              (memq this-command
-                    my/navigation-history-ignored-buffer-switch-commands)))
-        (unwind-protect
-            (when (and location
-                       (not my/navigation-history--skip-current-command-p)
-                       (eq source-window (selected-window))
-                       (my/navigation-history--file-buffer-p)
-                       (bound-and-true-p better-jumper-local-mode)
-                       (my/navigation-history--location-changed-p
-                        location)
-                       (or my/navigation-history--explicit-jump-p
-                           (and buffer-switched-p
-                                (not ignored-buffer-switch-p))))
-              (my/navigation-history--record-location location))
-          (my/navigation-history--clear-command-state)))))
-
-  (defun my/navigation-history--position-state ()
-    "現在のウィンドウ、バッファ、カーソル位置を返す。"
-    (list (selected-window)
-          (current-buffer)
-          (point)))
-
-  (defun my/navigation-history--position-state-changed-p (state)
-    "現在位置がSTATEから変わっているとき非nilを返す。"
-    (not (equal state
-                (my/navigation-history--position-state))))
-
-  (defun my/navigation-history--visit-location (location)
-    "LOCATIONが指すウィンドウとファイル位置へ移動する。"
-    (let ((window (plist-get location :window))
-          (buffer (plist-get location :buffer))
-          (marker (plist-get location :marker)))
-      (when (and (window-live-p window)
-                 (buffer-live-p buffer)
-                 (markerp marker)
-                 (marker-position marker))
-        (select-window window)
-        (unless (eq (window-buffer window) buffer)
-          (set-window-buffer window buffer))
-        (goto-char marker)
-        t)))
-
-  (defun my/navigation-history--follow-window-location
-      (source-parameter target-parameter)
-    "SOURCE-PARAMETERの位置へ移動し、戻り先をTARGET-PARAMETERへ保存する。"
-    (let* ((source-window (selected-window))
-           (target-location
-            (my/navigation-history--take-window-location
-             source-window
-             source-parameter))
-           (return-location
-            (my/navigation-history--location-at-window
-             source-window)))
-      (cond
-       ((and target-location
-             return-location
-             (my/navigation-history--visit-location
-              target-location))
-        ;; 移動後に選択されたウィンドウへ、逆方向の移動先を保存する。
-        (my/navigation-history--set-window-location
-         (selected-window)
-         target-parameter
-         return-location)
-        (my/navigation-history--release-location
-         target-location)
-        t)
-
-       (t
-        (my/navigation-history--release-location
-         target-location)
-        (my/navigation-history--release-location
-         return-location)
-        nil))))
-
-  (defun my/navigation-history--follow-back-location ()
-    "ウィンドウをまたぐ直前の位置へ戻る。"
-    (my/navigation-history--follow-window-location
-     my/navigation-history--back-location-parameter
-     my/navigation-history--forward-location-parameter))
-
-  (defun my/navigation-history--follow-forward-location ()
-    "ウィンドウをまたいで戻る前の位置へ進む。"
-    (my/navigation-history--follow-window-location
-     my/navigation-history--forward-location-parameter
-     my/navigation-history--back-location-parameter))
-
-  (defun my/navigation-history-backward ()
-    "同一ウィンドウの履歴を戻り、なければ移動元ウィンドウへ戻る。"
-    (interactive)
-    (let ((before (my/navigation-history--position-state)))
-      (better-jumper-jump-backward)
-      (unless (my/navigation-history--position-state-changed-p
-               before)
-        (my/navigation-history--follow-back-location))))
-
-  (defun my/navigation-history-forward ()
-    "移動先ウィンドウへ進み、なければ同一ウィンドウの履歴を進む。"
-    (interactive)
-    ;; ウィンドウをまたいで戻った直後は、まず元のウィンドウへ進む。
-    ;; その後はBetter Jumperの同一ウィンドウ内履歴を使用する。
-    (unless (my/navigation-history--follow-forward-location)
-      (better-jumper-jump-forward)))
-
-  (defun my/navigation-history-register-window-transition
-      (source-window source-marker destination-window)
-    "SOURCE-WINDOWからDESTINATION-WINDOWへの移動を履歴へ登録する。
-SOURCE-MARKERは移動前の正確なカーソル位置を指す。"
-    (let ((source-location
-           (my/navigation-history--location-at-window
-            source-window
-            source-marker)))
-      (when (and source-location
-                 (window-live-p destination-window)
-                 (not (eq source-window destination-window)))
-        ;; 新しいウィンドウには分割元のBetter Jumper履歴を持ち込まない。
-        (better-jumper-clear-jumps destination-window)
-        (my/navigation-history--set-window-location
-         destination-window
-         my/navigation-history--back-location-parameter
-         source-location)
-        (my/navigation-history--clear-forward-location
-         destination-window))))
-
-  (use-package better-jumper
-    :ensure t
-    :demand t
-
-    :custom
-    ;; 同じウィンドウ内で、ファイルをまたぐ履歴を管理する。
-    (better-jumper-context 'window)
-
-    ;; 新しく分割したウィンドウへ、分割元の履歴をコピーしない。
-    (better-jumper-new-window-behavior 'empty)
-
-    ;; 戻ったあとに別の場所へ移動した場合は、古い進む履歴を破棄する。
-    (better-jumper-add-jump-behavior 'replace)
-
-    :bind
-    (("<mouse-4>" . my/navigation-history-backward)
-     ("<mouse-5>" . my/navigation-history-forward))
-
-    :config
-    (better-jumper-mode 1)
-
-    ;; すべてのコマンドを監視するが、履歴へ追加するのは
-    ;; 明示的なジャンプか、同じウィンドウでのファイル切り替えだけ。
-    (add-hook 'pre-command-hook
-              #'my/navigation-history--before-command)
-    (add-hook 'post-command-hook
-              #'my/navigation-history--after-command))
-#+end_src
-
-** Avy：画面内の任意位置へジャンプ
-
-画面内に表示されている文字列を指定し、
-表示されたラベルを入力して、その位置へ移動します。
-
-- =C-;=: 入力した文字列の位置へジャンプ
-
-#+begin_src emacs-lisp
-  (use-package avy
-    :ensure t
-
-    :bind
-    (("s-t" . avy-goto-word-1)))
-#+end_src
-
-** Move Text：行・選択範囲の上下移動
-
-VS Codeと同様に、Option＋上下キーで
-現在行または選択中の複数行を上下へ移動します。
-
-#+begin_src emacs-lisp
-  (use-package move-text
-    :ensure t
-
-    :bind
-    (("M-<up>"   . move-text-up)
-     ("M-<down>" . move-text-down)))
-#+end_src
-
-** アンドゥ・リドゥ
-
-#+begin_src emacs-lisp
-  (use-package undo-fu
-    :ensure t
-
-    :bind
-    (("s-z" . undo-fu-only-undo)
-     ("s-Z" . undo-fu-only-redo)
-     ("s-X" . undo-fu-clear-all)))
-#+end_src
-
-** 独自の編集コマンド
-*** 現在の行を選択
-#+begin_src emacs-lisp
-(defun my/select-current-line ()
-  "カーソル行全体を選択し、カーソルを次の行頭へ移動する。
- 続けて実行すると、選択範囲を次の行まで広げる。"
-  (interactive)
-  (if (and (region-active-p)
-           (eq last-command 'my/select-current-line))
-      ;; 連続実行時は、選択範囲を次の行まで広げる。
-      (goto-char (line-beginning-position 2))
-
-    ;; 最初の実行では、現在行の先頭から次の行頭までを選択する。
-    (let ((start (line-beginning-position)))
-      (goto-char (line-beginning-position 2))
-      (set-mark start)
-      (activate-mark))))
-
-;; VS Code風にカーソル行を選択する。
-(keymap-global-set "s-l" #'my/select-current-line)
-#+end_src
-
-*** カーソル行の上下に新しい行を挿入
-
-VS Codeの「Insert Line Below」「Insert Line Above」に相当する操作です。
-カーソルが行の途中にあっても、現在行の内容は分割しません。
-
-- =Cmd+Enter=: カーソル行の下に新しい行を追加し、その行へ移動する
-- =Cmd+Shift+Enter=: カーソル行の上に新しい行を追加し、その行へ移動する
-
-#+begin_src emacs-lisp
-(defun my/insert-line-below ()
-  "カーソル行の下に新しい行を挿入し、その行へ移動する。"
-  (interactive)
-  (end-of-line)
-  (newline-and-indent))
-
-(defun my/insert-line-above ()
-  "カーソル行の上に新しい行を挿入し、その行へ移動する。"
-  (interactive)
-  (beginning-of-line)
-  (open-line 1)
-  (indent-according-to-mode))
-
-;; VS Code風に、現在行の下へ新しい行を挿入する。
-(keymap-global-set "s-<return>" #'my/insert-line-below)
-
-;; VS Code風に、現在行の上へ新しい行を挿入する。
-(keymap-global-set "S-s-<return>" #'my/insert-line-above)
-#+end_src
-
-*** 現在行の削除
-
-VS Codeに近い行単位の操作を追加します。
-
-- =Cmd+Shift+k=: カーソル行を削除する
-#+begin_src emacs-lisp
-(defun my/delete-current-line ()
-  "カーソルのある行を、Kill Ringへ入れずに削除する。"
-  (interactive)
-  (delete-region
-   (line-beginning-position)
-   (line-beginning-position 2)))
-
-(keymap-global-set "s-K" #'my/delete-current-line)
-#+end_src
-*** 行・選択範囲の複製
-#+begin_src emacs-lisp
-  (defun my/line-block-bounds ()
-    "現在行、または選択範囲を含む行全体の範囲を返す。"
-    (if (use-region-p)
-        (let ((beg (region-beginning))
-              (end (region-end)))
-          (cons
-           (save-excursion
-             (goto-char beg)
-             (line-beginning-position))
-           (save-excursion
-             (goto-char end)
-             ;; 選択範囲の末尾が行頭の場合、その行は含めない。
-             (if (and (bolp) (> end beg))
-                 end
-               (line-beginning-position 2)))))
-      (cons (line-beginning-position)
-            (line-beginning-position 2))))
-
-  (defun my/duplicate-lines (direction)
-    "現在行または選択した行をDIRECTION方向へ複製する。"
-    (let* ((region-active-p (use-region-p))
-           (original-point (point))
-           (original-mark (and region-active-p (mark)))
-           (bounds (my/line-block-bounds))
-           (beg (car bounds))
-           (end (cdr bounds))
-           (text (buffer-substring beg end))
-           (point-offset (- original-point beg))
-           (mark-offset
-            (and region-active-p
-                 (- original-mark beg)))
-           (ends-with-newline-p
-            (and (> end beg)
-                 (eq (char-before end) ?\n)))
-           copy-beg)
-
-      (atomic-change-group
-        (pcase direction
-          ('down
-           (goto-char end)
-
-           ;; ファイル末尾に改行がない場合は、行を分離する。
-           (unless ends-with-newline-p
-             (insert "\n"))
-
-           (setq copy-beg (point))
-           (insert text))
-
-          ('up
-           (goto-char beg)
-           (setq copy-beg (point))
-           (insert text)
-
-           ;; ファイル末尾に改行がない行を上へ複製する場合も分離する。
-           (unless ends-with-newline-p
-             (insert "\n"))))
-
-        ;; 複製された側へカーソルと選択範囲を移動する。
-        (if region-active-p
-            (let ((new-point (+ copy-beg point-offset))
-                  (new-mark (+ copy-beg mark-offset)))
-              (goto-char new-mark)
-              (set-mark (point))
-              (goto-char new-point)
-              (activate-mark))
-          (goto-char (+ copy-beg point-offset))))))
-
-  (defun my/duplicate-lines-up ()
-    "現在行または選択した行を上へ複製する。"
-    (interactive)
-    (my/duplicate-lines 'up))
-
-  (defun my/duplicate-lines-down ()
-    "現在行または選択した行を下へ複製する。"
-    (interactive)
-    (my/duplicate-lines 'down))
-
-  (global-set-key (kbd "S-M-<up>")
-                  #'my/duplicate-lines-up)
-
-  (global-set-key (kbd "S-M-<down>")
-                  #'my/duplicate-lines-down)
-#+end_src
-** グローバルキーバインド
-
-*** Emacs設定・Orgコマンド
-
-Emacs設定操作、Org Capture、Org Agendaの入口となるキーを設定します。
-#+begin_src emacs-lisp
-;; C-c eをEmacs設定操作用のプレフィックスキーにする。
-(defvar-keymap my/emacs-config-map
-  :doc "Emacs設定ファイルを操作するキーマップ。"
-  "i" #'my/open-init-org
-  "t" #'my/tangle-init-org
-  "r" #'my/reload-init-file)
-
-(keymap-global-set "C-c e" my/emacs-config-map)
-
-;; Org Captureを開く。
-(keymap-global-set "C-c c" #'org-capture)
-
-;; Org Agendaを開く。
-(keymap-global-set "C-c a" #'org-agenda)
-#+end_src
-*** 基本操作
-
-#+begin_src emacs-lisp
-  ;; macOS風の保存。
-  (keymap-global-set "s-s" #'save-buffer)
-
-  ;; macOS風の全選択。
-  (keymap-global-set "s-a" #'mark-whole-buffer)
-
-  ;; macOS風のコピー。
-  (keymap-global-set "s-c" #'kill-ring-save)
-
-  ;; macOS風の切り取り。
-  (keymap-global-set "s-x" #'kill-region)
-
-  ;; macOS風の貼り付け。
-  (keymap-global-set "s-v" #'yank)
-
-  (defun my/close-current-buffer ()
-    "複数Tab Barでは現在のTab Barから外し、
-  最後の1つのTab Barではバッファ自体を削除する。"
-    (interactive)
-    (if (> (length
-            (funcall tab-bar-tabs-function))
-           1)
-        (bufferlo-bury)
-      (kill-current-buffer)))
-  (keymap-global-set "s-w" #'my/close-current-buffer)
-
-  ;; 複数ウィンドウなら現在のウィンドウを閉じ、
-  ;; 1ウィンドウかつ複数Tab Barなら現在のTab Barを閉じる。
-  (keymap-global-set "s-W" #'my/close-window-or-tab)
-
-  ;; Cmd+←：行頭へ移動する。
-  (keymap-global-set "s-<left>" #'move-beginning-of-line)
-
-  ;; Cmd+→：行末へ移動する。
-  (keymap-global-set "s-<right>" #'move-end-of-line)
-
-  ;; Cmd+↑：バッファの先頭へ移動する。
-  (keymap-global-set "s-<up>" #'beginning-of-buffer)
-
-  ;; Cmd+↓：バッファの末尾へ移動する。
-  (keymap-global-set "s-<down>" #'end-of-buffer)
-  
-  ;; wordwrapのトグル。
-  (keymap-global-set "C-c x" #'visual-line-mode)
-
-  (defun my/delete-to-line-beginning ()
-    "カーソル位置から行頭までを削除する。"
-    (interactive)
-    (delete-region (line-beginning-position) (point)))
-
-  (defun my/delete-to-line-end ()
-    "カーソル位置から行末までを削除する。"
-    (interactive)
-    (delete-region (point) (line-end-position)))
-
-  ;; カーソル位置から行頭までを削除する。
-  (global-set-key (kbd "s-<backspace>")
-                  #'my/delete-to-line-beginning)
-
-  ;; カーソル位置から行末までを削除する。
-  (global-set-key (kbd "s-<delete>")
-                  #'my/delete-to-line-end)
-
-  (defun my/delete-word-forward (arg)
-    "カーソルからARG語先までを、Kill Ringへ保存せずに削除する。"
-    (interactive "p")
-    (let ((start (point)))
-      (forward-word arg)
-      (delete-region start (point))))
-
-  (defun my/delete-word-backward (arg)
-    "カーソルからARG語前までを、Kill Ringへ保存せずに削除する。"
-    (interactive "p")
-    (my/delete-word-forward (- arg)))
-
-  ;; Option+Backspace：カーソル左側の単語を削除する。
-  (keymap-global-set "M-DEL" #'my/delete-word-backward)
-
-  ;; Option+Delete：カーソル右側の単語を削除する。
-  (keymap-global-set "M-<delete>" #'my/delete-word-forward)
-#+end_src
 * 生成ファイルのフッター
 
 生成される =init.el= の末尾部分です。
