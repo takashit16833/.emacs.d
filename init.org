@@ -1968,6 +1968,24 @@ Language Server Protocol経由で各言語へ提供します。
     (when (bound-and-true-p lsp-mode)
       (lsp-format-buffer)))
 
+  (defvar my/lsp-completion-replace-symbol-suffix-modes
+    '(haskell-mode
+      haskell-ts-mode)
+    "補完時にポイント右側のシンボルも置換するメジャーモード。")
+
+  (defun my/lsp-completion-replace-symbol-suffix (completion-data)
+    "指定したモードのLSP補完で、ポイント右側のシンボルも置換する。"
+    (when (and completion-data
+               (apply #'derived-mode-p
+                      my/lsp-completion-replace-symbol-suffix-modes))
+      (when-let* ((bounds (bounds-of-thing-at-point 'symbol))
+                  (symbol-end (cdr bounds)))
+        (when (< (point) symbol-end)
+          ;; CAPFが返す置換範囲の終端を、
+          ;; 現在位置ではなくシンボル末尾まで広げる。
+          (setf (nth 1 completion-data) symbol-end))))
+    completion-data)
+
   (use-package lsp-mode
     :ensure t
     :demand t
@@ -1989,7 +2007,7 @@ Language Server Protocol経由で各言語へ提供します。
 
     ;; 現在Yasnippetを導入していないため、snippet展開は無効にする。
     (lsp-enable-snippet nil)
-
+    
     ;; 現在の診断UIであるFlymakeを維持する。
     (lsp-diagnostics-provider :flymake)
 
@@ -1999,9 +2017,8 @@ Language Server Protocol経由で各言語へ提供します。
     ;; TRAMP先では、接続先環境のLanguage Serverを使用する。
     (lsp-auto-register-remote-clients t)
 
-    ;; 画面上部に、現在のプロジェクト・ファイル・シンボル階層を表示する。
-    ;; VS CodeのBreadcrumbに近い表示。
-    (lsp-headerline-breadcrumb-enable t)
+    ;; lsp-mode issue #5043が解消するまでBreadcrumbを表示しない。
+    (lsp-headerline-breadcrumb-enable nil)
 
     ;; 関数や定義の上に、Language Serverが提供する補助情報を表示する。
     ;; HLSでは型情報や参照情報などが表示されることがある。
@@ -2028,6 +2045,18 @@ Language Server Protocol経由で各言語へ提供します。
       ;; LSPによる編集後、診断本体だけを削除して集計値を残してしまう処理を無効化する。
       (remove-hook 'lsp-after-apply-edits-hook
                    #'lsp-diagnostics--clear-after-edit))
+
+    (with-eval-after-load 'lsp-completion
+      ;; Haskellでシンボル途中から補完した場合、
+      ;; ポイント右側のサフィックスも置換対象にする。
+      (unless
+          (advice-member-p
+           #'my/lsp-completion-replace-symbol-suffix
+           'lsp-completion-at-point)
+        (advice-add
+         'lsp-completion-at-point
+         :filter-return
+         #'my/lsp-completion-replace-symbol-suffix)))
 
     ;; Breadcrumbの外周と各セグメントから枠線を完全に取り除く。
     ;; テーマ側でもheader-lineのboxを無効化しているが、
