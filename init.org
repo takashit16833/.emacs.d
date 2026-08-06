@@ -131,6 +131,11 @@ Emacs本体の設定を =use-package= 形式で整理するために使用して
     ;; インデント済みの位置でTABを押した場合は補完を実行する。
     (tab-always-indent 'complete)
 
+    ;; 行を折り返す
+    (global-visual-line-mode 1)
+
+    ;; 折り返しを示す左右の矢印を表示しない
+    (visual-line-fringe-indicators '(nil nil))
     :config
     ;; Repeat対応コマンドを、短いキーで連続実行できるようにする。
     (repeat-mode 1)
@@ -3250,6 +3255,9 @@ Emacs設定操作、Org Capture、Org Agendaの入口となるキーを設定し
 
   ;; Cmd+↓：バッファの末尾へ移動する。
   (keymap-global-set "s-<down>" #'end-of-buffer)
+  
+  ;; wordwrapのトグル。
+  (keymap-global-set "C-c x" #'visual-line-mode)
 
   (defun my/delete-to-line-beginning ()
     "カーソル位置から行頭までを削除する。"
