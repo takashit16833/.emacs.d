@@ -1643,6 +1643,7 @@ LSP Modeなどが提供する補完候補も同じ画面で扱います。
 *** Dired本体
 
 ファイルとディレクトリの表示、移動、コピー、削除、プレビューを行います。
+Dired本体は起動時には読み込まず、Dired操作を初めて実行したときに読み込みます。
 #+begin_src emacs-lisp
   (defface my-dired-file-face
     '((t (:inherit default)))
@@ -1663,10 +1664,11 @@ LSP Modeなどが提供する補完候補も同じ画面で扱います。
          (0 'my-dired-file-face))))
      'append))
 
-  (require 'dired)
-
   (defun my-dired-open-picker (directory &optional switches)
     "DIRECTORYを、一時的なDiredとして別ウィンドウに開く。"
+    ;; Dired固有の関数と設定を、実際に使用する時点で読み込む。
+    (require 'dired)
+
     (let* ((origin-window (selected-window))
            (origin-marker
             (with-current-buffer (window-buffer origin-window)
@@ -1696,7 +1698,11 @@ LSP Modeなどが提供する補完候補も同じ画面で扱います。
 
   (defun my-dired-other-window (directory &optional switches)
     "DIRECTORYを選択し、一時的なDiredとして別ウィンドウに開く。"
-    (interactive (dired-read-dir-and-switches ""))
+    (interactive
+     (progn
+       ;; 対話入力で使用する関数も、コマンド実行時に読み込む。
+       (require 'dired)
+       (dired-read-dir-and-switches "")))
     (my-dired-open-picker directory switches))
 
   (defun my-project-dired-other-window ()
@@ -1840,7 +1846,7 @@ NEW-WINDOW-Pが非nilなら、新しいウィンドウへファイルを表示�
   (defun my-dired-quit-and-restore ()
     "一時Diredをキャンセルし、元のウィンドウ構成へ戻す。"
     (interactive)
-    (let* ((dired-window  (selected-window))
+    (let* ((dired-window (selected-window))
            (origin-window
             (window-parameter dired-window
                               'my-dired-origin-window))
@@ -1868,6 +1874,7 @@ NEW-WINDOW-Pが非nilなら、新しいウィンドウへファイルを表示�
 
   (use-package dired
     :ensure nil
+    :defer t
 
     :hook
     ;; 所有者、権限、日時などを最初は隠して、一覧をすっきり表示する。
@@ -1925,7 +1932,6 @@ NEW-WINDOW-Pが非nilなら、新しいウィンドウへファイルを表示�
      ((t (:inherit font-lock-type-face
                    :weight bold)))))
 #+end_src
-
 *** Nerd Icons Dired：Diredのアイコン表示
 #+begin_src emacs-lisp
   (defun my-nerd-icons-dired-refresh ()
