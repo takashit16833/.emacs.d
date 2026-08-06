@@ -6,9 +6,9 @@
 
 このファイルは、Emacs設定の原本となるLiterate Configurationです。
 
-- 編集するファイル: =init.org=
-- 自動生成されるファイル: =early-init.el=、=init.el=
-- =early-init.el= と =init.el= は直接編集しない
+- 編集するファイル: ~init.org~
+- 自動生成されるファイル: ~early-init.el~、~init.el~
+- *~early-init.el~ と ~init.el~ は直接編集しない*
 - 設定は、主に実現する機能の見出しへ配置する
 - パッケージ固有の関数、変数、キーバインドは、そのパッケージの見出しへまとめる
 
@@ -26,11 +26,11 @@ Emacs設定の生成、パッケージ管理、Emacs本体の共通設定をま�
 
 ** 生成されるearly-init.el
 
-パッケージ有効化より前に読み込まれる =early-init.el= で、
+パッケージ有効化より前に読み込まれる ~early-init.el~ で、
 起動中だけGarbage Collectionの発生を抑えます。
 初期化が完了したら、変更前の設定へ戻します。
 
-=early-init.el= を起動後に読み込んだ場合は、
+~early-init.el~ を起動後に読み込んだ場合は、
 高い閾値を残さず通常値を維持します。
 #+begin_src emacs-lisp :tangle early-init.el
 ;;; early-init.el --- Generated from init.org -*- lexical-binding: t; -*-
@@ -69,7 +69,7 @@ Emacs設定の生成、パッケージ管理、Emacs本体の共通設定をま�
 
 ** 生成されるinit.elのヘッダー
 
-生成される =init.el= の先頭部分です。
+生成される ~init.el~ の先頭部分です。
 #+begin_src emacs-lisp
 ;;; init.el --- Generated from init.org -*- lexical-binding: t; -*-
 
@@ -82,8 +82,8 @@ Emacs設定の生成、パッケージ管理、Emacs本体の共通設定をま�
 
 ** パッケージ管理とuse-package
 
-Emacs 29以降では =use-package= が標準搭載されています。
-MELPAをパッケージ取得先へ追加し、=use-package= の自動インストール機能を有効にします。
+Emacs 29以降では ~use-package~ が標準搭載されています。
+MELPAをパッケージ取得先へ追加し、~use-package~ の自動インストール機能を有効にします。
 #+begin_src emacs-lisp
 (require 'package)
 
@@ -120,8 +120,8 @@ MELPAをパッケージ取得先へ追加し、=use-package= の自動インス�
 
 Emacs標準の基本動作、ファイル保護、表示、編集支援をまとめて設定します。
 
-=emacs= というパッケージを読み込むわけではなく、
-Emacs本体の設定を =use-package= 形式で整理するために使用しています。
+~emacs~ というパッケージを読み込むわけではなく、
+Emacs本体の設定を ~use-package~ 形式で整理するために使用しています。
 #+begin_src emacs-lisp
   (use-package emacs
     :ensure nil
@@ -217,13 +217,13 @@ Emacs本体の設定を =use-package= 形式で整理するために使用して
 
 ** Emacs設定ファイルの操作
 
-=init.org= を開くコマンド、=early-init.el= と =init.el= を生成するコマンド、
-生成した =init.el= を再読み込みするコマンドを定義します。
-=early-init.el= は起動前半専用のため、再読み込みコマンドの対象にしません。
+~init.org~ を開くコマンド、~early-init.el~ と ~init.el~ を生成するコマンド、
+生成した ~init.el~ を再読み込みするコマンドを定義します。
+~early-init.el~ は起動前半専用のため、再読み込みコマンドの対象にしません。
 
-- =C-c e i=: init.orgを開く
-- =C-c e t=: init.orgからearly-init.elとinit.elを生成する
-- =C-c e r=: init.elを再読み込みする
+- ~C-c e i~: ~init.org~を開く
+- ~C-c e t~: ~init.org~から~early-init.el~と~init.el~を生成する
+- ~C-c e r~: ~init.el~を再読み込みする
 #+begin_src emacs-lisp
 (defconst my/init-org-file
   (expand-file-name "init.org" user-emacs-directory)
@@ -291,7 +291,7 @@ CommandキーはSuperキーとして使用し、macOS風のショートカット
 
 ** シェル環境の読み込み
 
-GUI版Emacsから、ターミナルと同じPATHを利用できるようにします。
+GUI版Emacsから、ターミナルと同じ~PATH~を利用できるようにします。
 #+begin_src emacs-lisp
 (use-package exec-path-from-shell
   :ensure t
@@ -464,8 +464,8 @@ Tree-sitterのスコープ解析には依存せず、各メジャーモードと
 *** Pixel Scroll：滑らかなスクロール
 
 トラックパッドやマウスではピクセル単位のスクロールを使用します。
-PageUp・PageDownでは、素早く動き始めて徐々に減速する
-ease-out-cubicのアニメーションを使用します。
+~PageUp~・~PageDown~では、素早く動き始めて徐々に減速する
+~ease-out-cubic~のアニメーションを使用します。
 
 #+begin_src emacs-lisp
   (use-package pixel-scroll
@@ -680,8 +680,8 @@ ease-out-cubicのアニメーションを使用します。
 
 | キー           | 操作                 |
 |----------------+----------------------|
-| =Cmd+Option+←= | 左隣のTab Lineへ移動 |
-| =Cmd+Option+→= | 右隣のTab Lineへ移動 |
+| ~Cmd+Option+←~ | 左隣のTab Lineへ移動 |
+| ~Cmd+Option+→~ | 右隣のTab Lineへ移動 |
 
 どちらも端まで移動すると、反対側へ戻って循環します。
 
@@ -856,11 +856,11 @@ Tab Lineのバッファ名は並び順を維持し、
 
 **** カーソル行の上下に新しい行を挿入
 
-VS Codeの「Insert Line Below」「Insert Line Above」に相当する操作です。
+VS Codeの=Insert Line Below=、=Insert Line Above=に相当する操作です。
 カーソルが行の途中にあっても、現在行の内容は分割しません。
 
-- =Cmd+Enter=: カーソル行の下に新しい行を追加し、その行へ移動する
-- =Cmd+Shift+Enter=: カーソル行の上に新しい行を追加し、その行へ移動する
+- ~Cmd+Enter~: カーソル行の下に新しい行を追加し、その行へ移動する
+- ~Cmd+Shift+Enter~: カーソル行の上に新しい行を追加し、その行へ移動する
 
 #+begin_src emacs-lisp
 (defun my/insert-line-below ()
@@ -887,7 +887,7 @@ VS Codeの「Insert Line Below」「Insert Line Above」に相当する操作で
 
 VS Codeに近い行単位の操作を追加します。
 
-- =Cmd+Shift+k=: カーソル行を削除する
+- ~Cmd+Shift+k~: カーソル行を削除する
 #+begin_src emacs-lisp
 (defun my/delete-current-line ()
   "カーソルのある行を、Kill Ringへ入れずに削除する。"
@@ -1076,7 +1076,7 @@ VS Codeと同様に、Option＋上下キーで
 画面内に表示されている文字列を指定し、
 表示されたラベルを入力して、その位置へ移動します。
 
-- =Cmd+t=: 入力した文字の位置へジャンプ
+- ~Cmd+t~: 入力した文字の位置へジャンプ
 
 #+begin_src emacs-lisp
   (use-package avy
@@ -1097,8 +1097,8 @@ VS Codeと同様に、Option＋上下キーで
 戻る・進むでは同じファイルを現在のウィンドウへ開き直さず、
 元のウィンドウそのものを選択します。
 
-- =<mouse-4>=: 1つ前の場所へ戻る
-- =<mouse-5>=: 戻る前の場所へ進む
+- ~<mouse-4>~: 1つ前の場所へ戻る
+- ~<mouse-5>~: 戻る前の場所へ進む
 
 初期状態では、定義ジャンプ、Consultによるファイル内検索、
 行番号指定のジャンプを明示的なジャンプとして扱います。
@@ -1929,10 +1929,10 @@ NEW-WINDOW-Pが非nilなら、新しいウィンドウへファイルを表示�
 ** Project：プロジェクト管理
 
 Emacs標準のプロジェクト管理機能を使用します。
-Gitリポジトリ内に =cabal.project= がある場合は、
+Gitリポジトリ内に ~cabal.project~ がある場合は、
 そのディレクトリを独立したプロジェクトルートとして認識します。
 
-- =Cmd+p=: 現在のプロジェクト内のファイルを開く
+- ~Cmd+p~: 現在のプロジェクト内のファイルを開く
 
 #+begin_src emacs-lisp
   (use-package project
@@ -1992,8 +1992,8 @@ TRAMP接続先の通常PATHに加えて、GHCupとユーザー単位の
 
 個人の気づきや作業状態を管理するOrgファイルの場所を定義します。
 
-- =inbox.org=: 未整理の気づきや疑問
-- =cockpit.org=: 状態を持つ作業項目
+- ~inbox.org~: 未整理の気づきや疑問
+- ~cockpit.org~: 状態を持つ作業項目
 #+begin_src emacs-lisp
 (defconst my/task-org-directory
   (expand-file-name "~/org/cockpit/")
@@ -2046,19 +2046,19 @@ Orgファイルの初期表示、TODO状態、Agenda対象ファイルを設定�
 
 *** Org Capture：作業項目の登録
 
-未整理の気づきは =inbox.org= へ追加します。
-作業状態として管理する項目は =cockpit.org= へ追加します。
+未整理の気づきは ~inbox.org~ へ追加します。
+作業状態として管理する項目は ~cockpit.org~ へ追加します。
 
-=C-c c= でCaptureメニューを開きます。
+~C-c c~ で=Capture=メニューを開きます。
 
 | 操作 | 追加先        | 初期状態 |
 |------+---------------+----------|
-| =i=  | =inbox.org=   | =TODO=   |
-| =c t=| =cockpit.org= | =TODO=   |
-| =c n=| =cockpit.org= | =NEXT=   |
-| =c d=| =cockpit.org= | =DOING=  |
-| =c h=| =cockpit.org= | =HOLD=   |
-| =c w=| =cockpit.org= | =WAIT=   |
+| ~i~  | ~inbox.org~   | =TODO=   |
+| ~c t~| ~cockpit.org~ | =TODO=   |
+| ~c n~| ~cockpit.org~ | =NEXT=   |
+| ~c d~| ~cockpit.org~ | =DOING=  |
+| ~c h~| ~cockpit.org~ | =HOLD=   |
+| ~c w~| ~cockpit.org~ | =WAIT=   |
 #+begin_src emacs-lisp
 (use-package org-capture
   :ensure nil
@@ -2103,8 +2103,8 @@ Orgファイルの初期表示、TODO状態、Agenda対象ファイルを設定�
 
 *** InboxからCockpitへの移動
 
-=inbox.org= の項目上で =C-c w= を押すと、
-現在項目を =cockpit.org= の =Work Items= へ移動します。
+~inbox.org~ の項目上で ~C-c w~ を押すと、
+現在項目を ~cockpit.org~ の =Work Items= へ移動します。
 
 本文や子見出しにカーソルがある場合も、Inbox直下の項目全体を移動します。
 #+begin_src emacs-lisp
@@ -2173,31 +2173,31 @@ Orgファイルの初期表示、TODO状態、Agenda対象ファイルを設定�
 
 *** Cockpit Agenda：作業状態の一覧
 
-=C-c a c= で、Cockpitの作業状態を一覧表示します。
+~C-c a c~ で、Cockpitの作業状態を一覧表示します。
 表示上の分類はTODO状態から自動生成します。
 
 | 表示      | 対象状態            |
 |-----------+---------------------|
-| Active    | =DOING=             |
-| Next      | =NEXT=              |
-| Suspended | =HOLD=              |
-| Waiting   | =WAIT=              |
-| Planned   | =TODO=のCockpit項目 |
-| Inbox     | =TODO=のInbox項目   |
+| =Active=    | =DOING=             |
+| =Next=      | =NEXT=              |
+| =Suspended= | =HOLD=              |
+| =Waiting=   | =WAIT=              |
+| =Planned=   | =TODO=のCockpit項目 |
+| =Inbox=     | =TODO=のInbox項目   |
 
-Agenda項目上では、次のキーで表示順に隣接するレーンへ移動します。
+=Agenda=項目上では、次のキーで表示順に隣接するレーンへ移動します。
 移動後は同じ項目へカーソルも追従するため、
-Cmdを押したまま上下を連続入力できます。
+~Cmd~を押したまま上下を連続入力できます。
 
 | キー       | 操作                              |
 |------------+-----------------------------------|
-| =Cmd+↑=    | 1つ上のワークフローレーンへ移動 |
-| =Cmd+↓=    | 1つ下のワークフローレーンへ移動 |
-| =Option+↑= | Agenda標準の行移動               |
-| =Option+↓= | Agenda標準の行移動               |
+| ~Cmd+↑~    | 1つ上のワークフローレーンへ移動 |
+| ~Cmd+↓~    | 1つ下のワークフローレーンへ移動 |
+| ~Option+↑~ | =Agenda=標準の行移動               |
+| ~Option+↓~ | =Agenda=標準の行移動               |
 
 Cockpit内の移動ではTODO状態を変更し、
-PlannedとInboxの境界では項目をファイル間で移動します。
+=Planned=と=Inbox=の境界では項目をファイル間で移動します。
 #+begin_src emacs-lisp
 (require 'cl-lib)
 
@@ -2537,8 +2537,8 @@ Emacs内で高速なターミナルを利用します。
 
 *** Vterm Toggle：ターミナルの表示切り替え
 
-Cmd+jでプロジェクト単位のvtermを全画面表示・非表示にします。
-Cmd+Shift+jでは、現在のウィンドウ構成に応じて分割表示します。
+~Cmd+j~でプロジェクト単位の~vterm~を全画面表示・非表示にします。
+~Cmd+Shift+j~では、現在のウィンドウ構成に応じて分割表示します。
 
 - 1ウィンドウ、または上下分割: フレームの右50%
 - 左右分割: フレームの下30%
@@ -2671,7 +2671,7 @@ DiredではGit状態をファイル単位で表示し、
 
 *** EditorConfig：プロジェクトごとの編集設定
 
-プロジェクトの =.editorconfig= を読み取り、インデント幅や改行コードなどを
+プロジェクトの ~.editorconfig~ を読み取り、インデント幅や改行コードなどを
 バッファへ反映します。特定のプロジェクト名やパスには依存しません。
 #+begin_src emacs-lisp
 (use-package editorconfig
@@ -2701,16 +2701,16 @@ DiredではGit状態をファイル単位で表示し、
 
 言語に依存しないLSPクライアント基盤を設定します。
 各言語では、対応するLanguage Serverとメジャーモードを追加し、
-その言語のフックから =lsp-deferred= を呼び出します。
+その言語のフックから ~lsp-deferred~ を呼び出します。
 
 補完、診断、定義参照、リネーム、コードアクション、整形などを、
 Language Server Protocol経由で各言語へ提供します。
 
-- =C-c l a=: コードアクションを実行
-- =C-c l r=: プロジェクト全体で識別子を変更
-- =C-c l f=: 現在のバッファを整形
-- =M-g s=: ワークスペースシンボルを検索
-- =C-c L=: LSP Modeのコマンドプレフィックス
+- ~C-c l a~: コードアクションを実行
+- ~C-c l r~: プロジェクト全体で識別子を変更
+- ~C-c l f~: 現在のバッファを整形
+- ~M-g s~: ワークスペースシンボルを検索
+- ~C-c L~: LSP Modeのコマンドプレフィックス
 
 #+begin_src emacs-lisp
   (defun my/lsp-format-buffer-before-save ()
@@ -2847,16 +2847,16 @@ Language Server Protocol経由で各言語へ提供します。
 
 **** LSP UI：Language Serverの表示機能
 
-=lsp-ui= が提供する高水準UIを有効にします。
-パッケージには =lsp-ui-doc=、=lsp-ui-imenu=、=lsp-ui-peek=、
-=lsp-ui-sideline= が含まれますが、ここではドキュメント表示と
+~lsp-ui~ が提供する高水準UIを有効にします。
+パッケージには ~lsp-ui-doc~、~lsp-ui-imenu~、~lsp-ui-peek~、
+~lsp-ui-sideline~ が含まれますが、ここではドキュメント表示と
 シンボル一覧を中心に使用します。
 
-- =C-c l h=: カーソル位置の型・ドキュメントを表示
-- =C-c l i=: 現在のバッファのシンボル一覧を右側へ表示
-- =C-c l p d=: 定義をPeek表示
-- =C-c l p r=: 参照をPeek表示
-- =C-c l p i=: 実装をPeek表示
+- ~C-c l h~: カーソル位置の型・ドキュメントを表示
+- ~C-c l i~: 現在のバッファのシンボル一覧を右側へ表示
+- ~C-c l p d~: 定義をPeek表示
+- ~C-c l p r~: 参照をPeek表示
+- ~C-c l p i~: 実装をPeek表示
 
 #+begin_src emacs-lisp
   (defun my/lsp-ui-doc-style-frame (frame _window)
@@ -3238,11 +3238,11 @@ Haskellの編集、HLSとの接続、保存時整形、シンボル検索を設�
 
 **** Haskell TS Mode
 
-通常のHaskellソース（=.hs=）では、Tree-sitterを利用した
-=haskell-ts-mode= を既定のメジャーモードとして使用します。
+通常のHaskellソース（~.hs~）では、Tree-sitterを利用した
+~haskell-ts-mode~ を既定のメジャーモードとして使用します。
 
 構文ハイライトは最高レベルを使用します。
-インデント機能は安定性を優先して無効にし、保存時のFourmolu整形へ任せます。
+インデント機能は安定性を優先して無効にし、保存時の~Fourmolu~整形へ任せます。
 
 #+begin_src emacs-lisp
 (use-package haskell-ts-mode
@@ -3275,8 +3275,8 @@ Emacs標準のXref操作を優先します。
 
 | キー  | 操作                                     |
 |-------+------------------------------------------|
-| =M-.= | カーソル位置の識別子の定義へ移動       |
-| =M-?= | カーソル位置の識別子の参照箇所を表示   |
+| ~M-.~ | カーソル位置の識別子の定義へ移動       |
+| ~M-?~ | カーソル位置の識別子の参照箇所を表示   |
 
 #+begin_src emacs-lisp
   (use-package haskell-mode
@@ -3311,11 +3311,11 @@ Emacs標準のXref操作を優先します。
 **** LSP Haskell：Haskell固有設定
 
 共通のLSP Mode基盤へHaskell Language Serverを接続します。
-ローカル環境でもTRAMP接続先でも、各環境のPATHにある
-=haskell-language-server-wrapper= を使用します。
+ローカル環境でもTRAMP接続先でも、各環境の~PATH~にある
+~haskell-language-server-wrapper~ を使用します。
 
-Haskellバッファでは保存時にFourmoluで整形し、
-スコープ外の識別子を補完したときはimportを自動追加します。
+Haskellバッファでは保存時に~Fourmolu~で整形し、
+スコープ外の識別子を補完したときは~import~を自動追加します。
 
 #+begin_src emacs-lisp
 (defcustom my/lsp-haskell-cabal-formatting-provider
@@ -3378,7 +3378,7 @@ Emacs LispのバッファでFlymakeを有効にし、
 
 * 生成ファイルのフッター
 
-生成される =init.el= の末尾部分です。
+生成される ~init.el~ の末尾部分です。
 #+begin_src emacs-lisp
 ;;; init.el ends here
 #+end_src
