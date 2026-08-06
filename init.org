@@ -2018,11 +2018,17 @@ Language Server Protocol経由で各言語へ提供します。
     ;; Language Serverの接続状態や処理状態を
     ;; モードラインへ表示する。
     (lsp-modeline-workspace-status-enable t)
-    
+
     ;; 通常利用ではLSP通信ログを保存しない。
     (lsp-log-io nil)
 
     :config
+    (with-eval-after-load 'lsp-diagnostics
+      ;; lsp-mode issue #5043の暫定対策。
+      ;; LSPによる編集後、診断本体だけを削除して集計値を残してしまう処理を無効化する。
+      (remove-hook 'lsp-after-apply-edits-hook
+                   #'lsp-diagnostics--clear-after-edit))
+
     ;; Breadcrumbの外周と各セグメントから枠線を完全に取り除く。
     ;; テーマ側でもheader-lineのboxを無効化しているが、
     ;; テーマ再読込やFace継承後も確実に維持するため、ここでも指定する。
