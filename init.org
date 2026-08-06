@@ -2155,9 +2155,138 @@ Language Server Protocol経由で各言語へ提供します。
       (" ┗ " " └ ")
       (bar bar)))
 
+  ;; nilへ変更すれば、見出しアイコンを残して葉アイコンだけ非表示にできる。
+  (defcustom my/lsp-ui-imenu-show-leaf-icons t
+    "LSP UI Imenuの葉項目へNerd Fontアイコンを表示する。"
+    :type 'boolean
+    :group 'lsp-ui-imenu)
+
+  (defconst my/lsp-ui-imenu-title-icon-rules
+    '(("\\_<\\(?:imports?\\|modules?\\|namespaces?\\|packages?\\)\\_>"
+       . "nf-cod-symbol_namespace")
+      ("\\_<class\\(?:es\\)?\\_>"
+       . "nf-cod-symbol_class")
+      ("\\_<interfaces?\\_>"
+       . "nf-cod-symbol_interface")
+      ("\\_<\\(?:structs?\\|structures?\\|records?\\|types?\\|data\\)\\_>"
+       . "nf-cod-symbol_structure")
+      ("\\_<enums?\\_>"
+       . "nf-cod-symbol_enum")
+      ("\\_<events?\\_>"
+       . "nf-cod-symbol_event")
+      ("\\_<\\(?:methods?\\|functions?\\|procedures?\\|constructors?\\)\\_>"
+       . "nf-cod-symbol_method")
+      ("\\_<\\(?:fields?\\|propert\\(?:y\\|ies\\)\\)\\_>"
+       . "nf-cod-symbol_field")
+      ("\\_<constants?\\_>"
+       . "nf-cod-symbol_constant")
+      ("\\_<variables?\\_>"
+       . "nf-cod-symbol_variable")
+      ("\\_<files?\\_>"
+       . "nf-cod-symbol_file"))
+    "LSP UI Imenuの見出しとNerd Fontアイコンの対応。")
+
+  (defun my/lsp-ui-imenu-matching-icon-name (title)
+    "TITLEに対応するNerd Fontアイコン名を返す。"
+    (let ((case-fold-search t)
+          (plain-title
+           (substring-no-properties (or title ""))))
+      (cl-loop
+       for (regexp . icon)
+       in my/lsp-ui-imenu-title-icon-rules
+       when (string-match-p regexp plain-title)
+       return icon)))
+
+  (defun my/lsp-ui-imenu-insert-icon-before-title
+      (rendered-title title icon)
+    "RENDERED-TITLE内のTITLE直前へICONを挿入する。"
+    (let* ((plain-rendered-title
+            (substring-no-properties rendered-title))
+           (plain-title
+            (substring-no-properties title))
+           (position
+            (string-match
+             (regexp-quote plain-title)
+             plain-rendered-title)))
+      (if position
+          (concat
+           (substring rendered-title 0 position)
+           icon
+           " "
+           (substring rendered-title position))
+        rendered-title)))
+
+  (defun my/lsp-ui-imenu-add-icon-to-title
+      (original-function title &rest arguments)
+    "LSP UI ImenuのTITLEへNerd Fontアイコンを付ける。"
+    (let ((overlay-put-function
+           (symbol-function 'overlay-put))
+          (icon
+           (nerd-icons-codicon
+            (or
+             (my/lsp-ui-imenu-matching-icon-name title)
+             "nf-cod-symbol_structure"))))
+      (cl-letf
+          (((symbol-function 'overlay-put)
+            (lambda (overlay property value)
+              (funcall
+               overlay-put-function
+               overlay
+               property
+               (if (and (eq property 'after-string)
+                        (stringp value))
+                   (my/lsp-ui-imenu-insert-icon-before-title
+                    value
+                    title
+                    icon)
+                 value)))))
+        (apply original-function title arguments))))
+
+  (defun my/lsp-ui-imenu-add-icon-to-leaf
+      (original-function
+       title index entry padding bars depth color-index is-last)
+    "LSP UI Imenuの葉項目へNerd Fontアイコンを付ける。"
+    (let ((line
+           (funcall
+            original-function
+            title
+            index
+            entry
+            padding
+            bars
+            depth
+            color-index
+            is-last)))
+      (if (not my/lsp-ui-imenu-show-leaf-icons)
+          line
+        (let* ((name-position
+                (min (+ padding (* depth 3))
+                     (length line)))
+               (icon
+                (concat
+                 (nerd-icons-codicon
+                  (or
+                   (my/lsp-ui-imenu-matching-icon-name title)
+                   "nf-cod-symbol_method"))
+                 " ")))
+          ;; アイコン上でも移動・選択できるよう、葉項目の情報を引き継ぐ。
+          (add-text-properties
+           0
+           (length icon)
+           `(index ,index
+                   title ,title
+                   marker ,(cdr entry)
+                   padding ,padding
+                   depth ,depth)
+           icon)
+          (concat
+           (substring line 0 name-position)
+           icon
+           (substring line name-position))))))
+
   (use-package lsp-ui
     :ensure t
-    :after lsp-mode
+    :after (lsp-mode nerd-icons)
 
     :hook
     ((lsp-mode . lsp-ui-mode)
@@ -2224,8 +2353,8 @@ Language Server Protocol経由で各言語へ提供します。
     (lsp-ui-sideline-enable nil)
 
     :config
-    ;; Imenuのツリーを、太い罫線から細い罫線へ変更する。
     (with-eval-after-load 'lsp-ui-imenu
+      ;; Imenuのツリーを、太い罫線から細い罫線へ変更する。
       (unless
           (advice-member-p
            #'my/lsp-ui-imenu-use-thin-bars
@@ -2233,7 +2362,31 @@ Language Server Protocol経由で各言語へ提供します。
         (advice-add
          #'lsp-ui-imenu--get-bar
          :around
-         #'my/lsp-ui-imenu-use-thin-bars)))
+         #'my/lsp-ui-imenu-use-thin-bars))
+
+      ;; グループ見出しや親シンボルへNerd Fontアイコンを付ける。
+      (dolist
+          (function
+           '(lsp-ui-imenu--put-toplevel-title
+             lsp-ui-imenu--put-subtitle))
+        (unless
+            (advice-member-p
+             #'my/lsp-ui-imenu-add-icon-to-title
+             function)
+          (advice-add
+           function
+           :around
+           #'my/lsp-ui-imenu-add-icon-to-title)))
+
+      ;; 葉項目へNerd Fontアイコンを付ける。
+      (unless
+          (advice-member-p
+           #'my/lsp-ui-imenu-add-icon-to-leaf
+           #'lsp-ui-imenu--make-line)
+        (advice-add
+         #'lsp-ui-imenu--make-line
+         :around
+         #'my/lsp-ui-imenu-add-icon-to-leaf)))
 
     ;; Child Frameの背景とヘッダーを、白枠のないフラットなカードにする。
     (set-face-attribute
