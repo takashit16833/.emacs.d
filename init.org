@@ -306,20 +306,6 @@ Emacsを終了・再起動しても引き継ぎたい状態と、外部で変更
   (savehist-mode 1))
 #+end_src
 
-** Recentf：最近開いたファイル
-
-最近開いたファイルの一覧を保存します。
-#+begin_src emacs-lisp
-(use-package recentf
-  :ensure nil
-
-  :custom
-  (recentf-max-saved-items 100)
-
-  :init
-  (recentf-mode 1))
-#+end_src
-
 ** Saveplace：カーソル位置
 
 ファイルを開き直したとき、前回のカーソル位置へ戻ります。
@@ -582,36 +568,6 @@ ease-out-cubicのアニメーションを使用します。
 
 作業画面全体、ウィンドウ、各ウィンドウ内のバッファを管理します。
 
-** Dashboard：作業場所の入口
-
-最近開いたファイル、プロジェクト、ブックマークを表示し、
-各作業場所へ移動するための入口として使用します。
-
-#+begin_src emacs-lisp
-  (use-package dashboard
-    :ensure t
-
-    :custom
-    ;; 内容を画面中央に表示する。
-    (dashboard-center-content t)
-
-    ;; Emacs標準のproject.elからプロジェクトを取得する。
-    (dashboard-projects-backend 'project-el)
-
-    ;; ダッシュボードへ表示する項目。
-    (dashboard-items
-     '((projects  . 5)
-       (recents   . 5)
-       (bookmarks . 5)))
-
-    ;; 項目間を循環して移動できるようにする。
-    (dashboard-navigation-cycle t)
-
-    :config
-    ;; Emacs起動時にDashboardを表示する。
-    (dashboard-setup-startup-hook))
-#+end_src
-
 ** Windmove：バッファの表示先指定
 
 次に実行するコマンドが表示するバッファの行き先を予約します。
@@ -654,31 +610,9 @@ ease-out-cubicのアニメーションを使用します。
 ** Tab Bar：作業画面全体の切り替え
 
 画面分割を含む作業画面全体を、タブとして切り替えます。
-Dashboardを新しいTab Barの初期画面として使用し、
-Bufferloのローカルバッファ一覧を初期化します。
+新しいTab Barは、Bufferloが作成するタブ専用Scratchバッファから始めます。
 
 #+begin_src emacs-lisp
-  (defun my/tab-bar-reset-dashboard-tab (_tab)
-    "新しく作成されたDashboardタブを、Dashboardだけの状態にする。"
-    (when (derived-mode-p 'dashboard-mode)
-      (let ((window (selected-window)))
-        ;; Tab Lineが参照するウィンドウ固有の履歴を初期化する。
-        (set-window-prev-buffers window nil)
-        (set-window-next-buffers window nil)
-
-        ;; 独自Tab Lineの固定順もDashboardだけにする。
-        (set-window-parameter
-         window
-         'tab-line-buffers
-         (list (window-buffer window))))
-
-      ;; 新しいTab BarのBufferlo一覧を、
-      ;; 現在表示中のDashboardだけにする。
-      (bufferlo-clear)
-
-      ;; Tab Lineを再描画する。
-      (force-mode-line-update t)))
-
   (defun my/close-window-or-tab ()
     "複数ウィンドウなら現在のウィンドウを閉じる。
     1ウィンドウかつ複数Tab Barなら現在のTab Barを閉じる。
@@ -701,11 +635,12 @@ Bufferloのローカルバッファ一覧を初期化します。
 
   (use-package tab-bar
     :ensure nil
-    :after (dashboard bufferlo)
+    :after bufferlo
 
     :custom
-    ;; 新しいTab BarはDashboardから始める。
-    (tab-bar-new-tab-choice #'dashboard-open)
+    ;; 新しいTab Barは、ほかのTab Barと共有しないScratchから始める。
+    (tab-bar-new-tab-choice
+     #'bufferlo-create-local-scratch-buffer)
 
     ;; 新しいタブを作る「＋」ボタンを表示しない。
     (tab-bar-new-button-show nil)
@@ -723,12 +658,7 @@ Bufferloのローカルバッファ一覧を初期化します。
 
     ;; Ctrl+PageUp：左隣のTab Barへ移動する。
     ;; 左端では右端へ戻り、循環する。
-    (keymap-global-set "C-<prior>" #'tab-previous)
-
-    ;; 新規タブの構築が完了したあとに状態を整理する。
-    (add-hook
-     'tab-bar-tab-post-open-functions
-     #'my/tab-bar-reset-dashboard-tab))
+    (keymap-global-set "C-<prior>" #'tab-previous))
 #+end_src
 
 ** Tab Line：ウィンドウ内のバッファ切り替え
@@ -1581,7 +1511,7 @@ Verticoなどのミニバッファ補完候補に、
     (("s-r" . consult-buffer)
 
      ;; ブックマークをミニバッファで選択する。
-     ("s-m" . consult-bookmark)
+    ("s-m" . consult-bookmark)
 
      ("s-f" . consult-line)
      ("M-g f" . consult-flymake)))
