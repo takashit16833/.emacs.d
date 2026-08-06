@@ -9,8 +9,10 @@
 - 編集するファイル: ~init.org~
 - 自動生成されるファイル: ~early-init.el~、~init.el~
 - *~early-init.el~ と ~init.el~ は直接編集しない*
-- 設定は、主に実現する機能の見出しへ配置する
+- 設定は、実現する機能の見出しへ配置する
 - パッケージ固有の関数、変数、キーバインドは、そのパッケージの見出しへまとめる
+- キーバインドは「キー設定」へ集約せず、実現する機能の見出しへ配置する
+- ソースブロックは文書内の順序で生成されるため、移動時は ~init.el~ の評価順を確認する
 
 初回のみ、次のコマンドで両ファイルを生成します。
 
@@ -20,9 +22,10 @@ M-x org-babel-tangle
 
 以降は、このファイルを保存すると自動的に両ファイルを生成します。
 
-* 設定基盤
+* 起動・設定基盤
 
-Emacs設定の生成、パッケージ管理、Emacs本体の共通設定をまとめます。
+生成ファイル、パッケージ管理、起動時の基本動作、状態保存、
+設定ファイル自体の操作をまとめます。
 
 ** 生成されるearly-init.el
 
@@ -116,103 +119,88 @@ MELPAをパッケージ取得先へ追加し、~use-package~ の自動インス�
   )
 #+end_example
 
-** Emacs本体の共通設定
 
-Emacs標準の基本動作、ファイル保護、表示、編集支援をまとめて設定します。
+** Customize設定
 
-~emacs~ というパッケージを読み込むわけではなく、
-Emacs本体の設定を ~use-package~ 形式で整理するために使用しています。
+Customizeが生成する設定を専用ファイルへ分離し、
+~init.org~ の明示的な設定より先に読み込みます。
+
 #+begin_src emacs-lisp
-  (use-package emacs
-    :ensure nil
+(use-package emacs
+  :ensure nil
 
-    :init
-    ;; カーソルを幅2pxの縦ラインにする。
-    (setq-default cursor-type '(bar . 2))
+  :init
+  ;; Customizeが生成した設定をinit.elへ直接書き込ませない。
+  ;; init.elはinit.orgから再生成されるため、別ファイルへ分離する。
+  (setq custom-file
+        (expand-file-name "custom.el" user-emacs-directory))
 
-    ;; Customizeが生成した設定をinit.elへ直接書き込ませない。
-    ;; init.elはinit.orgから再生成されるため、別ファイルへ分離する。
-    (setq custom-file
-          (expand-file-name "custom.el" user-emacs-directory))
+  ;; Customizeによる設定を、明示的なinit.org設定より先に読み込む。
+  ;; これにより、以降の設定をinit.org側の最終的な指定として扱う。
+  (load custom-file t t))
+#+end_src
 
-    (load custom-file t t)
 
-    ;; バックアップファイルと自動保存ファイルを専用ディレクトリへ置く。
-    (let ((backup-directory
-           (expand-file-name "backups/" user-emacs-directory))
-          (auto-save-directory
-           (expand-file-name "auto-save/" user-emacs-directory)))
+** ファイル保護
 
-      (make-directory backup-directory t)
-      (make-directory auto-save-directory t)
+バックアップ、自動保存、保存時の基本動作を設定します。
 
-      (setq backup-directory-alist
-            `(("." . ,backup-directory))
+*** バックアップと自動保存
 
-            auto-save-file-name-transforms
-            `((".*" ,auto-save-directory t))))
+#+begin_src emacs-lisp
+(use-package emacs
+  :ensure nil
 
-    :custom
-    ;; 起動画面を表示しない。
-    (inhibit-startup-screen t)
+  :init
+  ;; バックアップファイルと自動保存ファイルを専用ディレクトリへ置く。
+  (let ((backup-directory
+         (expand-file-name "backups/" user-emacs-directory))
+        (auto-save-directory
+         (expand-file-name "auto-save/" user-emacs-directory)))
 
-    ;; *scratch*バッファの初期メッセージを表示しない。
-    (initial-scratch-message nil)
+    (make-directory backup-directory t)
+    (make-directory auto-save-directory t)
 
-    ;; yes/noではなくy/nで答えられるようにする。
-    (use-short-answers t)
+    (setq backup-directory-alist
+          `(("." . ,backup-directory))
 
-    ;; ビープ音を鳴らさない。
-    (ring-bell-function #'ignore)
+          auto-save-file-name-transforms
+          `((".*" ,auto-save-directory t)))))
+#+end_src
 
-    ;; ファイル末尾に改行を入れる。
-    (require-final-newline t)
 
-    ;; カーソル移動によるスクロールを1行ずつにする。
-    (scroll-conservatively most-positive-fixnum)
+*** 保存時の基本動作
 
-    ;; インデント済みの位置でTABを押した場合は補完を実行する。
-    (tab-always-indent 'complete)
+#+begin_src emacs-lisp
+(use-package emacs
+  :ensure nil
 
-    ;; 行を折り返す
-    (global-visual-line-mode 1)
+  :custom
+  ;; ファイル末尾に改行を入れる。
+  (require-final-newline t))
+#+end_src
 
-    ;; 折り返しを示す左右の矢印を表示しない
-    (visual-line-fringe-indicators '(nil nil))
 
-    :config
-    ;; Shift＋Option＋左右で、単語単位に選択範囲を伸縮する。
-    (define-key key-translation-map
-                (kbd "M-S-<left>")
-                (kbd "M-S-b"))
+** 起動時の基本動作
 
-    (define-key key-translation-map
-                (kbd "M-S-<right>")
-                (kbd "M-S-f"))
+起動画面、初期バッファ、確認入力、通知音を設定します。
 
-    ;; Repeat対応コマンドを、短いキーで連続実行できるようにする。
-    (repeat-mode 1)
+#+begin_src emacs-lisp
+(use-package emacs
+  :ensure nil
 
-    ;; 選択範囲がある状態で入力すると、選択範囲を置換する。
-    (delete-selection-mode 1)
+  :custom
+  ;; 起動画面を表示しない。
+  (inhibit-startup-screen t)
 
-    ;; 括弧を自動的に補完する。
-    (electric-pair-mode 1)
+  ;; *scratch*バッファの初期メッセージを表示しない。
+  (initial-scratch-message nil)
 
-    ;; 対応する括弧を強調表示する。
-    (show-paren-mode 1)
+  ;; yes/noではなくy/nで答えられるようにする。
+  (use-short-answers t)
 
-    ;; 行番号と列番号を表示する。
-    (global-display-line-numbers-mode 1)
-    (column-number-mode 1)
-
-    ;; GUIのツールバーとスクロールバーを非表示にする。
-    ;; メニューバーはEmacsを覚えるのに役立つため残す。
-    (when (fboundp 'tool-bar-mode)
-      (tool-bar-mode -1))
-
-    (when (fboundp 'scroll-bar-mode)
-      (scroll-bar-mode -1)))
+  ;; ビープ音を鳴らさない。
+  (ring-bell-function #'ignore))
 #+end_src
 
 ** Emacs設定ファイルの操作
@@ -272,6 +260,52 @@ Emacs本体の設定を ~use-package~ 形式で整理するために使用して
 (keymap-global-set "C-c e" my/emacs-config-map)
 #+end_src
 
+
+** 状態の保存と同期
+
+Emacsを終了・再起動しても引き継ぎたい状態と、
+外部で変更されたファイルの同期を設定します。
+
+*** Savehist：ミニバッファ履歴
+
+検索履歴や実行したコマンドなどを、Emacs終了後も保存します。
+#+begin_src emacs-lisp
+(use-package savehist
+  :ensure nil
+
+  :custom
+  (history-length 200)
+
+  :init
+  (savehist-mode 1))
+#+end_src
+
+*** Saveplace：カーソル位置
+
+ファイルを開き直したとき、前回のカーソル位置へ戻ります。
+#+begin_src emacs-lisp
+(use-package saveplace
+  :ensure nil
+
+  :init
+  (save-place-mode 1))
+#+end_src
+
+*** Auto Revert：外部変更の自動反映
+
+外部プログラムやGitなどによってファイルが変更されたとき、
+Emacs上のバッファも自動的に更新します。
+#+begin_src emacs-lisp
+(use-package autorevert
+  :ensure nil
+
+  :custom
+  (global-auto-revert-non-file-buffers t)
+
+  :init
+  (global-auto-revert-mode 1))
+#+end_src
+
 * OS・実行環境
 
 OS固有の入力と、Emacsが利用する実行環境を設定します。
@@ -301,53 +335,89 @@ GUI版Emacsから、ターミナルと同じ~PATH~を利用できるようにし
   (exec-path-from-shell-initialize))
 #+end_src
 
-* 状態の保存と同期
-
-Emacsを終了・再起動しても引き継ぎたい状態と、外部で変更されたファイルの同期を設定します。
-
-** Savehist：ミニバッファ履歴
-
-検索履歴や実行したコマンドなどを、Emacs終了後も保存します。
-#+begin_src emacs-lisp
-(use-package savehist
-  :ensure nil
-
-  :custom
-  (history-length 200)
-
-  :init
-  (savehist-mode 1))
-#+end_src
-
-** Saveplace：カーソル位置
-
-ファイルを開き直したとき、前回のカーソル位置へ戻ります。
-#+begin_src emacs-lisp
-(use-package saveplace
-  :ensure nil
-
-  :init
-  (save-place-mode 1))
-#+end_src
-
-** Auto Revert：外部変更の自動反映
-
-外部プログラムやGitなどによってファイルが変更されたとき、
-Emacs上のバッファも自動的に更新します。
-#+begin_src emacs-lisp
-(use-package autorevert
-  :ensure nil
-
-  :custom
-  (global-auto-revert-non-file-buffers t)
-
-  :init
-  (global-auto-revert-mode 1))
-#+end_src
-
 * 表示
 
-Emacs全体と各バッファの見た目、構造表示、スクロールを設定します。
+テキストの内容を変更せず、Emacs全体と各バッファの見え方を設定します。
+
+
+** Emacs本体
+
+Emacs標準の表示機能を ~use-package emacs~ で設定します。
+
+*** カーソル
+
+#+begin_src emacs-lisp
+(use-package emacs
+  :ensure nil
+
+  :init
+  ;; カーソルを幅2pxの縦ラインにする。
+  (setq-default cursor-type '(bar . 2)))
+#+end_src
+
+
+*** 行の折り返し
+
+長い行をウィンドウ幅で折り返します。
+~C-c x~ で、現在のバッファの折り返しを切り替えます。
+
+#+begin_src emacs-lisp
+(use-package emacs
+  :ensure nil
+
+  :custom
+  ;; すべての通常バッファで行を折り返す。
+  (global-visual-line-mode 1)
+
+  ;; 折り返しを示す左右の矢印を表示しない。
+  (visual-line-fringe-indicators '(nil nil))
+
+  :bind
+  ;; 現在のバッファで行の折り返しを切り替える。
+  (("C-c x" . visual-line-mode)))
+#+end_src
+
+
+*** 行番号と列番号
+
+#+begin_src emacs-lisp
+(use-package emacs
+  :ensure nil
+
+  :config
+  ;; 行番号と列番号を表示する。
+  (global-display-line-numbers-mode 1)
+  (column-number-mode 1))
+#+end_src
+
+
+*** GUI部品
+
+#+begin_src emacs-lisp
+(use-package emacs
+  :ensure nil
+
+  :config
+  ;; GUIのツールバーとスクロールバーを非表示にする。
+  ;; メニューバーはEmacsを覚えるのに役立つため残す。
+  (when (fboundp 'tool-bar-mode)
+    (tool-bar-mode -1))
+
+  (when (fboundp 'scroll-bar-mode)
+    (scroll-bar-mode -1)))
+#+end_src
+
+
+*** 対応する括弧
+
+#+begin_src emacs-lisp
+(use-package emacs
+  :ensure nil
+
+  :config
+  ;; 対応する括弧を強調表示する。
+  (show-paren-mode 1))
+#+end_src
 
 ** 外観
 
@@ -459,7 +529,21 @@ Tree-sitterのスコープ解析には依存せず、各メジャーモードと
   (indent-bars-display-on-blank-lines t))
 #+end_src
 
+
 ** スクロール
+
+カーソル移動とPage Up・Page Downのスクロール動作を設定します。
+
+*** Emacs本体
+
+#+begin_src emacs-lisp
+(use-package emacs
+  :ensure nil
+
+  :custom
+  ;; カーソル移動によるスクロールを1行ずつにする。
+  (scroll-conservatively most-positive-fixnum))
+#+end_src
 
 *** Pixel Scroll：滑らかなスクロール
 
@@ -577,243 +661,43 @@ Tree-sitterのスコープ解析には依存せず、各メジャーモードと
                 #'my/pixel-scroll-half-page-up))
 #+end_src
 
-* ウィンドウ・バッファ・ワークスペース
-
-作業画面全体、ウィンドウ、各ウィンドウ内のバッファを管理します。
-
-** Windmove：バッファの表示先指定
-
-次に実行するコマンドが表示するバッファの行き先を予約します。
-
-#+begin_src emacs-lisp
-  (use-package windmove
-    :ensure nil
-
-    :bind
-    (("C-x <left>"  . windmove-display-left)
-     ("C-x <right>" . windmove-display-right)
-     ("C-x <up>"    . windmove-display-up)
-     ("C-x <down>"  . windmove-display-down)))
-#+end_src
-
-** Bufferlo：Tab Barごとのバッファ管理
-
-各Tab Barが独立したバッファ一覧を持つようにします。
-
-#+begin_src emacs-lisp
-  (use-package bufferlo
-    :ensure t
-    :demand t
-
-    :init
-    ;; next-bufferとprevious-bufferも現在のTab Bar内に限定する。
-    ;; bufferlo-modeを有効にする前に設定する必要がある。
-    (setq bufferlo-prefer-local-buffers 'tabs)
-
-    :bind
-    ;; 現在のTab Barに属するバッファから選択する。
-    ;; Prefix引数を付けると、Emacs全体のバッファから選択できる。
-    (("C-x b" . bufferlo-switch-to-buffer))
-
-    :config
-    ;; フレーム・Tab Barごとのローカルバッファ管理を有効にする。
-    (bufferlo-mode 1))
-#+end_src
-
-** Tab Bar：作業画面全体の切り替え
-
-画面分割を含む作業画面全体を、タブとして切り替えます。
-新しいTab Barは、Bufferloが作成するタブ専用Scratchバッファから始めます。
-
-#+begin_src emacs-lisp
-  (defun my/close-window-or-tab ()
-    "複数ウィンドウなら現在のウィンドウを閉じる。
-    1ウィンドウかつ複数Tab Barなら現在のTab Barを閉じる。
-    最後のウィンドウかつ最後のTab Barでは何もしない。"
-    (interactive)
-    (cond
-     ;; ミニバッファを除く通常ウィンドウが複数ある場合。
-     ((not (one-window-p t))
-      (delete-window))
-
-     ;; 通常ウィンドウが1つで、Tab Barが複数ある場合。
-     ((> (length
-          (funcall tab-bar-tabs-function))
-         1)
-      (tab-close))
-
-     ;; 最後のウィンドウかつ最後のTab Bar。
-     (t
-      (message "最後のウィンドウとTab Barは閉じません"))))
-
-  (use-package tab-bar
-    :ensure nil
-    :after bufferlo
-
-    :custom
-    ;; 新しいTab Barは、ほかのTab Barと共有しないScratchから始める。
-    (tab-bar-new-tab-choice
-     #'bufferlo-create-local-scratch-buffer)
-
-    ;; 新しいタブを作る「＋」ボタンを表示しない。
-    (tab-bar-new-button-show nil)
-
-    ;; 各タブの「×」ボタンを表示しない。
-    (tab-bar-close-button-show nil)
-
-    :config
-    ;; Emacs標準のTab Barを有効にする。
-    (tab-bar-mode 1)
-
-    ;; Ctrl+PageDown：右隣のTab Barへ移動する。
-    ;; 右端では左端へ戻り、循環する。
-    (keymap-global-set "C-<next>" #'tab-next)
-
-    ;; Ctrl+PageUp：左隣のTab Barへ移動する。
-    ;; 左端では右端へ戻り、循環する。
-    (keymap-global-set "C-<prior>" #'tab-previous))
-#+end_src
-
-** Tab Line：ウィンドウ内のバッファ切り替え
-
-各ウィンドウで表示したバッファを、タブとして切り替えます。
-
-| キー           | 操作                 |
-|----------------+----------------------|
-| ~Cmd+Option+←~ | 左隣のTab Lineへ移動 |
-| ~Cmd+Option+→~ | 右隣のTab Lineへ移動 |
-
-どちらも端まで移動すると、反対側へ戻って循環します。
-
-Tab Lineのバッファ名は並び順を維持し、
-新しく表示したバッファだけを右端へ追加します。
-#+begin_src emacs-lisp
-  (use-package tab-line
-    :ensure nil
-    :after bufferlo
-
-    :init
-    (require 'seq)
-
-    ;; Tab Lineに表示しないバッファ名。
-    (defconst my/tab-line-excluded-buffer-names
-      '("*scratch*")
-      "Tab Lineに表示しないバッファ名の一覧。")
-
-    (defun my/tab-line-buffer-visible-p (buffer)
-      "BUFFERをTab Lineに表示するとき、非nilを返す。"
-      (and
-       ;; 削除済みのバッファは表示しない。
-       (buffer-live-p buffer)
-
-       ;; ミニバッファはTab Lineへ表示しない。
-       (not (minibufferp buffer))
-
-       ;; 通常のScratchと、Bufferloが作るタブ専用Scratchを表示しない。
-       (not
-        (string-prefix-p
-         "*scratch*"
-         (buffer-name buffer)))
-
-       ;; 表示しないバッファはここに定義する。
-       (not
-        (with-current-buffer buffer
-          (derived-mode-p
-           'dired-mode
-           'magit-mode
-           'vterm-mode)))))
-
-    (defun my/tab-line-tabs ()
-      "不要なバッファを除外し、固定順でTab Lineへ表示する。"
-      (let* (;; このウィンドウで保存している、前回までの並び順。
-             (old-buffers
-              (seq-filter
-               #'my/tab-line-buffer-visible-p
-               (window-parameter nil 'tab-line-buffers)))
-
-             ;; 現在、このウィンドウに関連付いているバッファ。
-             (current-buffers
-              (seq-filter
-               #'my/tab-line-buffer-visible-p
-               (tab-line-tabs-window-buffers)))
-
-             ;; 以前からあるバッファは、保存済みの順番を維持する。
-             (kept-buffers
-              (seq-filter
-               (lambda (buffer)
-                 (memq buffer current-buffers))
-               old-buffers))
-
-             ;; 新しく表示されたバッファは、右端へ追加する。
-             (added-buffers
-              (seq-remove
-               (lambda (buffer)
-                 (memq buffer kept-buffers))
-               current-buffers))
-
-             (buffers
-              (append kept-buffers added-buffers)))
-
-        ;; ウィンドウごとのTab Lineの並び順として保存する。
-        (set-window-parameter nil 'tab-line-buffers buffers)
-
-        buffers))
-
-    ;; Tab Barを切り替えても、ウィンドウごとの並び順を保持する。
-    (add-to-list
-     'window-persistent-parameters
-     '(tab-line-buffers . t))
-
-    :custom
-    ;; Tab Lineへ表示するバッファを独自に絞り込む。
-    (tab-line-tabs-function #'my/tab-line-tabs)
-
-    ;; 右端・左端へ到達したら、反対側へ戻って循環する。
-    (tab-line-switch-cycling t)
-
-    ;; 各タブの閉じるボタンを表示しない。
-    (tab-line-close-button-show nil)
-
-    :config
-    ;; すべてのウィンドウでTab Lineを有効にする。
-    (global-tab-line-mode 1)
-
-    ;; Cmd+Option+←：左隣のTab Lineへ移動する。
-    (keymap-global-set
-     "M-s-<left>"
-     #'tab-line-switch-to-prev-tab)
-
-    ;; Cmd+Option+→：右隣のTab Lineへ移動する。
-    (keymap-global-set
-     "M-s-<right>"
-     #'tab-line-switch-to-next-tab))
-#+end_src
-
-** バッファとウィンドウを閉じる操作
-
-#+begin_src emacs-lisp
-  (defun my/close-current-buffer ()
-    "複数Tab Barでは現在のTab Barから外し、
-  最後の1つのTab Barではバッファ自体を削除する。"
-    (interactive)
-    (if (> (length
-            (funcall tab-bar-tabs-function))
-           1)
-        (bufferlo-bury)
-      (kill-current-buffer)))
-
-  (keymap-global-set "s-w" #'my/close-current-buffer)
-
-  ;; 複数ウィンドウなら現在のウィンドウを閉じ、
-  ;; 1ウィンドウかつ複数Tab Barなら現在のTab Barを閉じる。
-  (keymap-global-set "s-W" #'my/close-window-or-tab)
-#+end_src
-
 * 編集
 
-選択、クリップボード、行や単語の変更、アンドゥ・リドゥを設定します。
+テキストを選択し、入力し、削除し、並べ替える操作を設定します。
 
-** Emacs本体の編集操作
+** Emacs本体
+
+Emacs標準の入力・編集機能と、そのキーバインドをまとめます。
+
+*** 入力と編集支援
+
+#+begin_src emacs-lisp
+(use-package emacs
+  :ensure nil
+
+  :custom
+  ;; インデント済みの位置でTABを押した場合は補完を実行する。
+  (tab-always-indent 'complete)
+
+  :config
+  ;; Shift＋Option＋左右で、単語単位に選択範囲を伸縮する。
+  (define-key key-translation-map
+              (kbd "M-S-<left>")
+              (kbd "M-S-b"))
+
+  (define-key key-translation-map
+              (kbd "M-S-<right>")
+              (kbd "M-S-f"))
+
+  ;; Repeat対応コマンドを、短いキーで連続実行できるようにする。
+  (repeat-mode 1)
+
+  ;; 選択範囲がある状態で入力すると、選択範囲を置換する。
+  (delete-selection-mode 1)
+
+  ;; 括弧を自動的に補完する。
+  (electric-pair-mode 1))
+#+end_src
 
 *** 選択とクリップボード
 
@@ -1051,9 +935,241 @@ VS Codeと同様に、Option＋上下キーで
      ("s-X" . undo-fu-clear-all)))
 #+end_src
 
-* ナビゲーション
+* ウィンドウ・バッファ・ワークスペース
 
-カーソル移動、画面内ジャンプ、移動履歴を設定します。
+作業画面全体、ウィンドウ、各ウィンドウ内のバッファを管理します。
+
+** Windmove：バッファの表示先指定
+
+次に実行するコマンドが表示するバッファの行き先を予約します。
+
+#+begin_src emacs-lisp
+  (use-package windmove
+    :ensure nil
+
+    :bind
+    (("C-x <left>"  . windmove-display-left)
+     ("C-x <right>" . windmove-display-right)
+     ("C-x <up>"    . windmove-display-up)
+     ("C-x <down>"  . windmove-display-down)))
+#+end_src
+
+** Bufferlo：Tab Barごとのバッファ管理
+
+各Tab Barが独立したバッファ一覧を持つようにします。
+
+#+begin_src emacs-lisp
+  (use-package bufferlo
+    :ensure t
+    :demand t
+
+    :init
+    ;; next-bufferとprevious-bufferも現在のTab Bar内に限定する。
+    ;; bufferlo-modeを有効にする前に設定する必要がある。
+    (setq bufferlo-prefer-local-buffers 'tabs)
+
+    :bind
+    ;; 現在のTab Barに属するバッファから選択する。
+    ;; Prefix引数を付けると、Emacs全体のバッファから選択できる。
+    (("C-x b" . bufferlo-switch-to-buffer))
+
+    :config
+    ;; フレーム・Tab Barごとのローカルバッファ管理を有効にする。
+    (bufferlo-mode 1))
+#+end_src
+
+** Tab Bar：作業画面全体の切り替え
+
+画面分割を含む作業画面全体を、タブとして切り替えます。
+新しいTab Barは、Bufferloが作成するタブ専用Scratchバッファから始めます。
+
+#+begin_src emacs-lisp
+  (defun my/close-window-or-tab ()
+    "複数ウィンドウなら現在のウィンドウを閉じる。
+    1ウィンドウかつ複数Tab Barなら現在のTab Barを閉じる。
+    最後のウィンドウかつ最後のTab Barでは何もしない。"
+    (interactive)
+    (cond
+     ;; ミニバッファを除く通常ウィンドウが複数ある場合。
+     ((not (one-window-p t))
+      (delete-window))
+
+     ;; 通常ウィンドウが1つで、Tab Barが複数ある場合。
+     ((> (length
+          (funcall tab-bar-tabs-function))
+         1)
+      (tab-close))
+
+     ;; 最後のウィンドウかつ最後のTab Bar。
+     (t
+      (message "最後のウィンドウとTab Barは閉じません"))))
+
+  (use-package tab-bar
+    :ensure nil
+    :after bufferlo
+
+    :custom
+    ;; 新しいTab Barは、ほかのTab Barと共有しないScratchから始める。
+    (tab-bar-new-tab-choice
+     #'bufferlo-create-local-scratch-buffer)
+
+    ;; 新しいタブを作る「＋」ボタンを表示しない。
+    (tab-bar-new-button-show nil)
+
+    ;; 各タブの「×」ボタンを表示しない。
+    (tab-bar-close-button-show nil)
+
+    :config
+    ;; Emacs標準のTab Barを有効にする。
+    (tab-bar-mode 1)
+
+    ;; Ctrl+PageDown：右隣のTab Barへ移動する。
+    ;; 右端では左端へ戻り、循環する。
+    (keymap-global-set "C-<next>" #'tab-next)
+
+    ;; Ctrl+PageUp：左隣のTab Barへ移動する。
+    ;; 左端では右端へ戻り、循環する。
+    (keymap-global-set "C-<prior>" #'tab-previous))
+#+end_src
+
+** Tab Line：ウィンドウ内のバッファ切り替え
+
+各ウィンドウで表示したバッファを、タブとして切り替えます。
+
+| キー           | 操作                 |
+|----------------+----------------------|
+| ~Cmd+Option+←~ | 左隣のTab Lineへ移動 |
+| ~Cmd+Option+→~ | 右隣のTab Lineへ移動 |
+
+どちらも端まで移動すると、反対側へ戻って循環します。
+
+Tab Lineのバッファ名は並び順を維持し、
+新しく表示したバッファだけを右端へ追加します。
+#+begin_src emacs-lisp
+  (use-package tab-line
+    :ensure nil
+    :after bufferlo
+
+    :init
+    (require 'seq)
+
+    ;; Tab Lineに表示しないバッファ名。
+    (defconst my/tab-line-excluded-buffer-names
+      '("*scratch*")
+      "Tab Lineに表示しないバッファ名の一覧。")
+
+    (defun my/tab-line-buffer-visible-p (buffer)
+      "BUFFERをTab Lineに表示するとき、非nilを返す。"
+      (and
+       ;; 削除済みのバッファは表示しない。
+       (buffer-live-p buffer)
+
+       ;; ミニバッファはTab Lineへ表示しない。
+       (not (minibufferp buffer))
+
+       ;; 通常のScratchと、Bufferloが作るタブ専用Scratchを表示しない。
+       (not
+        (string-prefix-p
+         "*scratch*"
+         (buffer-name buffer)))
+
+       ;; 表示しないバッファはここに定義する。
+       (not
+        (with-current-buffer buffer
+          (derived-mode-p
+           'dired-mode
+           'magit-mode
+           'vterm-mode)))))
+
+    (defun my/tab-line-tabs ()
+      "不要なバッファを除外し、固定順でTab Lineへ表示する。"
+      (let* (;; このウィンドウで保存している、前回までの並び順。
+             (old-buffers
+              (seq-filter
+               #'my/tab-line-buffer-visible-p
+               (window-parameter nil 'tab-line-buffers)))
+
+             ;; 現在、このウィンドウに関連付いているバッファ。
+             (current-buffers
+              (seq-filter
+               #'my/tab-line-buffer-visible-p
+               (tab-line-tabs-window-buffers)))
+
+             ;; 以前からあるバッファは、保存済みの順番を維持する。
+             (kept-buffers
+              (seq-filter
+               (lambda (buffer)
+                 (memq buffer current-buffers))
+               old-buffers))
+
+             ;; 新しく表示されたバッファは、右端へ追加する。
+             (added-buffers
+              (seq-remove
+               (lambda (buffer)
+                 (memq buffer kept-buffers))
+               current-buffers))
+
+             (buffers
+              (append kept-buffers added-buffers)))
+
+        ;; ウィンドウごとのTab Lineの並び順として保存する。
+        (set-window-parameter nil 'tab-line-buffers buffers)
+
+        buffers))
+
+    ;; Tab Barを切り替えても、ウィンドウごとの並び順を保持する。
+    (add-to-list
+     'window-persistent-parameters
+     '(tab-line-buffers . t))
+
+    :custom
+    ;; Tab Lineへ表示するバッファを独自に絞り込む。
+    (tab-line-tabs-function #'my/tab-line-tabs)
+
+    ;; 右端・左端へ到達したら、反対側へ戻って循環する。
+    (tab-line-switch-cycling t)
+
+    ;; 各タブの閉じるボタンを表示しない。
+    (tab-line-close-button-show nil)
+
+    :config
+    ;; すべてのウィンドウでTab Lineを有効にする。
+    (global-tab-line-mode 1)
+
+    ;; Cmd+Option+←：左隣のTab Lineへ移動する。
+    (keymap-global-set
+     "M-s-<left>"
+     #'tab-line-switch-to-prev-tab)
+
+    ;; Cmd+Option+→：右隣のTab Lineへ移動する。
+    (keymap-global-set
+     "M-s-<right>"
+     #'tab-line-switch-to-next-tab))
+#+end_src
+
+** バッファとウィンドウの操作
+
+#+begin_src emacs-lisp
+  (defun my/close-current-buffer ()
+    "複数Tab Barでは現在のTab Barから外し、
+  最後の1つのTab Barではバッファ自体を削除する。"
+    (interactive)
+    (if (> (length
+            (funcall tab-bar-tabs-function))
+           1)
+        (bufferlo-bury)
+      (kill-current-buffer)))
+
+  (keymap-global-set "s-w" #'my/close-current-buffer)
+
+  ;; 複数ウィンドウなら現在のウィンドウを閉じ、
+  ;; 1ウィンドウかつ複数Tab Barなら現在のTab Barを閉じる。
+  (keymap-global-set "s-W" #'my/close-window-or-tab)
+#+end_src
+
+* ナビゲーション・検索
+
+カーソル移動、画面内ジャンプ、移動履歴、検索と候補選択を設定します。
 
 ** カーソル移動
 
@@ -1430,9 +1546,33 @@ SOURCE-MARKERは移動前の正確なカーソル位置を指す。"
               #'my/navigation-history--after-command))
 #+end_src
 
-* 検索と補完
+** Consult：検索と候補選択
 
-ミニバッファと編集中のバッファで利用する検索・補完機能をまとめます。
+ミニバッファを利用した検索・移動機能を強化します。
+
+#+begin_src emacs-lisp
+  (use-package consult
+    :ensure t
+    :after bufferlo
+
+    :custom
+    ;; 現在のTab Barに属するバッファを既定の候補にする。
+    (consult-buffer-list-function
+     #'bufferlo-buffer-list)
+
+    :bind
+    (("s-r" . consult-buffer)
+
+     ;; ブックマークをミニバッファで選択する。
+    ("s-m" . consult-bookmark)
+
+     ("s-f" . consult-line)
+     ("M-g f" . consult-flymake)))
+#+end_src
+
+* 補完
+
+ミニバッファと編集中のバッファで、入力候補の表示と絞り込みを設定します。
 
 ** ミニバッファ補完
 
@@ -1504,32 +1644,6 @@ Verticoなどのミニバッファ補完候補に、
    '((file (styles partial-completion)))))
 #+end_src
 
-** 検索
-
-*** Consult：検索と候補選択
-
-ミニバッファを利用した検索・移動機能を強化します。
-
-#+begin_src emacs-lisp
-  (use-package consult
-    :ensure t
-    :after bufferlo
-
-    :custom
-    ;; 現在のTab Barに属するバッファを既定の候補にする。
-    (consult-buffer-list-function
-     #'bufferlo-buffer-list)
-
-    :bind
-    (("s-r" . consult-buffer)
-
-     ;; ブックマークをミニバッファで選択する。
-    ("s-m" . consult-bookmark)
-
-     ("s-f" . consult-line)
-     ("M-g f" . consult-flymake)))
-#+end_src
-
 ** バッファ内補完
 
 *** Corfu：バッファ内補完
@@ -1567,18 +1681,28 @@ LSP Modeなどが提供する補完候補も同じ画面で扱います。
     (corfu-popupinfo-mode 1))
 #+end_src
 
-* ファイルとプロジェクト
+* ファイル・プロジェクト
 
-ファイルとディレクトリの操作、プロジェクトの認識、リモートファイルを設定します。
+ファイルの基本操作、ディレクトリ、プロジェクト、リモートファイルを設定します。
 
-** ファイルの保存
+
+** Emacs本体
+
+*** ファイル操作
+
+- ~Cmd+o~: ファイルを開く
+- ~Cmd+s~: 現在のバッファを保存する
 
 #+begin_src emacs-lisp
-  ;; macOS風の保存。
-  (keymap-global-set "s-s" #'save-buffer)
+(use-package emacs
+  :ensure nil
 
-  ;; wordwrapのトグル。
-  (keymap-global-set "C-c x" #'visual-line-mode)
+  :bind
+  (;; macOS風にファイルを開く。
+   ("s-o" . find-file)
+
+   ;; macOS風にファイルを保存する。
+   ("s-s" . save-buffer)))
 #+end_src
 
 ** Dired
@@ -1982,13 +2106,11 @@ TRAMP接続先の通常PATHに加えて、GHCupとユーザー単位の
    "~/.local/bin"))
 #+end_src
 
-* 文書とデータ
+* Org Mode・情報管理
 
-文書や構造化データの編集・管理機能をまとめます。
+Org Modeによる文書編集、情報整理、Capture、Agenda、作業管理を設定します。
 
-** Org mode
-
-*** 管理対象ファイル
+** 管理対象ファイル
 
 個人の気づきや作業状態を管理するOrgファイルの場所を定義します。
 
@@ -2008,7 +2130,7 @@ TRAMP接続先の通常PATHに加えて、GHCupとユーザー単位の
   "状態を持つ作業項目を保存するOrgファイル。")
 #+end_src
 
-*** Org mode本体
+** Org Mode本体
 
 Orgファイルの初期表示、TODO状態、Agenda対象ファイルを設定します。
 #+begin_src emacs-lisp
@@ -2044,7 +2166,7 @@ Orgファイルの初期表示、TODO状態、Agenda対象ファイルを設定�
                 my/task-cockpit-file)))
 #+end_src
 
-*** Org Capture：作業項目の登録
+** Org Capture：作業項目の登録
 
 未整理の気づきは ~inbox.org~ へ追加します。
 作業状態として管理する項目は ~cockpit.org~ へ追加します。
@@ -2101,7 +2223,7 @@ Orgファイルの初期表示、TODO状態、Agenda対象ファイルを設定�
            "* WAIT %?\n- 待っているもの: \n- 解除条件: \n- 次に確認する時点: \n- 解除後の一手: \n%a"))))
 #+end_src
 
-*** InboxからCockpitへの移動
+** InboxからCockpitへの移動
 
 ~inbox.org~ の項目上で ~C-c w~ を押すと、
 現在項目を ~cockpit.org~ の =Work Items= へ移動します。
@@ -2171,7 +2293,7 @@ Orgファイルの初期表示、TODO状態、Agenda対象ファイルを設定�
    #'my/move-inbox-item-to-work-items))
 #+end_src
 
-*** Cockpit Agenda：作業状態の一覧
+** Cockpit Agenda：作業状態の一覧
 
 ~C-c a c~ で、Cockpitの作業状態を一覧表示します。
 表示上の分類はTODO状態から自動生成します。
@@ -2420,7 +2542,7 @@ Cockpit内の移動ではTODO状態を変更し、
                     '(,my/task-inbox-file)))))))))
 #+end_src
 
-*** Org Pomodoro：集中時間の管理
+** Org Pomodoro：集中時間の管理
 
 Orgの作業項目に対してポモドーロタイマーを開始します。
 
@@ -2447,7 +2569,7 @@ Orgの作業項目に対してポモドーロタイマーを開始します。
   (org-pomodoro-long-break-frequency 4))
 #+end_src
 
-*** Org Modern：Orgの表示
+** Org Modern：Orgの表示
 
 Org modeの見た目を整えます。
 
@@ -2483,7 +2605,7 @@ org-modernによるテーブル装飾は無効にします。
      :family "SauceCodePro Nerd Font Mono"))
 #+end_src
 
-*** Orgコマンドのキーバインド
+** Orgコマンドのキーバインド
 
 #+begin_src emacs-lisp
 ;; Org Captureを開く。
@@ -2495,7 +2617,8 @@ org-modernによるテーブル装飾は無効にします。
 
 * ソフトウェア開発
 
-ターミナル、Git、言語横断の開発支援、プログラミング言語固有設定をまとめます。
+ターミナル、Git、言語横断の開発支援、Language Server、
+プログラミング言語固有設定をまとめます。
 
 ** ターミナル
 
@@ -2667,7 +2790,10 @@ DiredではGit状態をファイル単位で表示し、
                 #'diff-hl-magit-post-refresh)))
 #+end_src
 
+
 ** 共通開発支援
+
+プログラミング言語に依存しない編集支援を設定します。
 
 *** EditorConfig：プロジェクトごとの編集設定
 
@@ -2695,9 +2821,12 @@ DiredではGit状態をファイル単位で表示し、
   (prog-mode . rainbow-delimiters-mode))
 #+end_src
 
-*** LSP
 
-**** LSP Mode：Language Serverの共通基盤
+** Language Server
+
+Language Server Protocolの共通基盤と表示機能を設定します。
+
+*** LSP Mode：Language Serverの共通基盤
 
 言語に依存しないLSPクライアント基盤を設定します。
 各言語では、対応するLanguage Serverとメジャーモードを追加し、
@@ -2845,7 +2974,7 @@ Language Server Protocol経由で各言語へ提供します。
           ("M-g s" . lsp-workspace-symbol)))
 #+end_src
 
-**** LSP UI：Language Serverの表示機能
+*** LSP UI：Language Serverの表示機能
 
 ~lsp-ui~ が提供する高水準UIを有効にします。
 パッケージには ~lsp-ui-doc~、~lsp-ui-imenu~、~lsp-ui-peek~、
@@ -3376,7 +3505,7 @@ Emacs LispのバッファでFlymakeを有効にし、
     (emacs-lisp-mode . flymake-mode))
 #+end_src
 
-* 生成ファイルのフッター
+* 生成ファイルの終端
 
 生成される ~init.el~ の末尾部分です。
 #+begin_src emacs-lisp
