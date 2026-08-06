@@ -1950,6 +1950,7 @@ TRAMP接続先の通常PATHに加えて、GHCupとユーザー単位の
 #+begin_src emacs-lisp
 (use-package tramp
   :ensure nil
+  :defer t
 
   :config
   ;; 接続先ユーザー自身のPATHを取り込む。
