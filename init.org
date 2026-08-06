@@ -2135,12 +2135,33 @@ Language Server Protocol経由で各言語へ提供します。
     "r" #'lsp-ui-peek-find-references
     "i" #'lsp-ui-peek-find-implementation)
 
+  (defun my/lsp-ui-imenu-setup ()
+    "LSP UI Imenuバッファの表示を整える。"
+    ;; グローバル行番号表示の対象から外す。
+    (display-line-numbers-mode -1))
+
+  (defun my/lsp-ui-imenu-use-thin-bars
+      (original-function bars index depth for-title is-last)
+    "LSP UI Imenuの太い罫線文字を細い罫線文字へ置き換える。"
+    (pcase
+        (funcall original-function
+                 bars
+                 index
+                 depth
+                 for-title
+                 is-last)
+      (" ┃ " " │ ")
+      (" ┣ " " ├ ")
+      (" ┗ " " └ ")
+      (bar bar)))
+
   (use-package lsp-ui
     :ensure t
     :after lsp-mode
 
     :hook
-    (lsp-mode . lsp-ui-mode)
+    ((lsp-mode . lsp-ui-mode)
+     (lsp-ui-imenu-mode . my/lsp-ui-imenu-setup))
 
     :bind
     (:map lsp-ui-mode-map
@@ -2203,6 +2224,17 @@ Language Server Protocol経由で各言語へ提供します。
     (lsp-ui-sideline-enable nil)
 
     :config
+    ;; Imenuのツリーを、太い罫線から細い罫線へ変更する。
+    (with-eval-after-load 'lsp-ui-imenu
+      (unless
+          (advice-member-p
+           #'my/lsp-ui-imenu-use-thin-bars
+           #'lsp-ui-imenu--get-bar)
+        (advice-add
+         #'lsp-ui-imenu--get-bar
+         :around
+         #'my/lsp-ui-imenu-use-thin-bars)))
+
     ;; Child Frameの背景とヘッダーを、白枠のないフラットなカードにする。
     (set-face-attribute
      'lsp-ui-doc-background nil
