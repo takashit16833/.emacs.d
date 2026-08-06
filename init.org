@@ -2405,6 +2405,177 @@ VS CodeのRetro Hacker Blueを元にしたカラーテーマを使用します�
 * 編集操作とキーバインド
 
 独自の編集コマンドと、Emacs全体で使用するキー割り当てをまとめます。
+** Better Jumper：ナビゲーション履歴の戻る・進む
+
+ファイルバッファ内の明示的なジャンプと、同じウィンドウでの
+ファイルバッファ切り替えを、共通のナビゲーション履歴へ記録します。
+通常のカーソル移動や、Diredなどの非ファイルバッファは記録しません。
+
+- =<mouse-4>=: 1つ前の場所へ戻る
+- =<mouse-5>=: 戻る前の場所へ進む
+
+初期状態では、定義ジャンプ、Consultによるファイル内検索、
+行番号指定のジャンプを明示的なジャンプとして扱います。
+追跡対象と除外対象は、利用しながらコマンド単位で調整できます。
+
+#+begin_src emacs-lisp
+  (defcustom my/navigation-history-jump-commands
+    '(xref-find-definitions
+      consult-line
+      consult-goto-line
+      goto-line)
+    "同一ファイル内でもナビゲーション履歴へ記録するジャンプコマンド。"
+    :type '(repeat function)
+    :group 'convenience)
+
+  (defcustom my/navigation-history-ignored-buffer-switch-commands
+    nil
+    "ファイルバッファを切り替えても履歴へ記録しないコマンド。"
+    :type '(repeat function)
+    :group 'convenience)
+
+  (defvar my/navigation-history--before-location nil
+    "現在のコマンドを実行する直前のファイル位置。")
+
+  (defvar my/navigation-history--explicit-jump-p nil
+    "現在のコマンドを明示的なジャンプとして扱うとき非nil。")
+
+  (defvar my/navigation-history--skip-current-command-p nil
+    "現在のコマンドによる移動を履歴へ記録しないとき非nil。")
+
+  (defun my/navigation-history--file-buffer-p (&optional buffer)
+    "BUFFERが通常のファイルを訪問しているとき非nilを返す。"
+    (with-current-buffer (or buffer (current-buffer))
+      (and buffer-file-name
+           (not (minibufferp)))))
+
+  (defun my/navigation-history--capture-location ()
+    "現在のファイル位置をナビゲーション履歴用に保存する。"
+    (when (and (my/navigation-history--file-buffer-p)
+               (bound-and-true-p better-jumper-local-mode))
+      (list :buffer (current-buffer)
+            :marker (copy-marker (point))
+            :window (selected-window))))
+
+  (defun my/navigation-history--release-location (location)
+    "LOCATIONが保持しているマーカーを解放する。"
+    (let ((marker (plist-get location :marker)))
+      (when (markerp marker)
+        (set-marker marker nil))))
+
+  (defun my/navigation-history--clear-command-state ()
+    "コマンド間で保持しているナビゲーション判定用の状態を破棄する。"
+    (my/navigation-history--release-location
+     my/navigation-history--before-location)
+    (setq my/navigation-history--before-location nil
+          my/navigation-history--explicit-jump-p nil
+          my/navigation-history--skip-current-command-p nil))
+
+  (defun my/navigation-history--history-command-p (command)
+    "COMMANDがナビゲーション履歴自体を移動するコマンドなら非nil。"
+    (memq command
+          '(better-jumper-jump-backward
+            better-jumper-jump-forward
+            better-jumper-jump-newest)))
+
+  (defun my/navigation-history--record-location (location)
+    "LOCATIONを現在のウィンドウのBetter Jumper履歴へ追加する。"
+    (let ((buffer (plist-get location :buffer))
+          (marker (plist-get location :marker)))
+      (when (and (buffer-live-p buffer)
+                 (markerp marker)
+                 (marker-position marker))
+        (with-current-buffer buffer
+          (when (bound-and-true-p better-jumper-local-mode)
+            (save-excursion
+              (goto-char marker)
+              (better-jumper-set-jump)))))))
+
+  (defun my/navigation-history--before-command ()
+    "コマンド実行前のファイル位置と移動種別を保存する。"
+    ;; ミニバッファ内の再帰的なコマンドでは、
+    ;; 呼び出し元で保存した位置を上書きしない。
+    (unless (minibufferp)
+      (my/navigation-history--clear-command-state)
+      (setq my/navigation-history--before-location
+            (my/navigation-history--capture-location)
+            my/navigation-history--explicit-jump-p
+            (memq this-command
+                  my/navigation-history-jump-commands)
+            my/navigation-history--skip-current-command-p
+            (my/navigation-history--history-command-p
+             this-command))))
+
+  (defun my/navigation-history--location-changed-p (location)
+    "LOCATIONから現在位置へ移動しているとき非nilを返す。"
+    (let ((buffer (plist-get location :buffer))
+          (marker (plist-get location :marker)))
+      (or (not (eq buffer (current-buffer)))
+          (and (eq buffer (current-buffer))
+               (markerp marker)
+               (marker-position marker)
+               (/= (marker-position marker)
+                   (point))))))
+
+  (defun my/navigation-history--after-command ()
+    "必要なナビゲーションだけ、実行前の位置を履歴へ追加する。"
+    ;; ミニバッファのコマンド終了時は状態を維持し、
+    ;; 元のコマンドが完了した時点で最終的な移動先を判定する。
+    (unless (minibufferp)
+      (let* ((location my/navigation-history--before-location)
+             (source-buffer
+              (and location
+                   (plist-get location :buffer)))
+             (source-window
+              (and location
+                   (plist-get location :window)))
+             (buffer-switched-p
+              (and source-buffer
+                   (not (eq source-buffer
+                            (current-buffer)))))
+             (ignored-buffer-switch-p
+              (memq this-command
+                    my/navigation-history-ignored-buffer-switch-commands)))
+        (unwind-protect
+            (when (and location
+                       (not my/navigation-history--skip-current-command-p)
+                       (eq source-window (selected-window))
+                       (my/navigation-history--file-buffer-p)
+                       (bound-and-true-p better-jumper-local-mode)
+                       (my/navigation-history--location-changed-p
+                        location)
+                       (or my/navigation-history--explicit-jump-p
+                           (and buffer-switched-p
+                                (not ignored-buffer-switch-p))))
+              (my/navigation-history--record-location location))
+          (my/navigation-history--clear-command-state)))))
+
+  (use-package better-jumper
+    :ensure t
+    :demand t
+
+    :custom
+    ;; 同じウィンドウ内で、ファイルをまたぐ履歴を管理する。
+    (better-jumper-context 'window)
+
+    ;; 戻ったあとに別の場所へ移動した場合は、古い進む履歴を破棄する。
+    (better-jumper-add-jump-behavior 'replace)
+
+    :bind
+    (("<mouse-4>" . better-jumper-jump-backward)
+     ("<mouse-5>" . better-jumper-jump-forward))
+
+    :config
+    (better-jumper-mode 1)
+
+    ;; すべてのコマンドを監視するが、履歴へ追加するのは
+    ;; 明示的なジャンプか、同じウィンドウでのファイル切り替えだけ。
+    (add-hook 'pre-command-hook
+              #'my/navigation-history--before-command)
+    (add-hook 'post-command-hook
+              #'my/navigation-history--after-command))
+#+end_src
+
 ** Avy：画面内の任意位置へジャンプ
 
 画面内に表示されている文字列を指定し、
