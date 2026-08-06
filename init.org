@@ -416,19 +416,27 @@ Emacs上のバッファも自動的に更新します。
 
   (defun my-dired-open-picker (directory &optional switches)
     "DIRECTORYを、一時的なDiredとして別ウィンドウに開く。"
-    (let ((origin-window (selected-window))
-          ;; Diredを開く前のウィンドウ構成を保存する。
-          (window-config (current-window-configuration)))
+    (let* ((origin-window (selected-window))
+           (origin-marker
+            (with-current-buffer (window-buffer origin-window)
+              (copy-marker (window-point origin-window))))
+           ;; Diredを開く前のウィンドウ構成を保存する。
+           (window-config (current-window-configuration)))
 
       ;; ウィンドウを分割、または既存の別ウィンドウを使ってDiredを開く。
       (dired-other-window directory switches)
 
       ;; Diredを表示しているウィンドウに、
-      ;; 戻り先と元のウィンドウ構成を記録する。
+      ;; 戻り先、正確なカーソル位置、元のウィンドウ構成を記録する。
       (set-window-parameter
        (selected-window)
        'my-dired-origin-window
        origin-window)
+
+      (set-window-parameter
+       (selected-window)
+       'my-dired-origin-marker
+       origin-marker)
 
       (set-window-parameter
        (selected-window)
@@ -449,27 +457,49 @@ Emacs上のバッファも自動的に更新します。
 
   (defun my-dired--clear-picker-state (window)
     "WINDOWに保存した一時Dired用の情報を削除する。"
+    (let ((origin-marker
+           (window-parameter window
+                             'my-dired-origin-marker)))
+      (when (markerp origin-marker)
+        (set-marker origin-marker nil)))
+
     (set-window-parameter window 'my-dired-origin-window nil)
+    (set-window-parameter window 'my-dired-origin-marker nil)
     (set-window-parameter window 'my-dired-window-config nil))
 
   (defun my-dired--display-file-after-restore
       (file-buffer new-window-p)
-    "FILE-BUFFERを復元後の画面に表示する。
+    "復元後の画面へFILE-BUFFERを表示し、表示先ウィンドウを返す。
 NEW-WINDOW-Pが非nilなら、新しいウィンドウを作成して表示する。"
     (if (not new-window-p)
-        (switch-to-buffer file-buffer)
+        (progn
+          (switch-to-buffer file-buffer)
+          (selected-window))
 
       (let ((new-window
              (split-window-sensibly (selected-window))))
         (if (window-live-p new-window)
             (progn
               (set-window-buffer new-window file-buffer)
-              (select-window new-window))
+
+              ;; 分割時に継承した作業バッファを、新しいウィンドウの
+              ;; Tab Lineと標準バッファ履歴へ持ち込まない。
+              (set-window-prev-buffers new-window nil)
+              (set-window-next-buffers new-window nil)
+              (set-window-parameter
+               new-window
+               'tab-line-buffers
+               (list file-buffer))
+
+              (select-window new-window)
+              (force-mode-line-update t)
+              new-window)
 
           ;; フレームが小さく分割できない場合も、ファイルは開けるようにする。
           (message
            "新しいウィンドウを作成できないため、現在のウィンドウで開きます")
-          (switch-to-buffer file-buffer)))))
+          (switch-to-buffer file-buffer)
+          (selected-window)))))
 
   (defun my-dired--find-file-and-restore (new-window-p)
     "一時Diredで選択したファイルを開き、元の画面へ戻す。
@@ -478,6 +508,9 @@ NEW-WINDOW-Pが非nilなら、新しいウィンドウへファイルを表示�
            (origin-window
             (window-parameter dired-window
                               'my-dired-origin-window))
+           (origin-marker
+            (window-parameter dired-window
+                              'my-dired-origin-marker))
            (window-config
             (window-parameter dired-window
                               'my-dired-window-config))
@@ -496,26 +529,52 @@ NEW-WINDOW-Pが非nilなら、新しいウィンドウへファイルを表示�
           ;; ファイルは、まず表示せずにバッファへ読み込む。
           ;; 読み込みに失敗した場合はDiredを閉じない。
           (let ((file-buffer  (find-file-noselect file))
-                (dired-buffer (current-buffer)))
+                (dired-buffer (current-buffer))
+                (origin-marker-copy
+                 (and (markerp origin-marker)
+                      (marker-position origin-marker)
+                      (copy-marker origin-marker)))
+                destination-window)
 
-            ;; 一時Diredの状態を解除する。
-            (my-dired--clear-picker-state dired-window)
+            (unwind-protect
+                (progn
+                  ;; 一時Diredの状態を解除する。
+                  (my-dired--clear-picker-state dired-window)
 
-            ;; Diredを開く前のウィンドウ構成へ戻す。
-            (set-window-configuration window-config)
+                  ;; Diredを開く前のウィンドウ構成へ戻す。
+                  (set-window-configuration window-config)
 
-            ;; 元の作業ウィンドウを選択する。
-            (when (window-live-p origin-window)
-              (select-window origin-window))
+                  ;; 元の作業ウィンドウを選択する。
+                  (when (window-live-p origin-window)
+                    (select-window origin-window))
 
-            ;; 選択した方法でファイルを表示する。
-            (my-dired--display-file-after-restore
-             file-buffer
-             new-window-p)
+                  ;; 選択した方法でファイルを表示する。
+                  (setq destination-window
+                        (my-dired--display-file-after-restore
+                         file-buffer
+                         new-window-p))
 
-            ;; 一時的に使ったDiredバッファを削除する。
-            (when (buffer-live-p dired-buffer)
-              (kill-buffer dired-buffer)))))))
+                  ;; 新しいウィンドウへ開いた場合は、元の作業ウィンドウと
+                  ;; 正確なカーソル位置をナビゲーション履歴へ登録する。
+                  (when (and new-window-p
+                             (window-live-p origin-window)
+                             (window-live-p destination-window)
+                             (not (eq origin-window
+                                      destination-window))
+                             origin-marker-copy
+                             (fboundp
+                              'my/navigation-history-register-window-transition))
+                    (my/navigation-history-register-window-transition
+                     origin-window
+                     origin-marker-copy
+                     destination-window))
+
+                  ;; 一時的に使ったDiredバッファを削除する。
+                  (when (buffer-live-p dired-buffer)
+                    (kill-buffer dired-buffer)))
+
+              (when (markerp origin-marker-copy)
+                (set-marker origin-marker-copy nil))))))))
 
   (defun my-dired-find-file-and-restore ()
     "選択したファイルを元の作業ウィンドウで開き、Diredを終了する。"
@@ -2411,6 +2470,11 @@ VS CodeのRetro Hacker Blueを元にしたカラーテーマを使用します�
 ファイルバッファ切り替えを、共通のナビゲーション履歴へ記録します。
 通常のカーソル移動や、Diredなどの非ファイルバッファは記録しません。
 
+異なるウィンドウへ新しいファイルを開いた場合は、
+移動元のウィンドウとカーソル位置も履歴として保持します。
+戻る・進むでは同じファイルを現在のウィンドウへ開き直さず、
+元のウィンドウそのものを選択します。
+
 - =<mouse-4>=: 1つ前の場所へ戻る
 - =<mouse-5>=: 戻る前の場所へ進む
 
@@ -2434,6 +2498,14 @@ VS CodeのRetro Hacker Blueを元にしたカラーテーマを使用します�
     :type '(repeat function)
     :group 'convenience)
 
+  (defconst my/navigation-history--back-location-parameter
+    'my/navigation-history-back-location
+    "ウィンドウをまたいで戻る位置を保持するウィンドウパラメーター。")
+
+  (defconst my/navigation-history--forward-location-parameter
+    'my/navigation-history-forward-location
+    "ウィンドウをまたいで進む位置を保持するウィンドウパラメーター。")
+
   (defvar my/navigation-history--before-location nil
     "現在のコマンドを実行する直前のファイル位置。")
 
@@ -2449,19 +2521,64 @@ VS CodeのRetro Hacker Blueを元にしたカラーテーマを使用します�
       (and buffer-file-name
            (not (minibufferp)))))
 
+  (defun my/navigation-history--location-at-window
+      (window &optional marker)
+    "WINDOWのファイル位置を返す。
+MARKERが有効なら、WINDOWの現在位置ではなくMARKERを使用する。"
+    (when (window-live-p window)
+      (let* ((buffer
+              (if (and (markerp marker)
+                       (marker-buffer marker))
+                  (marker-buffer marker)
+                (window-buffer window)))
+             (position
+              (if (and (markerp marker)
+                       (marker-position marker))
+                  (marker-position marker)
+                (window-point window))))
+        (when (and position
+                   (buffer-live-p buffer)
+                   (my/navigation-history--file-buffer-p buffer))
+          (with-current-buffer buffer
+            (list :buffer buffer
+                  :marker (copy-marker position)
+                  :window window))))))
+
   (defun my/navigation-history--capture-location ()
     "現在のファイル位置をナビゲーション履歴用に保存する。"
     (when (and (my/navigation-history--file-buffer-p)
                (bound-and-true-p better-jumper-local-mode))
-      (list :buffer (current-buffer)
-            :marker (copy-marker (point))
-            :window (selected-window))))
+      (my/navigation-history--location-at-window
+       (selected-window))))
 
   (defun my/navigation-history--release-location (location)
     "LOCATIONが保持しているマーカーを解放する。"
     (let ((marker (plist-get location :marker)))
       (when (markerp marker)
         (set-marker marker nil))))
+
+  (defun my/navigation-history--set-window-location
+      (window parameter location)
+    "WINDOWのPARAMETERへLOCATIONを設定する。
+以前の位置があれば、そのマーカーを先に解放する。"
+    (when (window-live-p window)
+      (my/navigation-history--release-location
+       (window-parameter window parameter))
+      (set-window-parameter window parameter location)))
+
+  (defun my/navigation-history--take-window-location
+      (window parameter)
+    "WINDOWのPARAMETERから位置を取り出し、PARAMETERを空にする。"
+    (when (window-live-p window)
+      (prog1 (window-parameter window parameter)
+        (set-window-parameter window parameter nil))))
+
+  (defun my/navigation-history--clear-forward-location (&optional window)
+    "WINDOWに残っているウィンドウ間の進む履歴を破棄する。"
+    (my/navigation-history--set-window-location
+     (or window (selected-window))
+     my/navigation-history--forward-location-parameter
+     nil))
 
   (defun my/navigation-history--clear-command-state ()
     "コマンド間で保持しているナビゲーション判定用の状態を破棄する。"
@@ -2474,7 +2591,9 @@ VS CodeのRetro Hacker Blueを元にしたカラーテーマを使用します�
   (defun my/navigation-history--history-command-p (command)
     "COMMANDがナビゲーション履歴自体を移動するコマンドなら非nil。"
     (memq command
-          '(better-jumper-jump-backward
+          '(my/navigation-history-backward
+            my/navigation-history-forward
+            better-jumper-jump-backward
             better-jumper-jump-forward
             better-jumper-jump-newest)))
 
@@ -2485,6 +2604,9 @@ VS CodeのRetro Hacker Blueを元にしたカラーテーマを使用します�
       (when (and (buffer-live-p buffer)
                  (markerp marker)
                  (marker-position marker))
+        ;; 戻ったあとに新しいナビゲーションを行った場合は、
+        ;; ウィンドウをまたぐ進む履歴もブラウザと同様に破棄する。
+        (my/navigation-history--clear-forward-location)
         (with-current-buffer buffer
           (when (bound-and-true-p better-jumper-local-mode)
             (save-excursion
@@ -2550,6 +2672,113 @@ VS CodeのRetro Hacker Blueを元にしたカラーテーマを使用します�
               (my/navigation-history--record-location location))
           (my/navigation-history--clear-command-state)))))
 
+  (defun my/navigation-history--position-state ()
+    "現在のウィンドウ、バッファ、カーソル位置を返す。"
+    (list (selected-window)
+          (current-buffer)
+          (point)))
+
+  (defun my/navigation-history--position-state-changed-p (state)
+    "現在位置がSTATEから変わっているとき非nilを返す。"
+    (not (equal state
+                (my/navigation-history--position-state))))
+
+  (defun my/navigation-history--visit-location (location)
+    "LOCATIONが指すウィンドウとファイル位置へ移動する。"
+    (let ((window (plist-get location :window))
+          (buffer (plist-get location :buffer))
+          (marker (plist-get location :marker)))
+      (when (and (window-live-p window)
+                 (buffer-live-p buffer)
+                 (markerp marker)
+                 (marker-position marker))
+        (select-window window)
+        (unless (eq (window-buffer window) buffer)
+          (set-window-buffer window buffer))
+        (goto-char marker)
+        t)))
+
+  (defun my/navigation-history--follow-window-location
+      (source-parameter target-parameter)
+    "SOURCE-PARAMETERの位置へ移動し、戻り先をTARGET-PARAMETERへ保存する。"
+    (let* ((source-window (selected-window))
+           (target-location
+            (my/navigation-history--take-window-location
+             source-window
+             source-parameter))
+           (return-location
+            (my/navigation-history--location-at-window
+             source-window)))
+      (cond
+       ((and target-location
+             return-location
+             (my/navigation-history--visit-location
+              target-location))
+        ;; 移動後に選択されたウィンドウへ、逆方向の移動先を保存する。
+        (my/navigation-history--set-window-location
+         (selected-window)
+         target-parameter
+         return-location)
+        (my/navigation-history--release-location
+         target-location)
+        t)
+
+       (t
+        (my/navigation-history--release-location
+         target-location)
+        (my/navigation-history--release-location
+         return-location)
+        nil))))
+
+  (defun my/navigation-history--follow-back-location ()
+    "ウィンドウをまたぐ直前の位置へ戻る。"
+    (my/navigation-history--follow-window-location
+     my/navigation-history--back-location-parameter
+     my/navigation-history--forward-location-parameter))
+
+  (defun my/navigation-history--follow-forward-location ()
+    "ウィンドウをまたいで戻る前の位置へ進む。"
+    (my/navigation-history--follow-window-location
+     my/navigation-history--forward-location-parameter
+     my/navigation-history--back-location-parameter))
+
+  (defun my/navigation-history-backward ()
+    "同一ウィンドウの履歴を戻り、なければ移動元ウィンドウへ戻る。"
+    (interactive)
+    (let ((before (my/navigation-history--position-state)))
+      (better-jumper-jump-backward)
+      (unless (my/navigation-history--position-state-changed-p
+               before)
+        (my/navigation-history--follow-back-location))))
+
+  (defun my/navigation-history-forward ()
+    "移動先ウィンドウへ進み、なければ同一ウィンドウの履歴を進む。"
+    (interactive)
+    ;; ウィンドウをまたいで戻った直後は、まず元のウィンドウへ進む。
+    ;; その後はBetter Jumperの同一ウィンドウ内履歴を使用する。
+    (unless (my/navigation-history--follow-forward-location)
+      (better-jumper-jump-forward)))
+
+  (defun my/navigation-history-register-window-transition
+      (source-window source-marker destination-window)
+    "SOURCE-WINDOWからDESTINATION-WINDOWへの移動を履歴へ登録する。
+SOURCE-MARKERは移動前の正確なカーソル位置を指す。"
+    (let ((source-location
+           (my/navigation-history--location-at-window
+            source-window
+            source-marker)))
+      (when (and source-location
+                 (window-live-p destination-window)
+                 (not (eq source-window destination-window)))
+        ;; 新しいウィンドウには分割元のBetter Jumper履歴を持ち込まない。
+        (better-jumper-clear-jumps destination-window)
+        (my/navigation-history--set-window-location
+         destination-window
+         my/navigation-history--back-location-parameter
+         source-location)
+        (my/navigation-history--clear-forward-location
+         destination-window))))
+
   (use-package better-jumper
     :ensure t
     :demand t
@@ -2558,12 +2787,15 @@ VS CodeのRetro Hacker Blueを元にしたカラーテーマを使用します�
     ;; 同じウィンドウ内で、ファイルをまたぐ履歴を管理する。
     (better-jumper-context 'window)
 
+    ;; 新しく分割したウィンドウへ、分割元の履歴をコピーしない。
+    (better-jumper-new-window-behavior 'empty)
+
     ;; 戻ったあとに別の場所へ移動した場合は、古い進む履歴を破棄する。
     (better-jumper-add-jump-behavior 'replace)
 
     :bind
-    (("<mouse-4>" . better-jumper-jump-backward)
-     ("<mouse-5>" . better-jumper-jump-forward))
+    (("<mouse-4>" . my/navigation-history-backward)
+     ("<mouse-5>" . my/navigation-history-forward))
 
     :config
     (better-jumper-mode 1)
