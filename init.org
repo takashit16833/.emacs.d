@@ -595,9 +595,35 @@ ease-out-cubicのアニメーションを使用します。
      ("C-x <down>"  . windmove-display-down)))
 #+end_src
 
+** Bufferlo：Tab Barごとのバッファ管理
+
+各Tab Barが独立したバッファ一覧を持つようにします。
+
+#+begin_src emacs-lisp
+  (use-package bufferlo
+    :ensure t
+    :demand t
+
+    :init
+    ;; next-bufferとprevious-bufferも現在のTab Bar内に限定する。
+    ;; bufferlo-modeを有効にする前に設定する必要がある。
+    (setq bufferlo-prefer-local-buffers 'tabs)
+
+    :bind
+    ;; 現在のTab Barに属するバッファから選択する。
+    ;; Prefix引数を付けると、Emacs全体のバッファから選択できる。
+    (("C-x b" . bufferlo-switch-to-buffer))
+
+    :config
+    ;; フレーム・Tab Barごとのローカルバッファ管理を有効にする。
+    (bufferlo-mode 1))
+#+end_src
+
 ** Tab Bar：作業画面全体の切り替え
 
 画面分割を含む作業画面全体を、タブとして切り替えます。
+Dashboardを新しいTab Barの初期画面として使用し、
+Bufferloのローカルバッファ一覧を初期化します。
 
 #+begin_src emacs-lisp
   (defun my/tab-bar-reset-dashboard-tab (_tab)
@@ -643,6 +669,7 @@ ease-out-cubicのアニメーションを使用します。
 
   (use-package tab-bar
     :ensure nil
+    :after (dashboard bufferlo)
 
     :custom
     ;; 新しいTab BarはDashboardから始める。
@@ -670,30 +697,6 @@ ease-out-cubicのアニメーションを使用します。
     (add-hook
      'tab-bar-tab-post-open-functions
      #'my/tab-bar-reset-dashboard-tab))
-#+end_src
-
-** Bufferlo：Tab Barごとのバッファ管理
-
-各Tab Barが独立したバッファ一覧を持つようにします。
-
-#+begin_src emacs-lisp
-  (use-package bufferlo
-    :ensure t
-    :demand t
-
-    :init
-    ;; next-bufferとprevious-bufferも現在のTab Bar内に限定する。
-    ;; bufferlo-modeを有効にする前に設定する必要がある。
-    (setq bufferlo-prefer-local-buffers 'tabs)
-
-    :bind
-    ;; 現在のTab Barに属するバッファから選択する。
-    ;; Prefix引数を付けると、Emacs全体のバッファから選択できる。
-    (("C-x b" . bufferlo-switch-to-buffer))
-
-    :config
-    ;; フレーム・Tab Barごとのローカルバッファ管理を有効にする。
-    (bufferlo-mode 1))
 #+end_src
 
 ** Tab Line：ウィンドウ内のバッファ切り替え
@@ -1498,7 +1501,7 @@ Verticoなどのミニバッファ補完候補に、
 #+begin_src emacs-lisp
   (use-package nerd-icons-completion
     :ensure t
-    :after marginalia
+    :after (marginalia nerd-icons)
 
     :config
     ;; ミニバッファの補完候補へNerd Iconsを表示する。
@@ -1629,7 +1632,6 @@ LSP Modeなどが提供する補完候補も同じ画面で扱います。
      'append))
 
   (require 'dired)
-  (require 'project)
 
   (defun my-dired-open-picker (directory &optional switches)
     "DIRECTORYを、一時的なDiredとして別ウィンドウに開く。"
@@ -2639,12 +2641,25 @@ Emacs上でGitを操作します。
   ("C-x g" . magit-status))
 #+end_src
 
-*** Diff HL
+*** Diff HL：Git差分の表示
 
-**** Diredでのファイル状態表示
+Gitで追加・変更・削除された行を、ウィンドウ左端のフリンジへ表示します。
+DiredではGit状態をファイル単位で表示し、
+保存前の変更も少し待つと自動的に反映します。
+
+| 表示 | 意味         |
+|------+--------------|
+| 緑   | 追加された行 |
+| 黄   | 変更された行 |
+| 赤   | 削除された行 |
+
 #+begin_src emacs-lisp
   (use-package diff-hl
     :ensure t
+
+    :init
+    ;; Gitなどのバージョン管理下にあるファイルで自動的に有効化する。
+    (global-diff-hl-mode 1)
 
     :hook
     ;; 通常のファイルでは、変更された行をウィンドウ左端に表示する。
@@ -2660,40 +2675,19 @@ Emacs上でGitを操作します。
     (diff-hl-dired-extra-indicators nil)
 
     :config
+    ;; 保存を待たず、編集中の差分も自動的に更新する。
+    (diff-hl-flydiff-mode 1)
+
     ;; dired-subtreeで後から挿入されたファイルについても、
     ;; Git状態を再取得して表示する。
     (with-eval-after-load 'dired-subtree
       (add-hook 'dired-subtree-after-insert-hook
-                #'diff-hl-dired-update)))
-#+end_src
+                #'diff-hl-dired-update))
 
-**** 変更行の表示
-
-Gitで追加・変更・削除された行を、ウィンドウ左端のフリンジへ表示します。
-保存前の変更も少し待つと自動的に反映されます。
-
-| 表示 | 意味         |
-|------+--------------|
-| 緑   | 追加された行 |
-| 黄   | 変更された行 |
-| 赤   | 削除された行 |
-
-#+begin_src emacs-lisp
-(use-package diff-hl
-  :ensure t
-
-  :init
-  ;; Gitなどのバージョン管理下にあるファイルで自動的に有効化する。
-  (global-diff-hl-mode 1)
-
-  :config
-  ;; 保存を待たず、編集中の差分も自動的に更新する。
-  (diff-hl-flydiff-mode 1)
-
-  ;; Magitでステージ・コミットなどを行った後に表示を更新する。
-  (with-eval-after-load 'magit
-    (add-hook 'magit-post-refresh-hook
-              #'diff-hl-magit-post-refresh)))
+    ;; Magitでステージ・コミットなどを行った後に表示を更新する。
+    (with-eval-after-load 'magit
+      (add-hook 'magit-post-refresh-hook
+                #'diff-hl-magit-post-refresh)))
 #+end_src
 
 ** 共通開発支援
