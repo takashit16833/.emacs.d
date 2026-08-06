@@ -2793,7 +2793,7 @@ Language Server Protocol経由で各言語へ提供します。
 
   (use-package lsp-mode
     :ensure t
-    :demand t
+    :commands (lsp lsp-deferred)
 
     :init
     ;; lsp-mode標準のs-lは、既存の行選択キーと競合するため使用しない。
@@ -3388,13 +3388,16 @@ Haskellバッファでは保存時にFourmoluで整形し、
    nil
    t))
 
+;; lsp-haskellはlsp-modeの読み込み後に設定されるため、
+;; Haskellバッファを開く契機となるフックは先に登録しておく。
+(add-hook 'haskell-mode-hook
+          #'my/haskell-lsp-setup)
+(add-hook 'haskell-ts-mode-hook
+          #'my/haskell-lsp-setup)
+
 (use-package lsp-haskell
   :ensure t
   :after lsp-mode
-
-  :hook
-  ((haskell-mode . my/haskell-lsp-setup)
-   (haskell-ts-mode . my/haskell-lsp-setup))
 
   :custom
   ;; HLS wrapperをPATHから解決する。
