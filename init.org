@@ -1691,15 +1691,42 @@ LSP Modeなどが提供する補完候補も同じ画面で扱います。
 *** ファイル操作
 
 - ~Cmd+o~: ファイルを開く
+- ~Cmd+Shift+O~: 現在の作業ディレクトリをFinderで開く
 - ~Cmd+s~: 現在のバッファを保存する
 
 #+begin_src emacs-lisp
 (use-package emacs
   :ensure nil
 
+  :preface
+  (defun my/open-current-directory-in-finder ()
+    "現在のバッファの作業ディレクトリをFinderで開く。"
+    (interactive)
+    (unless (eq system-type 'darwin)
+      (user-error "このコマンドはmacOS専用です"))
+
+    (when (file-remote-p default-directory)
+      (user-error "リモートディレクトリはFinderで開けません"))
+
+    (let ((directory
+           (expand-file-name default-directory)))
+      (unless (file-directory-p directory)
+        (user-error
+         "ディレクトリが存在しません: %s"
+         directory))
+
+      (start-process
+       "open-current-directory-in-finder"
+       nil
+       "open"
+       directory)))
+
   :bind
   (;; macOS風にファイルを開く。
    ("s-o" . find-file)
+
+   ;; 現在の作業ディレクトリをFinderで開く。
+   ("s-O" . my/open-current-directory-in-finder)
 
    ;; macOS風にファイルを保存する。
    ("s-s" . save-buffer)))
