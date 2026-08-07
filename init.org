@@ -548,10 +548,16 @@ Tree-sitterのスコープ解析には依存せず、各メジャーモードと
 *** Pixel Scroll：滑らかなスクロール
 
 トラックパッドやマウスではピクセル単位のスクロールを使用します。
+トラックパッドの移動量には、Emacs側で感度倍率を適用します。
 ~PageUp~・~PageDown~では、素早く動き始めて徐々に減速する
 ~ease-out-cubic~のアニメーションを使用します。
 
 #+begin_src emacs-lisp
+  (defcustom my/pixel-scroll-precision-sensitivity 4.0 
+    "トラックパッドによるピクセルスクロール量の倍率。"
+    :type 'number
+    :group 'scrolling)
+
   (use-package pixel-scroll
     :ensure nil
 
@@ -563,7 +569,126 @@ Tree-sitterのスコープ解析には依存せず、各メジャーモードと
     (pixel-scroll-precision-interpolation-total-time 0.15)
 
     :config
+    ;; 以前の感度調整方式を読み込んだ状態で再評価しても、
+    ;; 古いAdviceが残らないようにする。
+    (advice-remove
+     'pixel-scroll-precision
+     #'my/pixel-scroll-precision-with-sensitivity)
+
+    (advice-remove
+     'pixel-scroll-precision-scroll-up
+     #'my/pixel-scroll-precision-scroll-up-with-sensitivity)
+
+    (advice-remove
+     'pixel-scroll-precision-scroll-down
+     #'my/pixel-scroll-precision-scroll-down-with-sensitivity)
+
+    (defun my/pixel-scroll-precision-scaled-delta
+        (raw-delta window)
+      "RAW-DELTAへ感度を掛け、小数部分をWINDOWへ繰り越す。"
+      (let* ((direction
+              (cond
+               ((< raw-delta 0) 'down)
+               ((> raw-delta 0) 'up)))
+             (previous-direction
+              (window-parameter
+               window
+               'my/pixel-scroll-precision-direction))
+             (remainder
+              (if (eq previous-direction direction)
+                  (or
+                   (window-parameter
+                    window
+                    'my/pixel-scroll-precision-remainder)
+                   0.0)
+                0.0))
+             (scaled-delta
+              (+ remainder
+                 (* my/pixel-scroll-precision-sensitivity
+                    raw-delta)))
+             (whole-delta
+              (truncate scaled-delta)))
+
+        ;; 小数部分を次のイベントへ繰り越し、微小な操作も失わない。
+        (set-window-parameter
+         window
+         'my/pixel-scroll-precision-direction
+         direction)
+        (set-window-parameter
+         window
+         'my/pixel-scroll-precision-remainder
+         (- scaled-delta whole-delta))
+
+        whole-delta))
+
+    (defun my/pixel-scroll-precision-event-delta (event)
+      "EVENTから縦方向の精密スクロール量を取得する。
+Emacs Mac Portと通常のEmacsの両方のイベント形式に対応する。"
+      (cond
+       ;; Emacs Mac Portでは、精密スクロール量がEVENTの4要素目に
+       ;; plistとして入り、`:scrolling-delta-y`で取得できる。
+       ((and (eq window-system 'mac)
+             (consp (nth 3 event)))
+        (let ((delta
+               (or (plist-get (nth 3 event) :scrolling-delta-y)
+                   (plist-get (nth 3 event) :delta-y))))
+          (and (numberp delta) delta)))
+
+       ;; 通常のEmacsでは、精密スクロール量がEVENTの5要素目の
+       ;; consセルのcdrに入る。
+       (t
+        (let ((pixel-delta (nth 4 event)))
+          (and (consp pixel-delta)
+               (numberp (cdr pixel-delta))
+               (cdr pixel-delta))))))
+
+    (defun my/pixel-scroll-precision (event)
+      "EVENTの移動量へ感度を適用し、ピクセル単位でスクロールする。"
+      (interactive "e")
+      (let ((window (mwheel-event-window event)))
+        (when (framep window)
+          (setq window (frame-selected-window window)))
+        (unless (window-live-p window)
+          (setq window (selected-window)))
+
+        (let ((raw-delta
+               (my/pixel-scroll-precision-event-delta event)))
+
+          ;; 精密スクロール量を持たないイベントは、標準処理へ戻す。
+          (if (not raw-delta)
+              (pixel-scroll-precision event)
+            (let ((delta
+                   (my/pixel-scroll-precision-scaled-delta
+                    raw-delta
+                    window)))
+              (unless (zerop delta)
+                (with-selected-window window
+                  (condition-case error-data
+                      (progn
+                        (if (< delta 0)
+                            (pixel-scroll-precision-scroll-down
+                             (- delta))
+                          (pixel-scroll-precision-scroll-up delta))
+
+                        ;; Momentumを有効にした場合も、補正後の移動量を使う。
+                        (pixel-scroll-accumulate-velocity delta))
+
+                    ((beginning-of-buffer end-of-buffer)
+                     (message "%s"
+                              (error-message-string
+                               error-data)))))))))))
+
     (pixel-scroll-precision-mode 1)
+
+    ;; 標準の入口を経由せず、感度調整済みコマンドへ直接割り当てる。
+    ;; `C-h k`で確認したときも、この関数名が表示される。
+    (keymap-set pixel-scroll-precision-mode-map
+                "<wheel-up>"
+                #'my/pixel-scroll-precision)
+
+    (keymap-set pixel-scroll-precision-mode-map
+                "<wheel-down>"
+                #'my/pixel-scroll-precision)
 
     (defun my/pixel-scroll-ease-out-cubic (progress)
       "PROGRESSにease-out-cubicを適用する。"
