@@ -2738,12 +2738,70 @@ Emacs内で高速なターミナルを利用します。
 *** Magit：Git操作
 
 Emacs上でGitを操作します。
+
+- ~C-x g~: 現在のリポジトリの =Magit Status= を開く
+- ~C-x G~: ~zoxide~ の履歴からGitリポジトリを選び、=Magit Status= を開く
+
+~C-x G~ では、~zoxide~ が記録したディレクトリをGitリポジトリのルートへ正規化し、
+重複を除いた候補から選択します。ファイルやDiredを経由しません。
+
 #+begin_src emacs-lisp
 (use-package magit
   :ensure t
   :commands magit-status
+
+  :preface
+  (defun my/zoxide-git-repositories ()
+    "zoxideが記録したディレクトリからGitリポジトリのルート一覧を返す。"
+    (unless (executable-find "zoxide")
+      (user-error "zoxideが見つかりません"))
+
+    (unless (executable-find "git")
+      (user-error "gitが見つかりません"))
+
+    (delete-dups
+     (delq
+      nil
+      (mapcar
+       (lambda (directory)
+         (condition-case nil
+             (car
+              (process-lines
+               "git"
+               "-C"
+               directory
+               "rev-parse"
+               "--show-toplevel"))
+           (error nil)))
+       (process-lines
+        "zoxide"
+        "query"
+        "--all"
+        "--list")))))
+
+  (defun my/magit-status-select-repository ()
+    "zoxideの履歴からGitリポジトリを選び、Magit Statusを開く。"
+    (interactive)
+    (let* ((repositories
+            (my/zoxide-git-repositories))
+           (_
+            (unless repositories
+              (user-error
+               "zoxideの履歴にGitリポジトリがありません")))
+           (repository
+            (completing-read
+             "Repository: "
+             (mapcar
+              #'abbreviate-file-name
+              repositories)
+             nil
+             t)))
+      (magit-status
+       (expand-file-name repository))))
+
   :bind
-  ("C-x g" . magit-status))
+  (("C-x g" . magit-status)
+   ("C-x G" . my/magit-status-select-repository)))
 #+end_src
 
 *** Diff HL：Git差分の表示
