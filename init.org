@@ -3875,6 +3875,10 @@ Emacs LispのバッファでFlymakeを有効にし、
   (use-package flymake
     :ensure nil
 
+    :custom
+    ;; 診断内容を該当行の末尾へ表示する。
+    (flymake-show-diagnostics-at-end-of-line t)
+
     :hook
     (emacs-lisp-mode . flymake-mode))
 #+end_src
