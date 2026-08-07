@@ -3253,29 +3253,46 @@ DiredではGit状態をファイル単位で表示し、
 #+end_src
 
 
+*** Posframe：Child Frame表示基盤
+
+親フレームのレイアウトを変更せず、
+カーソル位置付近へChild Frameを重ねて表示する基盤として ~posframe~ を使用します。
+Flymakeの診断詳細を、Neovimのfloating windowのように
+ソースコード上へ浮かせて表示するために利用します。
+
+#+begin_src emacs-lisp
+  (use-package posframe
+    :ensure t
+    :demand t)
+#+end_src
+
+
 *** Flymake：診断表示
 
 Flymakeの診断表示を共通化します。
 通常編集ではカーソルが診断範囲上にあるときだけ、
 ~consult-flymake~ では選択中の候補だけを、
-同じ枠付きポップアップでソース行の直下へ表示します。
+同じChild Frameへ一時表示します。
 
+Child Frameはソースコード上へ重なって表示されるため、
+本文の行間やウィンドウレイアウトは変更しません。
 診断色はErrorをサイバーピンク、Warningを黄色、
-それ以外を青で表示します。
+それ以外を青とし、文字色と外枠を同じ色にします。
 
 #+begin_src emacs-lisp
   (use-package flymake
     :ensure nil
+    :after posframe
 
     :custom
     ;; 標準の行末診断は使用せず、
-    ;; 現在注目している診断だけを共通ポップアップで表示する。
+    ;; 現在注目している診断だけをChild Frameで表示する。
     (flymake-show-diagnostics-at-end-of-line nil)
 
     :hook
     ;; Emacs LispではFlymake自体を有効にする。
     ;; LSP ModeなどがFlymakeを有効にしたバッファにも、
-    ;; 同じ診断ポップアップを追加する。
+    ;; 同じ診断Child Frameを追加する。
     ((emacs-lisp-mode . flymake-mode)
      (flymake-mode . my/flymake--configure-detail-display))
 
@@ -3293,8 +3310,17 @@ Flymakeの診断表示を共通化します。
       '((t :foreground "DodgerBlue"))
       "Flymakeのerror・warning以外の診断を表示するface。")
 
-    ;; 通常編集とconsult-flymakeで共有する診断ポップアップ。
-    (defvar-local my/flymake--detail-overlay nil)
+    (defface my/flymake-detail-background-face
+      '((t :background "#0B1324"))
+      "Flymake診断Child Frameの背景face。")
+
+    ;; 通常編集とconsult-flymakeで共有するChild Frame。
+    (defconst my/flymake--detail-posframe-buffer
+      " *flymake-detail-posframe*"
+      "Flymake診断Child Frameに使用するバッファ名。")
+
+    (defvar my/flymake--detail-source-buffer nil
+      "現在Flymake診断Child Frameを表示しているソースバッファ。")
 
     ;; Flymakeの診断種別に対応する表示faceを返す。
     (defun my/flymake--detail-face (type)
@@ -3302,6 +3328,13 @@ Flymakeの診断表示を共通化します。
         (:error 'my/flymake-detail-error-face)
         (:warning 'my/flymake-detail-warning-face)
         (_ 'my/flymake-detail-note-face)))
+
+    ;; 診断種別に対応する表示色を返す。
+    (defun my/flymake--detail-color (type)
+      (face-foreground
+       (my/flymake--detail-face type)
+       nil
+       t))
 
     ;; 1行を指定した表示幅以内へ分割する。
     (defun my/flymake--wrap-line (line width)
@@ -3316,15 +3349,14 @@ Flymakeの診断表示を共通化します。
         (push rest lines)
         (nreverse lines)))
 
-    ;; 診断全文を、本文と同じ色の罫線で囲った文字列へ整形する。
-    (defun my/flymake--boxed-detail
-        (text type width)
+    ;; 診断全文をChild Frame用の文字列へ整形する。
+    (defun my/flymake--format-detail (text width)
       (let* ((clean-text
               (replace-regexp-in-string
                "[\n\r]+\\'"
                ""
                text))
-             (content-width (max 20 (- width 4)))
+             (content-width (max 10 (- width 2)))
              (lines
               (or
                (apply
@@ -3335,86 +3367,111 @@ Flymakeの診断表示を共通化します。
                     line
                     content-width))
                  (split-string clean-text "\n" nil)))
-               '("")))
-             (box-width
-              (max
-               1
-               (apply #'max (mapcar #'string-width lines))))
-             (face (my/flymake--detail-face type))
-             (horizontal (make-string (+ box-width 2) ?─))
-             (top (concat "┌" horizontal "┐\n"))
-             (body
-              (mapconcat
-               (lambda (line)
-                 (concat
-                  "│ "
-                  line
-                  (make-string
-                   (- box-width (string-width line))
-                   ?\s)
-                  " │"))
-               lines
-               "\n"))
-             (bottom (concat "\n└" horizontal "┘\n")))
-        (propertize
-         (concat top body bottom)
-         'face face)))
+               '(""))))
+        (mapconcat
+         (lambda (line)
+           (concat " " line " "))
+         lines
+         "\n")))
 
-    ;; BUFFERの既存の診断ポップアップを削除する。
-    (defun my/flymake--clear-detail (&optional buffer)
-      (let ((target-buffer (or buffer (current-buffer))))
-        (when (buffer-live-p target-buffer)
-          (with-current-buffer target-buffer
-            (when (overlayp my/flymake--detail-overlay)
-              (delete-overlay my/flymake--detail-overlay))
-            (setq my/flymake--detail-overlay nil)))))
+    ;; 以前のoverlay版を読み込んだEmacsでinit.elを再評価した場合に、
+    ;; 残っている行間表示を削除する。
+    (defun my/flymake--clear-legacy-overlay ()
+      (when
+          (and
+           (boundp 'my/flymake--detail-overlay)
+           (overlayp
+            (symbol-value 'my/flymake--detail-overlay)))
+        (delete-overlay
+         (symbol-value 'my/flymake--detail-overlay)))
+      (when
+          (local-variable-p 'my/flymake--detail-overlay)
+        (kill-local-variable 'my/flymake--detail-overlay)))
 
-    ;; BUFFERのPOSITIONがある行の直下へ診断ポップアップを表示する。
-    ;; バッファ本文は変更しない。
+    ;; 現在の診断Child Frameを隠す。
+    ;; BUFFER引数は旧overlay版と同じ呼び出し形を維持するため受け取る。
+    (defun my/flymake--clear-detail (&optional _buffer)
+      (when
+          (and
+           (featurep 'posframe)
+           (get-buffer my/flymake--detail-posframe-buffer))
+        (posframe-hide my/flymake--detail-posframe-buffer))
+      (setq my/flymake--detail-source-buffer nil))
+
+    ;; 表示元バッファが画面から消えた場合はChild Frameも隠す。
+    ;; Consultのミニバッファへフォーカスしていても、
+    ;; preview先が表示されている間はChild Frameを維持する。
+    (defun my/flymake--hide-detail-if-source-not-visible ()
+      (when
+          (and
+           my/flymake--detail-source-buffer
+           (or
+            (not
+             (buffer-live-p
+              my/flymake--detail-source-buffer))
+            (not
+             (get-buffer-window
+              my/flymake--detail-source-buffer
+              t))))
+        (my/flymake--clear-detail)))
+
+    ;; BUFFERのPOSITION付近へ診断Child Frameを表示する。
+    ;; Child Frameなので、バッファ本文や行間は変更しない。
     (defun my/flymake--show-detail
         (buffer position text type)
-      (when (buffer-live-p buffer)
-        (with-current-buffer buffer
-          (my/flymake--clear-detail buffer)
-          (save-excursion
-            (goto-char
-             (max (point-min)
+      (when
+          (and
+           (buffer-live-p buffer)
+           (posframe-workable-p))
+        (when-let* ((window (get-buffer-window buffer t))
+                    ((window-live-p window)))
+          (with-selected-window window
+            (with-current-buffer buffer
+              (save-excursion
+                (goto-char
+                 (max
+                  (point-min)
                   (min position (point-max))))
-            (let* ((line-end (line-end-position))
-                   (has-next-line (< line-end (point-max)))
-                   (overlay-position
-                    (if has-next-line
-                        (1+ line-end)
-                      line-end))
-                   (window (get-buffer-window buffer t))
-                   (width
-                    (if (window-live-p window)
-                        (window-body-width window)
-                      80))
-                   (overlay
-                    (make-overlay
-                     overlay-position
-                     overlay-position
-                     buffer
-                     nil
-                     t))
-                   (detail
-                    (my/flymake--boxed-detail
-                     text
-                     type
-                     width)))
-              (overlay-put
-               overlay
-               (if has-next-line
-                   'before-string
-                 'after-string)
-               (if has-next-line
-                   detail
-                 (concat "\n" detail)))
-              (setq my/flymake--detail-overlay overlay)
-              buffer)))))
+                (let* ((width
+                        (max
+                         20
+                         (min
+                          96
+                          (- (window-body-width window) 4))))
+                       (color
+                        (my/flymake--detail-color type))
+                       (background
+                        (face-background
+                         'my/flymake-detail-background-face
+                         nil
+                         t))
+                       (detail
+                        (my/flymake--format-detail
+                         text
+                         width)))
+                  (posframe-show
+                   my/flymake--detail-posframe-buffer
+                   :string detail
+                   :position (point)
+                   :poshandler
+                   #'posframe-poshandler-point-bottom-left-corner
+                   :max-width width
+                   :max-height 18
+                   :left-fringe 8
+                   :right-fringe 8
+                   :border-width 2
+                   :border-color color
+                   :foreground-color color
+                   :background-color background
+                   :lines-truncate nil
+                   :no-properties t
+                   :accept-focus nil)
+                  (setq
+                   my/flymake--detail-source-buffer
+                   buffer)
+                  buffer)))))))
 
-    ;; consult-flymakeのlocationが指すソース行へ診断を表示する。
+    ;; consult-flymakeのlocationが指すソース位置へ診断を表示する。
     (defun my/flymake--show-detail-at-location
         (location text type)
       (when-let* ((marker (car-safe location))
@@ -3459,10 +3516,19 @@ Flymakeの診断表示を共通化します。
          t)
         (my/flymake--clear-detail)))
 
-    ;; init.elを再読み込みした場合も、
+    ;; 表示元バッファがウィンドウから消えた場合の後始末。
+    (add-hook
+     'buffer-list-update-hook
+     #'my/flymake--hide-detail-if-source-not-visible)
+
+    ;; init.elを再読み込みした場合は、既存のChild Frameを一度隠す。
+    (my/flymake--clear-detail)
+
+    ;; 旧overlayを除去したうえで、
     ;; すでにFlymakeが有効なバッファへ設定を反映する。
     (dolist (buffer (buffer-list))
       (with-current-buffer buffer
+        (my/flymake--clear-legacy-overlay)
         (when flymake-mode
           (my/flymake--configure-detail-display)))))
 #+end_src
