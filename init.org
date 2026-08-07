@@ -553,7 +553,7 @@ Tree-sitterのスコープ解析には依存せず、各メジャーモードと
 ~ease-out-cubic~のアニメーションを使用します。
 
 #+begin_src emacs-lisp
-  (defcustom my/pixel-scroll-precision-sensitivity 4.0 
+  (defcustom my/pixel-scroll-precision-sensitivity 8.0
     "トラックパッドによるピクセルスクロール量の倍率。"
     :type 'number
     :group 'scrolling)
@@ -569,19 +569,26 @@ Tree-sitterのスコープ解析には依存せず、各メジャーモードと
     (pixel-scroll-precision-interpolation-total-time 0.15)
 
     :config
-    ;; 以前の感度調整方式を読み込んだ状態で再評価しても、
-    ;; 古いAdviceが残らないようにする。
-    (advice-remove
-     'pixel-scroll-precision
-     #'my/pixel-scroll-precision-with-sensitivity)
+    (defun my/pixel-scroll-precision-event-delta (event)
+      "EVENTから縦方向の精密スクロール量を取得する。
+Emacs Mac Portと通常のEmacsの両方のイベント形式に対応する。"
+      (cond
+       ;; Emacs Mac Portでは、精密スクロール量がEVENTの4要素目に
+       ;; plistとして入り、`:scrolling-delta-y`で取得できる。
+       ((and (eq window-system 'mac)
+             (consp (nth 3 event)))
+        (let ((delta
+               (or (plist-get (nth 3 event) :scrolling-delta-y)
+                   (plist-get (nth 3 event) :delta-y))))
+          (and (numberp delta) delta)))
 
-    (advice-remove
-     'pixel-scroll-precision-scroll-up
-     #'my/pixel-scroll-precision-scroll-up-with-sensitivity)
-
-    (advice-remove
-     'pixel-scroll-precision-scroll-down
-     #'my/pixel-scroll-precision-scroll-down-with-sensitivity)
+       ;; 通常のEmacsでは、精密スクロール量がEVENTの5要素目の
+       ;; consセルのcdrに入る。
+       (t
+        (let ((pixel-delta (nth 4 event)))
+          (and (consp pixel-delta)
+               (numberp (cdr pixel-delta))
+               (cdr pixel-delta))))))
 
     (defun my/pixel-scroll-precision-scaled-delta
         (raw-delta window)
@@ -621,27 +628,6 @@ Tree-sitterのスコープ解析には依存せず、各メジャーモードと
 
         whole-delta))
 
-    (defun my/pixel-scroll-precision-event-delta (event)
-      "EVENTから縦方向の精密スクロール量を取得する。
-Emacs Mac Portと通常のEmacsの両方のイベント形式に対応する。"
-      (cond
-       ;; Emacs Mac Portでは、精密スクロール量がEVENTの4要素目に
-       ;; plistとして入り、`:scrolling-delta-y`で取得できる。
-       ((and (eq window-system 'mac)
-             (consp (nth 3 event)))
-        (let ((delta
-               (or (plist-get (nth 3 event) :scrolling-delta-y)
-                   (plist-get (nth 3 event) :delta-y))))
-          (and (numberp delta) delta)))
-
-       ;; 通常のEmacsでは、精密スクロール量がEVENTの5要素目の
-       ;; consセルのcdrに入る。
-       (t
-        (let ((pixel-delta (nth 4 event)))
-          (and (consp pixel-delta)
-               (numberp (cdr pixel-delta))
-               (cdr pixel-delta))))))
-
     (defun my/pixel-scroll-precision (event)
       "EVENTの移動量へ感度を適用し、ピクセル単位でスクロールする。"
       (interactive "e")
@@ -653,8 +639,7 @@ Emacs Mac Portと通常のEmacsの両方のイベント形式に対応する。"
 
         (let ((raw-delta
                (my/pixel-scroll-precision-event-delta event)))
-
-          ;; 精密スクロール量を持たないイベントは、標準処理へ戻す。
+          ;; 精密スクロール量を持たないイベントは標準処理へ戻す。
           (if (not raw-delta)
               (pixel-scroll-precision event)
             (let ((delta
@@ -670,7 +655,7 @@ Emacs Mac Portと通常のEmacsの両方のイベント形式に対応する。"
                              (- delta))
                           (pixel-scroll-precision-scroll-up delta))
 
-                        ;; Momentumを有効にした場合も、補正後の移動量を使う。
+                        ;; Momentumを有効にした場合も補正後の移動量を使う。
                         (pixel-scroll-accumulate-velocity delta))
 
                     ((beginning-of-buffer end-of-buffer)
@@ -678,17 +663,13 @@ Emacs Mac Portと通常のEmacsの両方のイベント形式に対応する。"
                               (error-message-string
                                error-data)))))))))))
 
+    ;; pixel-scroll-precisionを使うすべての場所で、
+    ;; 感度調整済みコマンドへ置き換える。
+    (define-key pixel-scroll-precision-mode-map
+                [remap pixel-scroll-precision]
+                #'my/pixel-scroll-precision)
+
     (pixel-scroll-precision-mode 1)
-
-    ;; 標準の入口を経由せず、感度調整済みコマンドへ直接割り当てる。
-    ;; `C-h k`で確認したときも、この関数名が表示される。
-    (keymap-set pixel-scroll-precision-mode-map
-                "<wheel-up>"
-                #'my/pixel-scroll-precision)
-
-    (keymap-set pixel-scroll-precision-mode-map
-                "<wheel-down>"
-                #'my/pixel-scroll-precision)
 
     (defun my/pixel-scroll-ease-out-cubic (progress)
       "PROGRESSにease-out-cubicを適用する。"
