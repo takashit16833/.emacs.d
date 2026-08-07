@@ -2014,7 +2014,7 @@ NEW-WINDOW-Pが非nilなら、新しいウィンドウへファイルを表示�
     (delete-by-moving-to-trash t)
 
     ;; 隠しファイルは表示するが、`.` と `..` は表示しない。
-    ;(dired-listing-switches "-Al")
+    (dired-listing-switches "-Al")
 
     :custom-face
     ;; 通常ファイル
