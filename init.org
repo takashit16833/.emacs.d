@@ -1687,6 +1687,8 @@ SOURCE-MARKERは移動前の正確なカーソル位置を指す。"
 ** Consult：検索と候補選択
 
 ミニバッファを利用した検索・移動機能を強化します。
+~consult-flymake~ では候補を移動すると該当箇所をプレビューし、
+選択中の診断をFlymake共通のポップアップで一時表示します。
 
 #+begin_src emacs-lisp
   (use-package consult
@@ -1706,9 +1708,113 @@ SOURCE-MARKERは移動前の正確なカーソル位置を指す。"
 
      ("s-F" . consult-ripgrep)
      ("s-f" . consult-line)
-     ("M-g f" . consult-flymake)))
-#+end_src
+     ("M-g f" . consult-flymake)
+     ("s-M" . my/consult-flymake-project))
 
+    :config
+    ;; プロジェクト全体のFlymake診断をConsultで表示する。
+    (defun my/consult-flymake-project ()
+      (interactive)
+      (consult-flymake t))
+
+    ;; consult-flymakeの候補文字列とジャンプ先をまとめてstateへ渡す。
+    ;; consult-flymake本体は変更せず、consult-customizeだけで拡張する。
+    (defun my/consult-flymake--lookup
+        (selected candidates &rest _)
+      (when-let* ((candidate (car (member selected candidates)))
+                  (location
+                   (get-text-property
+                    0
+                    'consult--candidate
+                    candidate)))
+        (let ((diagnostic
+               (my/consult-flymake--diagnostic
+                candidate
+                location)))
+          (list
+           :location location
+           :text
+           (when diagnostic
+             (flymake-diagnostic-text diagnostic))
+           :type
+           (when diagnostic
+             (flymake-diagnostic-type diagnostic))))))
+
+    ;; 候補が表すFlymake診断を取得する。
+    ;; 同じ範囲に複数診断がある場合は、
+    ;; consult-flymakeの候補末尾と一致する診断を優先する。
+    (defun my/consult-flymake--diagnostic
+        (candidate location)
+      (when-let* ((marker (car-safe location))
+                  ((markerp marker))
+                  (buffer (marker-buffer marker))
+                  (begin (marker-position marker))
+                  (range (cadr location))
+                  ((consp range))
+                  (end (+ begin (cdr range))))
+        (with-current-buffer buffer
+          (let ((candidate-text
+                 (substring-no-properties candidate))
+                fallback)
+            (or
+             (catch 'matched
+               (dolist (diagnostic (flymake-diagnostics))
+                 (when (and
+                        (= (flymake-diagnostic-beg diagnostic)
+                           begin)
+                        (= (flymake-diagnostic-end diagnostic)
+                           end))
+                   (unless fallback
+                     (setq fallback diagnostic))
+                   (let ((text
+                          (flymake-diagnostic-text diagnostic)))
+                     (when
+                         (string-match-p
+                          (concat
+                           (regexp-quote text)
+                           "\\'")
+                          candidate-text)
+                       (throw 'matched diagnostic)))))
+             fallback))))))
+
+    ;; consult-flymake標準のジャンプstateへ処理を委譲しつつ、
+    ;; preview中だけFlymake共通の診断ポップアップを表示する。
+    ;;
+    ;; `consult--jump-state' はConsultの内部APIなので、
+    ;; Consult更新後に動作が変わった場合はこの箇所を確認する。
+    (defun my/consult-flymake--state ()
+      (let ((jump-state (consult--jump-state))
+            detail-buffer)
+        (lambda (action candidate)
+          ;; 前のpreview先に残っている診断ポップアップを消す。
+          (when (buffer-live-p detail-buffer)
+            (my/flymake--clear-detail detail-buffer)
+            (setq detail-buffer nil))
+
+          (let ((location
+                 (plist-get candidate :location))
+                (text
+                 (plist-get candidate :text))
+                (type
+                 (plist-get candidate :type)))
+            (funcall jump-state action location)
+
+            (when (and
+                   (eq action 'preview)
+                   location
+                   text)
+              (setq detail-buffer
+                    (my/flymake--show-detail-at-location
+                     location
+                     text
+                     type)))))))
+
+    (consult-customize
+     consult-flymake
+     my/consult-flymake-project
+     :lookup #'my/consult-flymake--lookup
+     :state (my/consult-flymake--state)))
+#+end_src
 * 補完
 
 ミニバッファと編集中のバッファで、入力候補の表示と絞り込みを設定します。
@@ -3147,6 +3253,220 @@ DiredではGit状態をファイル単位で表示し、
 #+end_src
 
 
+*** Flymake：診断表示
+
+Flymakeの診断表示を共通化します。
+通常編集ではカーソルが診断範囲上にあるときだけ、
+~consult-flymake~ では選択中の候補だけを、
+同じ枠付きポップアップでソース行の直下へ表示します。
+
+診断色はErrorをサイバーピンク、Warningを黄色、
+それ以外を青で表示します。
+
+#+begin_src emacs-lisp
+  (use-package flymake
+    :ensure nil
+
+    :custom
+    ;; 標準の行末診断は使用せず、
+    ;; 現在注目している診断だけを共通ポップアップで表示する。
+    (flymake-show-diagnostics-at-end-of-line nil)
+
+    :hook
+    ;; Emacs LispではFlymake自体を有効にする。
+    ;; LSP ModeなどがFlymakeを有効にしたバッファにも、
+    ;; 同じ診断ポップアップを追加する。
+    ((emacs-lisp-mode . flymake-mode)
+     (flymake-mode . my/flymake--configure-detail-display))
+
+    :config
+    ;; 診断種別ごとの表示face。
+    (defface my/flymake-detail-error-face
+      '((t :foreground "#FF4DE1"))
+      "Flymakeのerror診断を表示するface。")
+
+    (defface my/flymake-detail-warning-face
+      '((t :foreground "yellow3"))
+      "Flymakeのwarning診断を表示するface。")
+
+    (defface my/flymake-detail-note-face
+      '((t :foreground "DodgerBlue"))
+      "Flymakeのerror・warning以外の診断を表示するface。")
+
+    ;; 通常編集とconsult-flymakeで共有する診断ポップアップ。
+    (defvar-local my/flymake--detail-overlay nil)
+
+    ;; Flymakeの診断種別に対応する表示faceを返す。
+    (defun my/flymake--detail-face (type)
+      (pcase type
+        (:error 'my/flymake-detail-error-face)
+        (:warning 'my/flymake-detail-warning-face)
+        (_ 'my/flymake-detail-note-face)))
+
+    ;; 1行を指定した表示幅以内へ分割する。
+    (defun my/flymake--wrap-line (line width)
+      (let ((rest line)
+            lines)
+        (while (> (string-width rest) width)
+          (let* ((head
+                  (truncate-string-to-width rest width))
+                 (head-length (length head)))
+            (push head lines)
+            (setq rest (substring rest head-length))))
+        (push rest lines)
+        (nreverse lines)))
+
+    ;; 診断全文を、本文と同じ色の罫線で囲った文字列へ整形する。
+    (defun my/flymake--boxed-detail
+        (text type width)
+      (let* ((clean-text
+              (replace-regexp-in-string
+               "[\n\r]+\\'"
+               ""
+               text))
+             (content-width (max 20 (- width 4)))
+             (lines
+              (or
+               (apply
+                #'append
+                (mapcar
+                 (lambda (line)
+                   (my/flymake--wrap-line
+                    line
+                    content-width))
+                 (split-string clean-text "\n" nil)))
+               '("")))
+             (box-width
+              (max
+               1
+               (apply #'max (mapcar #'string-width lines))))
+             (face (my/flymake--detail-face type))
+             (horizontal (make-string (+ box-width 2) ?─))
+             (top (concat "┌" horizontal "┐\n"))
+             (body
+              (mapconcat
+               (lambda (line)
+                 (concat
+                  "│ "
+                  line
+                  (make-string
+                   (- box-width (string-width line))
+                   ?\s)
+                  " │"))
+               lines
+               "\n"))
+             (bottom (concat "\n└" horizontal "┘\n")))
+        (propertize
+         (concat top body bottom)
+         'face face)))
+
+    ;; BUFFERの既存の診断ポップアップを削除する。
+    (defun my/flymake--clear-detail (&optional buffer)
+      (let ((target-buffer (or buffer (current-buffer))))
+        (when (buffer-live-p target-buffer)
+          (with-current-buffer target-buffer
+            (when (overlayp my/flymake--detail-overlay)
+              (delete-overlay my/flymake--detail-overlay))
+            (setq my/flymake--detail-overlay nil)))))
+
+    ;; BUFFERのPOSITIONがある行の直下へ診断ポップアップを表示する。
+    ;; バッファ本文は変更しない。
+    (defun my/flymake--show-detail
+        (buffer position text type)
+      (when (buffer-live-p buffer)
+        (with-current-buffer buffer
+          (my/flymake--clear-detail buffer)
+          (save-excursion
+            (goto-char
+             (max (point-min)
+                  (min position (point-max))))
+            (let* ((line-end (line-end-position))
+                   (has-next-line (< line-end (point-max)))
+                   (overlay-position
+                    (if has-next-line
+                        (1+ line-end)
+                      line-end))
+                   (window (get-buffer-window buffer t))
+                   (width
+                    (if (window-live-p window)
+                        (window-body-width window)
+                      80))
+                   (overlay
+                    (make-overlay
+                     overlay-position
+                     overlay-position
+                     buffer
+                     nil
+                     t))
+                   (detail
+                    (my/flymake--boxed-detail
+                     text
+                     type
+                     width)))
+              (overlay-put
+               overlay
+               (if has-next-line
+                   'before-string
+                 'after-string)
+               (if has-next-line
+                   detail
+                 (concat "\n" detail)))
+              (setq my/flymake--detail-overlay overlay)
+              buffer)))))
+
+    ;; consult-flymakeのlocationが指すソース行へ診断を表示する。
+    (defun my/flymake--show-detail-at-location
+        (location text type)
+      (when-let* ((marker (car-safe location))
+                  ((markerp marker))
+                  (buffer (marker-buffer marker))
+                  ((buffer-live-p buffer)))
+        (my/flymake--show-detail
+         buffer
+         (marker-position marker)
+         text
+         type)))
+
+    ;; 現在のpointを含む診断を1件返す。
+    ;; `flymake-diagnostics' はENDを省略するとBEG位置の診断だけを返す。
+    ;; 同じ位置に複数診断がある場合は先頭を使う。
+    (defun my/flymake--diagnostic-at-point ()
+      (car (flymake-diagnostics (point))))
+
+    ;; 通常編集時、現在pointが指す診断だけを表示する。
+    (defun my/flymake--update-detail-at-point ()
+      (let ((diagnostic
+             (my/flymake--diagnostic-at-point)))
+        (if diagnostic
+            (my/flymake--show-detail
+             (current-buffer)
+             (flymake-diagnostic-beg diagnostic)
+             (flymake-diagnostic-text diagnostic)
+             (flymake-diagnostic-type diagnostic))
+          (my/flymake--clear-detail))))
+
+    ;; Flymakeの有効・無効に合わせて通常編集時の表示を切り替える。
+    (defun my/flymake--configure-detail-display ()
+      (if flymake-mode
+          (add-hook
+           'post-command-hook
+           #'my/flymake--update-detail-at-point
+           nil
+           t)
+        (remove-hook
+         'post-command-hook
+         #'my/flymake--update-detail-at-point
+         t)
+        (my/flymake--clear-detail)))
+
+    ;; init.elを再読み込みした場合も、
+    ;; すでにFlymakeが有効なバッファへ設定を反映する。
+    (dolist (buffer (buffer-list))
+      (with-current-buffer buffer
+        (when flymake-mode
+          (my/flymake--configure-detail-display)))))
+#+end_src
+
 ** Language Server
 
 Language Server Protocolの共通基盤と表示機能を設定します。
@@ -3864,24 +4184,6 @@ Haskellバッファでは保存時に ~Fourmolu~ で整形し、
       my/lsp-haskell-cabal-formatting-provider))))
 #+end_src
 
-*** Emacs Lisp
-
-**** Flymake：リアルタイム診断
-
-Emacs LispのバッファでFlymakeを有効にし、
-編集中のエラーや警告をリアルタイムで表示します。
-
-#+begin_src emacs-lisp
-  (use-package flymake
-    :ensure nil
-
-    :custom
-    ;; 診断内容を該当行の末尾へ表示する。
-    (flymake-show-diagnostics-at-end-of-line t)
-
-    :hook
-    (emacs-lisp-mode . flymake-mode))
-#+end_src
 
 * 生成ファイルの終端
 
