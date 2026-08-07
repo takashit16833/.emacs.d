@@ -1397,12 +1397,16 @@ MARKERが有効なら、WINDOWの現在位置ではなくMARKERを使用する�
                   :marker (copy-marker position)
                   :window window))))))
 
-  (defun my/navigation-history--capture-location ()
-    "現在のファイル位置をナビゲーション履歴用に保存する。"
-    (when (and (my/navigation-history--file-buffer-p)
-               (bound-and-true-p better-jumper-local-mode))
-      (my/navigation-history--location-at-window
-       (selected-window))))
+  (defun my/navigation-history--capture-location (&optional window)
+    "WINDOWの現在のファイル位置をナビゲーション履歴用に保存する。
+WINDOWを省略した場合は、選択中のウィンドウを使用する。"
+    (let ((window (or window (selected-window))))
+      (when (window-live-p window)
+        (with-current-buffer (window-buffer window)
+          (when (and (my/navigation-history--file-buffer-p)
+                     (bound-and-true-p better-jumper-local-mode))
+            (my/navigation-history--location-at-window
+             window))))))
 
   (defun my/navigation-history--release-location (location)
     "LOCATIONが保持しているマーカーを解放する。"
@@ -1451,20 +1455,26 @@ MARKERが有効なら、WINDOWの現在位置ではなくMARKERを使用する�
             better-jumper-jump-newest)))
 
   (defun my/navigation-history--record-location (location)
-    "LOCATIONを現在のウィンドウのBetter Jumper履歴へ追加する。"
-    (let ((buffer (plist-get location :buffer))
+    "LOCATIONを、その位置が属するウィンドウのBetter Jumper履歴へ追加する。"
+    (let ((window (plist-get location :window))
+          (buffer (plist-get location :buffer))
           (marker (plist-get location :marker)))
-      (when (and (buffer-live-p buffer)
+      (when (and (window-live-p window)
+                 (buffer-live-p buffer)
                  (markerp marker)
                  (marker-position marker))
         ;; 戻ったあとに新しいナビゲーションを行った場合は、
         ;; ウィンドウをまたぐ進む履歴もブラウザと同様に破棄する。
-        (my/navigation-history--clear-forward-location)
-        (with-current-buffer buffer
-          (when (bound-and-true-p better-jumper-local-mode)
-            (save-excursion
-              (goto-char marker)
-              (better-jumper-set-jump)))))))
+        (my/navigation-history--clear-forward-location window)
+        ;; Better Jumperはwindow contextをframe-selected-windowから取得する。
+        ;; Child Frameなど別のUIから登録する場合でも、移動元ウィンドウの
+        ;; 履歴へ確実に積めるよう、そのウィンドウを一時的に選択する。
+        (with-selected-window window
+          (with-current-buffer buffer
+            (when (bound-and-true-p better-jumper-local-mode)
+              (save-excursion
+                (goto-char marker)
+                (better-jumper-set-jump))))))))
 
   (defun my/navigation-history--before-command ()
     "コマンド実行前のファイル位置と移動種別を保存する。"
@@ -1491,6 +1501,19 @@ MARKERが有効なら、WINDOWの現在位置ではなくMARKERを使用する�
                (marker-position marker)
                (/= (marker-position marker)
                    (point))))))
+
+  (defun my/navigation-history--window-location-changed-p
+      (location window)
+    "WINDOWの現在位置がLOCATIONから変わっているとき非nilを返す。"
+    (let ((buffer (plist-get location :buffer))
+          (marker (plist-get location :marker)))
+      (and (window-live-p window)
+           (markerp marker)
+           (marker-position marker)
+           (or (not (eq buffer
+                        (window-buffer window)))
+               (/= (marker-position marker)
+                   (window-point window))))))
 
   (defun my/navigation-history--after-command ()
     "必要なナビゲーションだけ、実行前の位置を履歴へ追加する。"
@@ -3346,15 +3369,41 @@ Language Server Protocol経由で各言語へ提供します。
     ;; DocバッファにはLSP workspaceがないため、TRAMP先のfile URIが
     ;; ローカルパスとして解釈される。file URIだけ元のLSPバッファへ
     ;; 文脈を戻してから既存のリンク処理へ渡す。
-    (let ((parent-buffer
-           (and (boundp 'lsp-ui-doc--parent-vars)
-                (plist-get lsp-ui-doc--parent-vars :buffer))))
+    ;;
+    ;; また、Child Frame上のリンククリックでは通常のpre-command-hookから
+    ;; 移動元ファイルを取得できないため、親ウィンドウの位置を明示的に
+    ;; Better Jumperへ登録する。
+    (let* ((parent-buffer
+            (and (boundp 'lsp-ui-doc--parent-vars)
+                 (plist-get lsp-ui-doc--parent-vars :buffer)))
+           (parent-window
+            (and (boundp 'lsp-ui-doc--parent-vars)
+                 (plist-get lsp-ui-doc--parent-vars :window)))
+           (source-location
+            (and (window-live-p parent-window)
+                 (my/navigation-history--capture-location
+                  parent-window))))
       (if (and (stringp url)
                (string-prefix-p "file:" url)
                (buffer-live-p parent-buffer))
-          (with-current-buffer parent-buffer
-            (funcall original-function url))
-        (funcall original-function url))))
+          (unwind-protect
+              (prog1
+                  (with-current-buffer parent-buffer
+                    (funcall original-function url))
+                ;; 実際に親ウィンドウの位置が変わった場合だけ、
+                ;; クリック前の位置を戻る履歴へ追加する。
+                (when (and source-location
+                           (my/navigation-history--window-location-changed-p
+                            source-location
+                            parent-window))
+                  (my/navigation-history--record-location
+                   source-location)))
+            (my/navigation-history--release-location
+             source-location))
+        (progn
+          (my/navigation-history--release-location
+           source-location)
+          (funcall original-function url)))))
 
   (defun my/lsp-ui-peek-read-file-with-coding
       (original-function file)
