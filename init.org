@@ -7,7 +7,7 @@
 このファイルは、Emacs設定の原本となるLiterate Configurationです。
 
 - 編集するファイル: ~init.org~
-- 自動生成されるファイル: ~early-init.el~、~init.el~
+- 自動生成されるファイル: ~early-init.el~ 、 ~init.el~
 - *~early-init.el~ と ~init.el~ は直接編集しない*
 - 設定は、実現する機能の見出しへ配置する
 - パッケージ固有の関数、変数、キーバインドは、そのパッケージの見出しへまとめる
@@ -86,7 +86,7 @@ M-x org-babel-tangle
 ** パッケージ管理とuse-package
 
 Emacs 29以降では ~use-package~ が標準搭載されています。
-MELPAをパッケージ取得先へ追加し、~use-package~ の自動インストール機能を有効にします。
+MELPAをパッケージ取得先へ追加し、 ~use-package~ の自動インストール機能を有効にします。
 #+begin_src emacs-lisp
 (require 'package)
 
