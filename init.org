@@ -1053,10 +1053,17 @@ Tab Lineのバッファ名は並び順を維持し、
     :init
     (require 'seq)
 
-    ;; Tab Lineに表示しないバッファ名。
-    (defconst my/tab-line-excluded-buffer-names
-      '("*scratch*")
-      "Tab Lineに表示しないバッファ名の一覧。")
+    (defun my/tab-line-scratch-buffer-p (buffer)
+      "BUFFERが通常またはBufferloのScratchなら、非nilを返す。"
+      (let ((name (buffer-name buffer)))
+        (or
+         ;; Emacs標準のScratchと、その派生名を対象にする。
+         (string-prefix-p "*scratch*" name)
+
+         ;; BufferloのローカルScratchと、`<N>`付きの派生名を対象にする。
+         (string-prefix-p
+          bufferlo-local-scratch-buffer-name
+          name))))
 
     (defun my/tab-line-buffer-visible-p (buffer)
       "BUFFERをTab Lineに表示するとき、非nilを返す。"
@@ -1068,10 +1075,7 @@ Tab Lineのバッファ名は並び順を維持し、
        (not (minibufferp buffer))
 
        ;; 通常のScratchと、Bufferloが作るタブ専用Scratchを表示しない。
-       (not
-        (string-prefix-p
-         "*scratch*"
-         (buffer-name buffer)))
+       (not (my/tab-line-scratch-buffer-p buffer))
 
        ;; 表示しないバッファはここに定義する。
        (not
@@ -1082,17 +1086,28 @@ Tab Lineのバッファ名は並び順を維持し、
            'vterm-mode)))))
 
     (defun my/tab-line-tabs ()
-      "不要なバッファを除外し、固定順でTab Lineへ表示する。"
-      (let* (;; このウィンドウで保存している、前回までの並び順。
+      "現在のTab Barに属するバッファだけを、固定順でTab Lineへ表示する。"
+      (let* (;; 現在のTab Barに属するBufferloのローカルバッファ。
+             (local-buffers
+              (bufferlo-buffer-list))
+
+             ;; このウィンドウで保存している、前回までの並び順。
              (old-buffers
               (seq-filter
-               #'my/tab-line-buffer-visible-p
+               (lambda (buffer)
+                 (and
+                  (memq buffer local-buffers)
+                  (my/tab-line-buffer-visible-p buffer)))
                (window-parameter nil 'tab-line-buffers)))
 
-             ;; 現在、このウィンドウに関連付いているバッファ。
+             ;; 現在、このウィンドウに関連付いているバッファのうち、
+             ;; 現在のTab Barに属するものだけを候補にする。
              (current-buffers
               (seq-filter
-               #'my/tab-line-buffer-visible-p
+               (lambda (buffer)
+                 (and
+                  (memq buffer local-buffers)
+                  (my/tab-line-buffer-visible-p buffer)))
                (tab-line-tabs-window-buffers)))
 
              ;; 以前からあるバッファは、保存済みの順番を維持する。
