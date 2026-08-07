@@ -1191,13 +1191,19 @@ Tab Lineのバッファ名は並び順を維持し、
            'magit-mode
            'vterm-mode)))))
 
+    (defun my/tab-line-reset-buffers-on-new-tab (&optional _tab)
+      "新しいTab Barで、継承されたTab Lineの履歴を破棄する。"
+      (dolist (window (window-list nil 'no-minibuf))
+        (set-window-parameter window 'tab-line-buffers nil)))
+
     (defun my/tab-line-tabs ()
-      "現在のTab Barに属するバッファだけを、固定順でTab Lineへ表示する。"
+      "現在のTab Barで表示したバッファだけを、固定順でTab Lineへ表示する。"
       (let* (;; 現在のTab Barに属するBufferloのローカルバッファ。
              (local-buffers
               (bufferlo-buffer-list))
 
              ;; このウィンドウで保存している、前回までの並び順。
+             ;; Bufferloから外れたバッファや非表示対象はここで除外する。
              (old-buffers
               (seq-filter
                (lambda (buffer)
@@ -1206,32 +1212,19 @@ Tab Lineのバッファ名は並び順を維持し、
                   (my/tab-line-buffer-visible-p buffer)))
                (window-parameter nil 'tab-line-buffers)))
 
-             ;; 現在、このウィンドウに関連付いているバッファのうち、
-             ;; 現在のTab Barに属するものだけを候補にする。
-             (current-buffers
-              (seq-filter
-               (lambda (buffer)
-                 (and
-                  (memq buffer local-buffers)
-                  (my/tab-line-buffer-visible-p buffer)))
-               (tab-line-tabs-window-buffers)))
-
-             ;; 以前からあるバッファは、保存済みの順番を維持する。
-             (kept-buffers
-              (seq-filter
-               (lambda (buffer)
-                 (memq buffer current-buffers))
-               old-buffers))
-
-             ;; 新しく表示されたバッファは、右端へ追加する。
-             (added-buffers
-              (seq-remove
-               (lambda (buffer)
-                 (memq buffer kept-buffers))
-               current-buffers))
+             ;; 新しく右端へ追加する候補は、現在表示中のバッファだけにする。
+             ;; `tab-line-tabs-window-buffers'は別のTab Barで表示した履歴まで
+             ;; 含むことがあるため、Tab Lineの履歴源としては使用しない。
+             (current-buffer
+              (window-buffer))
 
              (buffers
-              (append kept-buffers added-buffers)))
+              (if (and
+                   (memq current-buffer local-buffers)
+                   (my/tab-line-buffer-visible-p current-buffer)
+                   (not (memq current-buffer old-buffers)))
+                  (append old-buffers (list current-buffer))
+                old-buffers)))
 
         ;; ウィンドウごとのTab Lineの並び順として保存する。
         (set-window-parameter nil 'tab-line-buffers buffers)
@@ -1242,6 +1235,12 @@ Tab Lineのバッファ名は並び順を維持し、
     (add-to-list
      'window-persistent-parameters
      '(tab-line-buffers . t))
+
+    ;; 新しいTab Barでは、作成元Tab BarのTab Line履歴を引き継がない。
+    ;; Tab Bar切り替え時の履歴復元とは分け、新規作成時だけ明示的に消す。
+    (add-hook
+     'tab-bar-tab-post-open-functions
+     #'my/tab-line-reset-buffers-on-new-tab)
 
     :custom
     ;; Tab Lineへ表示するバッファを独自に絞り込む。
