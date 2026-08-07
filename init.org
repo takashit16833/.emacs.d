@@ -3338,6 +3338,24 @@ Language Server Protocol経由で各言語へ提供します。
 
   (require 'cl-lib)
 
+  (defun my/lsp-ui-doc-follow-file-link-in-parent-context
+      (original-function url)
+    "LSP UI Docのfile URIを、元のLSPバッファの文脈で開く。"
+    ;; lsp-ui-doc内のMarkdownリンクは `lsp--help-open-link' を経由し、
+    ;; `lsp--document-link-handle-target' から `lsp--uri-to-path' が呼ばれる。
+    ;; DocバッファにはLSP workspaceがないため、TRAMP先のfile URIが
+    ;; ローカルパスとして解釈される。file URIだけ元のLSPバッファへ
+    ;; 文脈を戻してから既存のリンク処理へ渡す。
+    (let ((parent-buffer
+           (and (boundp 'lsp-ui-doc--parent-vars)
+                (plist-get lsp-ui-doc--parent-vars :buffer))))
+      (if (and (stringp url)
+               (string-prefix-p "file:" url)
+               (buffer-live-p parent-buffer))
+          (with-current-buffer parent-buffer
+            (funcall original-function url))
+        (funcall original-function url))))
+
   (defun my/lsp-ui-peek-read-file-with-coding
       (original-function file)
     "LSP UI PeekがFILEを文字コード判定付きで読み込むようにする。"
@@ -3574,6 +3592,16 @@ Language Server Protocol経由で各言語へ提供します。
     (lsp-ui-sideline-enable nil)
 
     :config
+    ;; LSP UI Docのfileリンクを元のLSPバッファのworkspace文脈で処理する。
+    (unless
+        (advice-member-p
+         #'my/lsp-ui-doc-follow-file-link-in-parent-context
+         #'lsp--document-link-handle-target)
+      (advice-add
+       #'lsp--document-link-handle-target
+       :around
+       #'my/lsp-ui-doc-follow-file-link-in-parent-context))
+
     (with-eval-after-load 'lsp-ui-imenu
       ;; Imenuのツリーを、太い罫線から細い罫線へ変更する。
       (unless
