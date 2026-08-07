@@ -205,13 +205,13 @@ Customizeが生成する設定を専用ファイルへ分離し、
 
 ** Emacs設定ファイルの操作
 
-~init.org~ を開くコマンド、~early-init.el~ と ~init.el~ を生成するコマンド、
+~init.org~ を開くコマンド、 ~early-init.el~ と ~init.el~ を生成するコマンド、
 生成した ~init.el~ を再読み込みするコマンドを定義します。
 ~early-init.el~ は起動前半専用のため、再読み込みコマンドの対象にしません。
 
-- ~C-c e i~: ~init.org~を開く
-- ~C-c e t~: ~init.org~から~early-init.el~と~init.el~を生成する
-- ~C-c e r~: ~init.el~を再読み込みする
+- ~C-c e i~: ~init.org~ を開く
+- ~C-c e t~: ~init.org~ から ~early-init.el~ と ~init.el~ を生成する
+- ~C-c e r~: ~init.el~ を再読み込みする
 #+begin_src emacs-lisp
 (defconst my/init-org-file
   (expand-file-name "init.org" user-emacs-directory)
@@ -325,7 +325,7 @@ CommandキーはSuperキーとして使用し、macOS風のショートカット
 
 ** シェル環境の読み込み
 
-GUI版Emacsから、ターミナルと同じ~PATH~を利用できるようにします。
+GUI版Emacsから、ターミナルと同じ ~PATH~ を利用できるようにします。
 #+begin_src emacs-lisp
 (use-package exec-path-from-shell
   :ensure t
@@ -549,8 +549,8 @@ Tree-sitterのスコープ解析には依存せず、各メジャーモードと
 
 トラックパッドやマウスではピクセル単位のスクロールを使用します。
 トラックパッドの移動量には、Emacs側で感度倍率を適用します。
-~PageUp~・~PageDown~では、素早く動き始めて徐々に減速する
-~ease-out-cubic~のアニメーションを使用します。
+~PageUp~ ・ ~PageDown~ では、素早く動き始めて徐々に減速する
+~ease-out-cubic~ のアニメーションを使用します。
 
 #+begin_src emacs-lisp
   (defcustom my/pixel-scroll-precision-sensitivity 8.0
@@ -846,7 +846,7 @@ Emacs標準の入力・編集機能と、そのキーバインドをまとめま
 
 **** カーソル行の上下に新しい行を挿入
 
-VS Codeの=Insert Line Below=、=Insert Line Above=に相当する操作です。
+VS Codeの =Insert Line Below= 、 =Insert Line Above= に相当する操作です。
 カーソルが行の途中にあっても、現在行の内容は分割しません。
 
 - ~Cmd+Enter~: カーソル行の下に新しい行を追加し、その行へ移動する
@@ -1141,11 +1141,6 @@ VS Codeと同様に、Option＋上下キーで
 ** Tab Line：ウィンドウ内のバッファ切り替え
 
 各ウィンドウで表示したバッファを、タブとして切り替えます。
-
-| キー           | 操作                 |
-|----------------+----------------------|
-| ~Cmd+Option+←~ | 左隣のTab Lineへ移動 |
-| ~Cmd+Option+→~ | 右隣のTab Lineへ移動 |
 
 どちらも端まで移動すると、反対側へ戻って循環します。
 
@@ -2387,16 +2382,8 @@ ARGが指定された場合は、Org標準の全体表示コマンドへ委譲�
 未整理の気づきは ~inbox.org~ へ追加します。
 作業状態として管理する項目は ~cockpit.org~ へ追加します。
 
-~C-c c~ で=Capture=メニューを開きます。
+~C-c c~ で =Capture= メニューを開きます。
 
-| 操作 | 追加先        | 初期状態 |
-|------+---------------+----------|
-| ~i~  | ~inbox.org~   | =TODO=   |
-| ~c t~| ~cockpit.org~ | =TODO=   |
-| ~c n~| ~cockpit.org~ | =NEXT=   |
-| ~c d~| ~cockpit.org~ | =DOING=  |
-| ~c h~| ~cockpit.org~ | =HOLD=   |
-| ~c w~| ~cockpit.org~ | =WAIT=   |
 #+begin_src emacs-lisp
 (use-package org-capture
   :ensure nil
@@ -2514,28 +2501,13 @@ ARGが指定された場合は、Org標準の全体表示コマンドへ委譲�
 ~C-c a c~ で、Cockpitの作業状態を一覧表示します。
 表示上の分類はTODO状態から自動生成します。
 
-| 表示      | 対象状態            |
-|-----------+---------------------|
-| =Active=    | =DOING=             |
-| =Next=      | =NEXT=              |
-| =Suspended= | =HOLD=              |
-| =Waiting=   | =WAIT=              |
-| =Planned=   | =TODO=のCockpit項目 |
-| =Inbox=     | =TODO=のInbox項目   |
-
-=Agenda=項目上では、次のキーで表示順に隣接するレーンへ移動します。
+=Agenda= 項目上では、次のキーで表示順に隣接するレーンへ移動します。
 移動後は同じ項目へカーソルも追従するため、
-~Cmd~を押したまま上下を連続入力できます。
-
-| キー       | 操作                              |
-|------------+-----------------------------------|
-| ~Cmd+↑~    | 1つ上のワークフローレーンへ移動 |
-| ~Cmd+↓~    | 1つ下のワークフローレーンへ移動 |
-| ~Option+↑~ | =Agenda=標準の行移動               |
-| ~Option+↓~ | =Agenda=標準の行移動               |
+~Cmd~ を押したまま上下を連続入力できます。
 
 Cockpit内の移動ではTODO状態を変更し、
-=Planned=と=Inbox=の境界では項目をファイル間で移動します。
+=Planned= と =Inbox= の境界では項目をファイル間で移動します。
+
 #+begin_src emacs-lisp
 (require 'cl-lib)
 
@@ -2876,8 +2848,8 @@ Emacs内で高速なターミナルを利用します。
 
 *** Vterm Toggle：ターミナルの表示切り替え
 
-~Cmd+j~でプロジェクト単位の~vterm~を全画面表示・非表示にします。
-~Cmd+Shift+j~では、現在のウィンドウ構成に応じて分割表示します。
+~Cmd+j~ でプロジェクト単位の ~vterm~ を全画面表示・非表示にします。
+~Cmd+Shift+j~ では、現在のウィンドウ構成に応じて分割表示します。
 
 - 1ウィンドウ、または上下分割: フレームの右50%
 - 左右分割: フレームの下30%
@@ -2958,7 +2930,7 @@ Emacs上でGitを操作します。
 - ~C-x g~: 現在のリポジトリの =Magit Status= を開く
 - ~C-x G~: ~zoxide~ の履歴からGitリポジトリを選び、=Magit Status= を開く
 
-~C-x G~ では、~zoxide~ が記録したディレクトリをGitリポジトリのルートへ正規化し、
+~C-x G~ では、 ~zoxide~ が記録したディレクトリをGitリポジトリのルートへ正規化し、
 重複を除いた候補から選択します。ファイルやDiredを経由しません。
 
 #+begin_src emacs-lisp
@@ -3251,7 +3223,7 @@ Language Server Protocol経由で各言語へ提供します。
 *** LSP UI：Language Serverの表示機能
 
 ~lsp-ui~ が提供する高水準UIを有効にします。
-パッケージには ~lsp-ui-doc~、~lsp-ui-imenu~、~lsp-ui-peek~、
+パッケージには ~lsp-ui-doc~ 、 ~lsp-ui-imenu~ 、 ~lsp-ui-peek~ 、
 ~lsp-ui-sideline~ が含まれますが、ここではドキュメント表示と
 シンボル一覧を中心に使用します。
 
@@ -3676,11 +3648,6 @@ Literate HaskellソースとCabalファイルのメジャーモードを提供�
 LSP ModeのXrefバックエンドを使用するため、Haskell Mode独自の定義ジャンプより
 Emacs標準のXref操作を優先します。
 
-| キー  | 操作                                     |
-|-------+------------------------------------------|
-| ~M-.~ | カーソル位置の識別子の定義へ移動       |
-| ~M-?~ | カーソル位置の識別子の参照箇所を表示   |
-
 #+begin_src emacs-lisp
   (use-package haskell-mode
     :ensure t
@@ -3717,8 +3684,8 @@ Emacs標準のXref操作を優先します。
 ローカル環境でもTRAMP接続先でも、各環境の~PATH~にある
 ~haskell-language-server-wrapper~ を使用します。
 
-Haskellバッファでは保存時に~Fourmolu~で整形し、
-スコープ外の識別子を補完したときは~import~を自動追加します。
+Haskellバッファでは保存時に ~Fourmolu~ で整形し、
+スコープ外の識別子を補完したときは ~import~ を自動追加します。
 
 #+begin_src emacs-lisp
 (defcustom my/lsp-haskell-cabal-formatting-provider
