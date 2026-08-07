@@ -1685,8 +1685,9 @@ SOURCE-MARKERは移動前の正確なカーソル位置を指す。"
     (("s-r" . consult-buffer)
 
      ;; ブックマークをミニバッファで選択する。
-    ("s-m" . consult-bookmark)
+     ("s-m" . consult-bookmark)
 
+     ("s-F" . consult-ripgrep)
      ("s-f" . consult-line)
      ("M-g f" . consult-flymake)))
 #+end_src
@@ -2211,8 +2212,7 @@ Gitリポジトリ内に ~cabal.project~ がある場合は、
     :ensure nil
 
     :bind
-    (("s-p" . project-find-file)
-     ("s-F" . project-find-regexp))
+    ("s-p" . project-find-file)
 
     :custom
     ;; Gitバックエンドを持たない分割プロジェクトでも、
