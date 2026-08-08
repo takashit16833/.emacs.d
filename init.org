@@ -4853,7 +4853,6 @@ Haskellバッファでは保存時に ~Fourmolu~ で整形し、
       my/lsp-haskell-cabal-formatting-provider))))
 #+end_src
 
-
 * 生成ファイルの終端
 
 生成される ~init.el~ の末尾部分です。
