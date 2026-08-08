@@ -419,6 +419,17 @@ Emacs標準の表示機能を ~use-package emacs~ で設定します。
   (show-paren-mode 1))
 #+end_src
 
+
+*** フルスクリーン
+
+macOS標準と同じ ~Ctrl+Cmd+F~ で、
+現在のEmacsフレームのフルスクリーン表示を切り替えます。
+
+#+begin_src emacs-lisp
+;; Ctrl+Cmd+F：フルスクリーン表示を切り替える。
+(keymap-global-set "C-s-f" #'toggle-frame-fullscreen)
+#+end_src
+
 ** 外観
 
 *** フォント
