@@ -3169,18 +3169,6 @@ DiredではGit状態をファイル単位で表示し、
           1
           'center))))
 
-  (defun my/diff-hl-set-fringe-face (face color)
-    "FACEをフリンジ背景になじむCOLORの差分マーカーへ設定する。"
-    (when (facep face)
-      (set-face-attribute
-       face
-       nil
-       :inherit 'fringe
-       :foreground color
-       :background 'unspecified
-       :weight 'normal
-       :box nil)))
-
   (use-package diff-hl
     :ensure t
 
@@ -3202,17 +3190,7 @@ DiredではGit状態をファイル単位で表示し、
     (diff-hl-dired-fringe-bmp-function #'my/diff-hl-fringe-bmp)
 
     :config
-    ;; Retro Hacker Blueの配色に合わせる。
-    ;; 追加はテーマの青、変更はゴールド、削除はサイバーピンク。
-    (my/diff-hl-set-fringe-face 'diff-hl-insert "#5EAFFF")
-    (my/diff-hl-set-fringe-face 'diff-hl-change "#FFD700")
-    (my/diff-hl-set-fringe-face 'diff-hl-delete "#FF4DE1")
-
-    ;; Dired側のFaceが読み込まれた後も同じ配色を明示する。
-    (with-eval-after-load 'diff-hl-dired
-      (my/diff-hl-set-fringe-face 'diff-hl-dired-insert "#5EAFFF")
-      (my/diff-hl-set-fringe-face 'diff-hl-dired-change "#FFD700")
-      (my/diff-hl-set-fringe-face 'diff-hl-dired-delete "#FF4DE1"))
+    ;; 差分種別ごとの配色はRetro Hacker Blueテーマ側で定義する。
 
     ;; 1pxの縦線を行間まで伸ばし、連続する差分行では隙間を作らない。
     (my/diff-hl-define-line-bitmap)
@@ -3310,7 +3288,7 @@ Child Frameはソースコード上へ重なって表示されるため、
     :config
     ;; 診断種別ごとの表示face。
     (defface my/flymake-detail-error-face
-      '((t :foreground "#FF4DE1"))
+      '((t (:inherit error)))
       "Flymakeのerror診断を表示するface。")
 
     (defface my/flymake-detail-warning-face
