@@ -1891,6 +1891,17 @@ Verticoなどのミニバッファ補完候補に、
 
 ** バッファ内補完
 
+*** Emacs標準：補完の明示起動
+
+~M-SPC~ で ~complete-symbol~ を実行し、ポイント周辺の補完を明示的に起動します。
+Corfuが有効な場合は、補完候補がポップアップ表示されます。
+なお、Emacs標準の ~M-SPC~ （ ~just-one-space~ ）はこの設定で上書きされます。
+
+#+begin_src emacs-lisp
+;; Option＋Spaceでバッファ内補完を明示的に起動する。
+(keymap-global-set "M-SPC" #'complete-symbol)
+#+end_src
+
 *** Corfu：バッファ内補完
 
 Emacs標準の補完機構を利用して、コード編集中の候補をポップアップ表示します。
