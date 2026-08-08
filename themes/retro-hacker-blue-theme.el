@@ -1,8 +1,8 @@
 ;;; retro-hacker-blue-theme.el --- Retro Hacker Blue theme -*- lexical-binding: t; -*-
 
 ;;; Commentary:
-;; Load the base Retro Hacker Blue theme and extend it with the ANSI palette
-;; shared by the Kitty version of the theme.
+;; Load the base Retro Hacker Blue theme and extend it with the ANSI palette.
+;; The theme's red slot is intentionally replaced with the cyber-pink accent.
 
 ;;; Code:
 
@@ -13,13 +13,14 @@
         t))
 
 (let ((class '((class color) (min-colors 89))))
-  ;; Kitty版Retro Hacker Blueと共通のANSIターミナル16色。
+  ;; Retro Hacker BlueのANSIターミナル16色。
+  ;; red系はテーマ本体と同じサイバーピンクへ統一する。
   ;; foregroundはANSI文字色、backgroundはANSI背景色として使われる。
   (dolist (entry
            '((black . "#000000")
              (bright-black . "#1A1A1A")
-             (red . "#FF5A5A")
-             (bright-red . "#FF8080")
+             (red . "#FF4DE1")
+             (bright-red . "#FF76E8")
              (green . "#4682B4")
              (bright-green . "#6CB8F0")
              (yellow . "#FFD700")
@@ -48,7 +49,7 @@
    'retro-hacker-blue
    '(ansi-color-names-vector
      ["#000000"
-      "#FF5A5A"
+      "#FF4DE1"
       "#4682B4"
       "#FFD700"
       "#3B85D8"
