@@ -312,6 +312,7 @@
    `(org-table ((,class (:foreground ,fg-light))))
    `(org-link ((,class (:foreground ,fg-light :underline t))))
    `(org-tag ((,class (:foreground ,purple :weight bold))))
+   `(org-formula ((,class (:foreground ,red))))
    `(org-todo ((,class (:foreground ,red :weight bold))))
    `(org-done ((,class (:foreground ,cyan :weight bold))))
    `(org-date ((,class (:foreground ,sky :underline t))))
