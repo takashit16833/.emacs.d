@@ -3245,8 +3245,8 @@ DiredではGit状態をファイル単位で表示し、
 *** Posframe：Child Frame表示基盤
 
 親フレームのレイアウトを変更せず、
-カーソル位置付近へChild Frameを重ねて表示する基盤として ~posframe~ を使用します。
-Flymakeの診断詳細を、Neovimのfloating windowのように
+一時的な情報をChild Frameへ重ねて表示する基盤として ~posframe~ を使用します。
+~consult-flymake~ の診断プレビューと、LSP管理中のシンボル情報・診断詳細を、
 ソースコード上へ浮かせて表示するために利用します。
 
 #+begin_src emacs-lisp
@@ -3259,14 +3259,15 @@ Flymakeの診断詳細を、Neovimのfloating windowのように
 *** Flymake：診断表示
 
 Flymakeの診断表示を共通化します。
-通常編集ではカーソルが診断範囲上にあるときだけ、
-~consult-flymake~ では選択中の候補だけを、
-同じChild Frameへ一時表示します。
+通常編集では波線だけを表示し、診断詳細を自動表示しません。
+LSP管理中は ~C-c l h~ の統合情報ポップアップで診断全文を確認します。
+~consult-flymake~ では選択中の候補だけをChild Frameへ一時表示します。
 
 Child Frameはソースコード上へ重なって表示されるため、
 本文の行間やウィンドウレイアウトは変更しません。
-診断色はErrorをサイバーピンク、Warningを黄色、
-それ以外を青とし、文字色と外枠を同じ色にします。
+~consult-flymake~ の診断プレビューは診断種別にかかわらず
+Retro Hacker Blueの青で統一し、背景はOrgコードブロックと同じ色にします。
+Child Frameの内側には2pxの余白を設けます。
 
 #+begin_src emacs-lisp
   (use-package flymake
@@ -3275,35 +3276,38 @@ Child Frameはソースコード上へ重なって表示されるため、
 
     :custom
     ;; 標準の行末診断は使用せず、
-    ;; 現在注目している診断だけをChild Frameで表示する。
+    ;; 波線と手動・Consultの一時表示で診断を確認する。
     (flymake-show-diagnostics-at-end-of-line nil)
 
     :hook
     ;; Emacs LispではFlymake自体を有効にする。
-    ;; LSP ModeなどがFlymakeを有効にしたバッファにも、
-    ;; 同じ診断Child Frameを追加する。
-    ((emacs-lisp-mode . flymake-mode)
-     (flymake-mode . my/flymake--configure-detail-display))
+    (emacs-lisp-mode . flymake-mode)
 
     :config
-    ;; 診断種別ごとの表示face。
+    ;; Consult-Flymakeの診断プレビューは、
+    ;; 診断種別にかかわらずRetro Hacker Blueの青で統一する。
     (defface my/flymake-detail-error-face
-      '((t (:inherit error)))
+      '((t :foreground "#5EAFFF"))
       "Flymakeのerror診断を表示するface。")
 
     (defface my/flymake-detail-warning-face
-      '((t :foreground "yellow3"))
+      '((t :foreground "#5EAFFF"))
       "Flymakeのwarning診断を表示するface。")
 
     (defface my/flymake-detail-note-face
-      '((t :foreground "DodgerBlue"))
+      '((t :foreground "#5EAFFF"))
       "Flymakeのerror・warning以外の診断を表示するface。")
 
-    (defface my/flymake-detail-background-face
-      '((t :background "#0B1324"))
-      "Flymake診断Child Frameの背景face。")
+    ;; Orgコードブロックと同じ背景色を返す。
+    ;; Org faceがまだ読み込まれていない場合もテーマの同じ色へフォールバックする。
+    (defun my/flymake--detail-background-color ()
+      (or
+       (and
+        (facep 'org-block)
+        (face-background 'org-block nil t))
+       "#07162B"))
 
-    ;; 通常編集とconsult-flymakeで共有するChild Frame。
+    ;; consult-flymakeの診断プレビューで使用するChild Frame。
     (defconst my/flymake--detail-posframe-buffer
       " *flymake-detail-posframe*"
       "Flymake診断Child Frameに使用するバッファ名。")
@@ -3430,10 +3434,7 @@ Child Frameはソースコード上へ重なって表示されるため、
                        (color
                         (my/flymake--detail-color type))
                        (background
-                        (face-background
-                         'my/flymake-detail-background-face
-                         nil
-                         t))
+                        (my/flymake--detail-background-color))
                        (detail
                         (my/flymake--format-detail
                          text
@@ -3450,6 +3451,9 @@ Child Frameはソースコード上へ重なって表示されるため、
                    :right-fringe 8
                    :border-width 1
                    :border-color color
+                   ;; 背景色と同じ2pxの内枠を余白として使う。
+                   :internal-border-width 2
+                   :internal-border-color background
                    :foreground-color color
                    :background-color background
                    :lines-truncate nil
@@ -3473,54 +3477,28 @@ Child Frameはソースコード上へ重なって表示されるため、
          text
          type)))
 
-    ;; 現在のpointを含む診断を1件返す。
-    ;; `flymake-diagnostics' はENDを省略するとBEG位置の診断だけを返す。
-    ;; 同じ位置に複数診断がある場合は先頭を使う。
-    (defun my/flymake--diagnostic-at-point ()
-      (car (flymake-diagnostics (point))))
-
-    ;; 通常編集時、現在pointが指す診断だけを表示する。
-    (defun my/flymake--update-detail-at-point ()
-      (let ((diagnostic
-             (my/flymake--diagnostic-at-point)))
-        (if diagnostic
-            (my/flymake--show-detail
-             (current-buffer)
-             (flymake-diagnostic-beg diagnostic)
-             (flymake-diagnostic-text diagnostic)
-             (flymake-diagnostic-type diagnostic))
-          (my/flymake--clear-detail))))
-
-    ;; Flymakeの有効・無効に合わせて通常編集時の表示を切り替える。
-    (defun my/flymake--configure-detail-display ()
-      (if flymake-mode
-          (add-hook
-           'post-command-hook
-           #'my/flymake--update-detail-at-point
-           nil
-           t)
-        (remove-hook
-         'post-command-hook
-         #'my/flymake--update-detail-at-point
-         t)
-        (my/flymake--clear-detail)))
-
     ;; 表示元バッファがウィンドウから消えた場合の後始末。
     (add-hook
      'buffer-list-update-hook
      #'my/flymake--hide-detail-if-source-not-visible)
 
-    ;; init.elを再読み込みした場合は、既存のChild Frameを一度隠す。
+    ;; 以前の自動表示版を読み込んだEmacsでinit.elを再評価した場合に、
+    ;; 旧hook、既存Child Frame、旧overlayを除去する。
+    (remove-hook
+     'flymake-mode-hook
+     #'my/flymake--configure-detail-display)
+
     (my/flymake--clear-detail)
 
-    ;; 旧overlayを除去したうえで、
-    ;; すでにFlymakeが有効なバッファへ設定を反映する。
     (dolist (buffer (buffer-list))
       (with-current-buffer buffer
-        (my/flymake--clear-legacy-overlay)
-        (when flymake-mode
-          (my/flymake--configure-detail-display)))))
+        (remove-hook
+         'post-command-hook
+         #'my/flymake--update-detail-at-point
+         t)
+        (my/flymake--clear-legacy-overlay))))
 #+end_src
+
 
 ** Language Server
 
@@ -3535,6 +3513,17 @@ Language Server Protocolの共通基盤と表示機能を設定します。
 補完、診断、定義参照、リネーム、コードアクション、整形などを、
 Language Server Protocol経由で各言語へ提供します。
 
+通常編集ではElDocによるシンボル情報・診断詳細の自動表示を行わず、
+必要なときだけ ~C-c l h~ で統合情報ポップアップを表示します。
+ポップアップには、取得できたLSPシンボル情報と、
+現在位置にあるFlymake診断全文をまとめて表示します。
+表示中は ~M-n~ / ~M-p~ で1行ずつスクロールでき、
+ソースのカーソルを移動するか ~C-g~ を押すと閉じます。
+ポップアップはカーソル付近へ表示し、外枠・見出し・診断表示には
+Retro Hacker Blueの青を、背景にはOrgコードブロックと同じ色を使用します。
+ポップアップをクリックしてもソース側のfocusを維持します。
+
+- ~C-c l h~: カーソル位置のシンボル情報と診断全文を表示
 - ~C-c l a~: コードアクションを実行
 - ~C-c l r~: プロジェクト全体で識別子を変更
 - ~C-c l f~: 現在のバッファを整形
@@ -3565,6 +3554,567 @@ Language Server Protocol経由で各言語へ提供します。
           (setf (nth 1 completion-data) symbol-end))))
     completion-data)
 
+  ;; LSP管理中の自動ElDoc表示を止める。
+  ;; シンボル情報はmy/lsp-inspect-at-pointから必要なときだけ取得する。
+  (defun my/lsp-disable-automatic-eldoc ()
+    "LSP管理中はElDocの自動表示を無効にする。"
+    (when eldoc-mode
+      (eldoc-mode -1)))
+
+  ;; LSPシンボル情報とFlymake診断をまとめて表示するChild Frame。
+  (defconst my/lsp-inspect--posframe-buffer
+    " *lsp-inspect-posframe*"
+    "LSPシンボル情報とFlymake診断を表示するChild Frame用バッファ名。")
+
+  (defvar my/lsp-inspect--source-buffer nil
+    "現在のLSP情報ポップアップを表示しているソースバッファ。")
+
+  (defvar my/lsp-inspect--source-point nil
+    "現在のLSP情報ポップアップを表示したソース位置。")
+
+  (defvar my/lsp-inspect--source-cursor-point nil
+    "LSP情報ポップアップ表示開始時のソース側カーソル位置。")
+
+  (defvar my/lsp-inspect--source-kind nil
+    "現在のLSP情報ポップアップを開始した入力種別。")
+
+  (defvar my/lsp-inspect--generation 0
+    "非同期LSP Hover応答の世代番号。")
+
+  ;; ポップアップ表示中だけ、ソースのpointを動かさず内容をスクロールする。
+  (defvar-keymap my/lsp-inspect-navigation-mode-map
+    :doc "LSP情報ポップアップを操作するキーマップ。"
+    "M-n" #'my/lsp-inspect-scroll-forward
+    "M-p" #'my/lsp-inspect-scroll-backward
+    "C-g" #'my/lsp-inspect-hide)
+
+  (define-minor-mode my/lsp-inspect-navigation-mode
+    "LSP情報ポップアップ表示中だけスクロール操作を有効にする。"
+    :init-value nil
+    :lighter nil
+    :keymap my/lsp-inspect-navigation-mode-map)
+
+  ;; Retro Hacker Blueの主アクセントである青を、
+  ;; ポップアップの外枠・見出し・診断表示へ共通利用する。
+  (defconst my/lsp-inspect--accent-blue
+    "#5EAFFF"
+    "LSP情報ポップアップに使用するRetro Hacker Blueの青。")
+
+  ;; POSITIONにあるFlymake診断をすべて返す。
+  ;; POSITION省略時は現在のpointを使用する。
+  (defun my/lsp-inspect--diagnostics-at-point (&optional position)
+    (when (bound-and-true-p flymake-mode)
+      (flymake-diagnostics (or position (point)))))
+
+  ;; Flymake診断種別の表示名を返す。
+  (defun my/lsp-inspect--diagnostic-label (type)
+    (pcase type
+      (:error "Error")
+      (:warning "Warning")
+      (_ "Info")))
+
+  ;; Flymake診断を省略せず、Retro Hacker Blueの青で整形する。
+  (defun my/lsp-inspect--format-diagnostics (diagnostics)
+    (mapconcat
+     (lambda (diagnostic)
+       (let ((type (flymake-diagnostic-type diagnostic))
+             (text (flymake-diagnostic-text diagnostic)))
+         (concat
+          (propertize
+           (my/lsp-inspect--diagnostic-label type)
+           'face
+           (list
+            :foreground my/lsp-inspect--accent-blue
+            :weight 'bold))
+          "\n"
+          (propertize
+           text
+           'face
+           (list
+            :foreground my/lsp-inspect--accent-blue)))))
+     diagnostics
+     "\n\n"))
+
+  ;; LSPシンボル情報とFlymake診断を1つの表示文字列へまとめる。
+  (defun my/lsp-inspect--format-content
+      (symbol-text diagnostics)
+    (let (sections)
+      (when
+          (and
+           (stringp symbol-text)
+           (> (length symbol-text) 0))
+        (push
+         (concat
+          (propertize
+           "Symbol"
+           'face
+           (list
+            :foreground my/lsp-inspect--accent-blue
+            :weight 'bold))
+          "\n"
+          symbol-text)
+         sections))
+
+      (when diagnostics
+        (push
+         (concat
+          (propertize
+           "Diagnostics"
+           'face
+           (list
+            :foreground my/lsp-inspect--accent-blue
+            :weight 'bold))
+          "\n"
+          (my/lsp-inspect--format-diagnostics diagnostics))
+         sections))
+
+      (mapconcat
+       #'identity
+       (nreverse sections)
+       "\n\n")))
+
+  ;; Orgコードブロックと同じ背景色を返す。
+  ;; Org faceがまだ読み込まれていない場合もテーマの同じ色へフォールバックする。
+  (defun my/lsp-inspect--background-color ()
+    (or
+     (and
+      (facep 'org-block)
+      (face-background 'org-block nil t))
+     "#07162B"))
+
+  ;; 統合情報ポップアップのChild Frameを返す。
+  (defun my/lsp-inspect--window ()
+    (get-buffer-window
+     my/lsp-inspect--posframe-buffer
+     t))
+
+  ;; Child Frameへfocusが移っても、ソース側frameへ入力focusを戻す。
+  ;; posframeのno-accept-focusだけでは環境によってクリック時の
+  ;; frame選択を完全に防げないため、明示的にfocusをredirectする。
+  (defun my/lsp-inspect--redirect-focus-to-source ()
+    (when-let* ((popup-window
+                 (my/lsp-inspect--window))
+                ((window-live-p popup-window))
+                (source-buffer
+                 my/lsp-inspect--source-buffer)
+                ((buffer-live-p source-buffer))
+                (source-window
+                 (get-buffer-window
+                  source-buffer
+                  t))
+                ((window-live-p source-window))
+                (popup-frame
+                 (window-frame popup-window))
+                (source-frame
+                 (window-frame source-window)))
+      (when
+          (and
+           (frame-live-p popup-frame)
+           (frame-live-p source-frame))
+        (redirect-frame-focus
+         popup-frame
+         source-frame))
+      source-window))
+
+  ;; ポップアップ上のクリックは内容操作には使わず、
+  ;; ソース側windowを選び直してfocusだけを戻す。
+  (defun my/lsp-inspect--ignore-popup-click (_event)
+    (interactive "e")
+    (when-let* ((source-window
+                 (my/lsp-inspect--redirect-focus-to-source))
+                ((window-live-p source-window)))
+      (select-window source-window)
+      (select-frame-set-input-focus
+       (window-frame source-window))))
+
+  ;; Child Frameがクリックされても選択状態を奪わないよう、
+  ;; 通常のmouse button操作をソースfocus復元へ差し替える。
+  ;; Mouse wheelはポップアップをスクロールできる余地を残すため触らない。
+  (defvar my/lsp-inspect--mouse-map
+    (let ((map (make-sparse-keymap)))
+      (dolist
+          (event
+           '(down-mouse-1
+             mouse-1
+             drag-mouse-1
+             double-mouse-1
+             triple-mouse-1
+             down-mouse-2
+             mouse-2
+             down-mouse-3
+             mouse-3))
+        (define-key
+         map
+         (vector event)
+         #'my/lsp-inspect--ignore-popup-click))
+      map)
+    "LSP情報ポップアップでfocusを奪わないためのmouse用キーマップ。")
+
+  ;; Posframe bufferへfocus保護を適用する。
+  ;; pre-command-hookでもfocus redirectを維持し、
+  ;; Child Frame側でコマンドが発生してもソース側へ戻す。
+  (defun my/lsp-inspect--prepare-posframe-buffer ()
+    (with-current-buffer
+        (get-buffer-create
+         my/lsp-inspect--posframe-buffer)
+      (use-local-map
+       my/lsp-inspect--mouse-map)
+      (add-hook
+       'pre-command-hook
+       #'my/lsp-inspect--redirect-focus-to-source
+       nil
+       t)))
+
+  ;; 統合情報ポップアップを閉じる。
+  (defun my/lsp-inspect-hide ()
+    "LSP情報ポップアップを閉じる。"
+    (interactive)
+
+    ;; 先に世代を進め、閉じた後に届いた古いHover応答を無視する。
+    (setq my/lsp-inspect--generation
+          (1+ my/lsp-inspect--generation))
+
+    ;; hide処理中にhookが再入しないよう、先に監視を外す。
+    (remove-hook
+     'post-command-hook
+     #'my/lsp-inspect--hide-after-point-move)
+    (remove-hook
+     'buffer-list-update-hook
+     #'my/lsp-inspect--hide-if-source-not-visible)
+
+    (when
+        (buffer-live-p my/lsp-inspect--source-buffer)
+      (with-current-buffer my/lsp-inspect--source-buffer
+        (when
+            (bound-and-true-p
+             my/lsp-inspect-navigation-mode)
+          (my/lsp-inspect-navigation-mode -1))))
+
+    (setq my/lsp-inspect--source-buffer nil
+          my/lsp-inspect--source-point nil
+          my/lsp-inspect--source-cursor-point nil
+          my/lsp-inspect--source-kind nil)
+
+    (when
+        (and
+         (featurep 'posframe)
+         (get-buffer my/lsp-inspect--posframe-buffer))
+      (posframe-hide my/lsp-inspect--posframe-buffer)))
+
+  ;; ソースのカーソル移動または別バッファへの移動でポップアップを閉じる。
+  ;; マウスホバーでは表示位置とカーソル位置が異なるため、
+  ;; 表示開始時のカーソル位置を独立して記録する。
+  (defun my/lsp-inspect--hide-after-point-move ()
+    (when
+        (and
+         my/lsp-inspect--source-buffer
+         (or
+          (not
+           (eq
+            (current-buffer)
+            my/lsp-inspect--source-buffer))
+          (/=
+           (point)
+           my/lsp-inspect--source-cursor-point)))
+      (my/lsp-inspect-hide)))
+
+  ;; 表示元バッファが消えた場合もポップアップを閉じる。
+  (defun my/lsp-inspect--hide-if-source-not-visible ()
+    (when
+        (and
+         my/lsp-inspect--source-buffer
+         (or
+          (not
+           (buffer-live-p
+            my/lsp-inspect--source-buffer))
+          (not
+           (get-buffer-window
+            my/lsp-inspect--source-buffer
+            t))))
+      (my/lsp-inspect-hide)))
+
+  ;; シンボル情報と診断を1つのChild Frameへ表示する。
+  (defun my/lsp-inspect--show
+      (buffer position symbol-text diagnostics)
+    (when
+        (and
+         (buffer-live-p buffer)
+         (posframe-workable-p))
+      (when-let* ((window (get-buffer-window buffer t))
+                  ((window-live-p window)))
+        (let* ((content
+                (my/lsp-inspect--format-content
+                 symbol-text
+                 diagnostics))
+               (available-width
+                (max 20
+                     (- (window-body-width window) 4)))
+               (width
+                (min
+                 available-width
+                 (max
+                  32
+                  (min
+                   96
+                   (floor
+                    (* 0.60 available-width))))))
+               (available-height
+                (max 6
+                     (- (window-body-height window) 2)))
+               (height
+                (min
+                 available-height
+                 (max
+                  8
+                  (min
+                   24
+                   (floor
+                    (* 0.50 available-height))))))
+               (background
+                (my/lsp-inspect--background-color))
+               (foreground
+                (or
+                 (face-foreground 'default nil t)
+                 "#D8E8FF")))
+
+          (when (> (length content) 0)
+            ;; Posframe bufferをmouse clickで選択できない表示専用UIとして扱う。
+            (my/lsp-inspect--prepare-posframe-buffer)
+
+            (with-selected-window window
+              (with-current-buffer buffer
+                (save-excursion
+                  (goto-char
+                   (max
+                    (point-min)
+                    (min position (point-max))))
+                  (posframe-show
+                   my/lsp-inspect--posframe-buffer
+                   :string content
+                   :position (point)
+                   ;; point直下へ表示し、下に収まらない場合はposframe側で
+                   ;; 自動的にpointの上へ反転する。
+                   :poshandler
+                   #'posframe-poshandler-point-bottom-left-corner
+                   :max-width width
+                   :max-height height
+                   :left-fringe 8
+                   :right-fringe 8
+                   :border-width 1
+                   :border-color my/lsp-inspect--accent-blue
+                   ;; 背景色と同じ2pxの内枠を余白として使う。
+                   :internal-border-width 2
+                   :internal-border-color background
+                   :foreground-color foreground
+                   :background-color background
+                   :lines-truncate nil
+                   :no-properties nil
+                   :window-point 1
+                   :accept-focus nil))))
+
+            ;; OS / window-system側がno-accept-focusを無視した場合にも備え、
+            ;; 表示のたびにChild Frameのfocusをソースframeへredirectする。
+            (my/lsp-inspect--redirect-focus-to-source)
+
+            ;; 更新時もポップアップの先頭から読み始める。
+            (when-let* ((popup-window
+                         (my/lsp-inspect--window))
+                        ((window-live-p popup-window)))
+              (with-current-buffer
+                  my/lsp-inspect--posframe-buffer
+                (set-window-start
+                 popup-window
+                 (point-min))
+                (set-window-point
+                 popup-window
+                 (point-min))))
+
+            (setq my/lsp-inspect--source-buffer buffer
+                  my/lsp-inspect--source-point position)
+
+            (with-current-buffer buffer
+              (my/lsp-inspect-navigation-mode 1))
+
+            (add-hook
+             'post-command-hook
+             #'my/lsp-inspect--hide-after-point-move)
+            (add-hook
+             'buffer-list-update-hook
+             #'my/lsp-inspect--hide-if-source-not-visible))))))
+
+  ;; 表示中の統合情報ポップアップだけをスクロールする。
+  (defun my/lsp-inspect--scroll (function)
+    (if-let* ((window (my/lsp-inspect--window))
+              ((window-live-p window)))
+        (with-selected-window window
+          (condition-case nil
+              (funcall function)
+            (beginning-of-buffer nil)
+            (end-of-buffer nil)))
+      (user-error
+       "LSP情報ポップアップは表示されていません")))
+
+  (defun my/lsp-inspect-scroll-forward ()
+    "LSP情報ポップアップを1行下へスクロールする。"
+    (interactive)
+    (my/lsp-inspect--scroll
+     (lambda ()
+       (scroll-up 1))))
+
+  (defun my/lsp-inspect-scroll-backward ()
+    "LSP情報ポップアップを1行上へスクロールする。"
+    (interactive)
+    (my/lsp-inspect--scroll
+     (lambda ()
+       (scroll-down 1))))
+
+  ;; 非同期Hover応答が現在の表示要求に対応しているか確認する。
+  (defun my/lsp-inspect--request-current-p
+      (generation buffer position)
+    (and
+     (= generation my/lsp-inspect--generation)
+     (buffer-live-p buffer)
+     (eq buffer my/lsp-inspect--source-buffer)
+     (= position my/lsp-inspect--source-point)
+     (with-current-buffer buffer
+       (= (point) my/lsp-inspect--source-cursor-point))))
+
+  ;; LSP Hoverのシンボル情報を受け取り、診断と合わせて再表示する。
+  (defun my/lsp-inspect--receive-symbol
+      (generation buffer position diagnostics quiet symbol-text
+                  &rest _)
+    (when
+        (my/lsp-inspect--request-current-p
+         generation
+         buffer
+         position)
+      (if
+          (or
+           (and
+            (stringp symbol-text)
+            (> (length symbol-text) 0))
+           diagnostics)
+          (my/lsp-inspect--show
+           buffer
+           position
+           symbol-text
+           diagnostics)
+        (my/lsp-inspect-hide)
+        (unless quiet
+          (message
+           "この位置に表示できるLSP情報または診断はありません")))))
+
+  ;; BUFFERのPOSITIONにあるシンボル情報と診断全文を統合表示する。
+  ;; CURSOR-POSITIONは表示開始時のソース側カーソル位置。
+  ;; QUIETが非nilなら、情報がない場合もエコーエリアへメッセージを出さない。
+  (defun my/lsp-inspect--start
+      (buffer position cursor-position &optional quiet source-kind)
+    (when (buffer-live-p buffer)
+      (with-current-buffer buffer
+        (if
+            (not
+             (bound-and-true-p lsp-managed-mode))
+            (unless quiet
+              (user-error
+               "このバッファはLSPで管理されていません"))
+
+          ;; 既存表示を閉じ、古い非同期応答を無効化する。
+          (my/lsp-inspect-hide)
+
+          (let* ((diagnostics
+                  (my/lsp-inspect--diagnostics-at-point position))
+                 (generation
+                  (setq my/lsp-inspect--generation
+                        (1+ my/lsp-inspect--generation))))
+
+            ;; 非同期Hover応答を待つ間も、診断があれば先に全文を表示する。
+            (setq my/lsp-inspect--source-buffer buffer
+                  my/lsp-inspect--source-point position
+                  my/lsp-inspect--source-cursor-point cursor-position
+                  my/lsp-inspect--source-kind source-kind)
+
+            ;; Hover応答を待っている間も、
+            ;; ソース側カーソルを移動したら要求を無効化する。
+            (add-hook
+             'post-command-hook
+             #'my/lsp-inspect--hide-after-point-move)
+
+            (when diagnostics
+              (my/lsp-inspect--show
+               buffer
+               position
+               nil
+               diagnostics))
+
+            ;; lsp-eldoc-functionを表示位置で手動実行し、
+            ;; compactなシンボル情報だけを取得する。
+            (save-excursion
+              (goto-char position)
+              (let ((result
+                     (lsp-eldoc-function
+                      (lambda (symbol-text &rest _)
+                        (my/lsp-inspect--receive-symbol
+                         generation
+                         buffer
+                         position
+                         diagnostics
+                         quiet
+                         symbol-text)))))
+                ;; Hover結果がキャッシュ済みなら同期的に文字列が返る。
+                (when (stringp result)
+                  (my/lsp-inspect--receive-symbol
+                   generation
+                   buffer
+                   position
+                   diagnostics
+                   quiet
+                   result)))))))))
+
+  ;; 現在位置のLSPシンボル情報とFlymake診断全文を手動表示する。
+  (defun my/lsp-inspect-at-point ()
+    "カーソル位置のLSPシンボル情報とFlymake診断全文を表示する。"
+    (interactive)
+    (my/lsp-inspect--start
+     (current-buffer)
+     (point)
+     (point)
+     nil
+     'point))
+
+  ;; lsp-ui-docのマウス追跡を利用し、
+  ;; ホバー位置へC-c l hと同じ統合ポップアップを表示する。
+  ;; 元のLSP UI Doc Child Frameは表示しない。
+  (defun my/lsp-ui-doc--mouse-display-as-inspect ()
+    (when
+        (and
+         (boundp 'lsp-ui-doc--last-event)
+         (integer-or-marker-p lsp-ui-doc--last-event)
+         (bound-and-true-p lsp-managed-mode))
+      (let ((position
+             (max
+              (point-min)
+              (min
+               lsp-ui-doc--last-event
+               (point-max)))))
+        (my/lsp-inspect--start
+         (current-buffer)
+         position
+         (point)
+         t
+         'mouse))))
+
+  ;; マウスホバー由来の統合ポップアップは、
+  ;; マウスが動いた時点で閉じ、次の静止位置で改めて表示する。
+  ;; C-c l hで開いたポップアップはマウス移動では閉じない。
+  (defun my/lsp-ui-doc--hide-mouse-inspect-on-movement (&rest _)
+    (when (eq my/lsp-inspect--source-kind 'mouse)
+      (my/lsp-inspect-hide)))
+
+  ;; lsp-ui-docはマウス移動時にEmacs標準Tooltipも起動する。
+  ;; 統合Posframeへ表示を一本化するため、黄色い標準Tooltipは表示しない。
+  (defun my/lsp-ui-doc--suppress-default-tooltip (&rest _)
+    (tooltip-hide))
+
   (use-package lsp-mode
     :ensure t
     :commands (lsp lsp-deferred)
@@ -3589,6 +4139,13 @@ Language Server Protocol経由で各言語へ提供します。
 
     ;; 現在の診断UIであるFlymakeを維持する。
     (lsp-diagnostics-provider :flymake)
+
+    ;; 手動ポップアップではHoverのシンボル情報を取得する。
+    (lsp-eldoc-enable-hover t)
+
+    ;; シンボル側は型・シグネチャを中心にコンパクトに表示する。
+    ;; 長い情報はFlymake診断側を省略せず保持する。
+    (lsp-eldoc-render-all nil)
 
     ;; 最後の管理対象バッファを閉じたとき、Language Serverも終了する。
     (lsp-keep-workspace-alive nil)
@@ -3619,6 +4176,22 @@ Language Server Protocol経由で各言語へ提供します。
     (lsp-log-io nil)
 
     :config
+    ;; lsp-managed-modeが有効化したElDocを、
+    ;; LSP接続完了後に無効化してエコーエリアの自動表示を止める。
+    (add-hook
+     'lsp-after-open-hook
+     #'my/lsp-disable-automatic-eldoc)
+
+    ;; init.el再評価時は、すでにLSP管理中のバッファにも反映する。
+    (dolist (buffer (buffer-list))
+      (with-current-buffer buffer
+        (when
+            (bound-and-true-p lsp-managed-mode)
+          (my/lsp-disable-automatic-eldoc))))
+
+    ;; 再評価時に残っている統合情報ポップアップを閉じる。
+    (my/lsp-inspect-hide)
+
     (with-eval-after-load 'lsp-diagnostics
       ;; lsp-mode issue #5043の暫定対策。
       ;; LSPによる編集後、診断本体だけを削除して集計値を残してしまう処理を無効化する。
@@ -3668,11 +4241,13 @@ Language Server Protocol経由で各言語へ提供します。
 
     :bind
     (:map lsp-mode-map
+          ("C-c l h" . my/lsp-inspect-at-point)
           ("C-c l a" . lsp-execute-code-action)
           ("C-c l r" . lsp-rename)
           ("C-c l f" . lsp-format-buffer)
           ("M-g s" . lsp-workspace-symbol)))
 #+end_src
+
 
 *** LSP UI：Language Serverの表示機能
 
@@ -3681,7 +4256,11 @@ Language Server Protocol経由で各言語へ提供します。
 ~lsp-ui-sideline~ が含まれますが、ここではドキュメント表示と
 シンボル一覧を中心に使用します。
 
-- ~C-c l h~: カーソル位置の型・ドキュメントを表示
+カーソル移動だけではLSP UI Docを自動表示しません。
+マウスホバーではLSP UI Docのマウス追跡だけを利用し、
+~C-c l h~ と同じ型・シグネチャと診断の統合ポップアップを表示します。
+LSP UI Doc単体を確認したい場合は ~M-x lsp-ui-doc-glance~ を使用します。
+
 - ~C-c l i~: 現在のバッファのシンボル一覧を右側へ表示
 - ~C-c l p d~: 定義をPeek表示
 - ~C-c l p r~: 参照をPeek表示
@@ -3957,7 +4536,7 @@ Language Server Protocol経由で各言語へ提供します。
 
     :bind
     (:map lsp-ui-mode-map
-          ("C-c l h" . lsp-ui-doc-glance)
+          ("C-c l h" . my/lsp-inspect-at-point)
           ("C-c l i" . lsp-ui-imenu))
 
     :custom
@@ -3966,10 +4545,12 @@ Language Server Protocol経由で各言語へ提供します。
     (lsp-ui-doc-enable t)
     (lsp-ui-doc-use-childframe t)
 
-    ;; カーソル移動は自動表示しない。
-    ;; 詳細を確認したいときだけC-c l hで明示的に表示する。
+    ;; カーソル移動ではLSP UI Docを自動表示しない。
     (lsp-ui-doc-show-with-cursor nil)
-    ;; マウスを重ねたときは自動表示する。
+
+    ;; マウス追跡は有効にし、実際の表示は
+    ;; my/lsp-ui-doc--mouse-display-as-inspectへ差し替える。
+    ;; lsp-ui-docが併用するEmacs標準Tooltipは別途抑止する。
     (lsp-ui-doc-show-with-mouse t)
 
     (lsp-ui-doc-position 'at-point)
@@ -4016,6 +4597,39 @@ Language Server Protocol経由で各言語へ提供します。
     (lsp-ui-sideline-enable nil)
 
     :config
+    ;; マウスホバーではLSP UI Doc自身のChild Frameを出さず、
+    ;; C-c l hと同じ統合情報ポップアップを表示する。
+    (unless
+        (advice-member-p
+         #'my/lsp-ui-doc--mouse-display-as-inspect
+         #'lsp-ui-doc--mouse-display)
+      (advice-add
+       #'lsp-ui-doc--mouse-display
+       :override
+       #'my/lsp-ui-doc--mouse-display-as-inspect))
+
+    ;; lsp-ui-docが起動するEmacs標準Tooltipは無効化する。
+    ;; マウス追跡自体は残し、統合Posframeの表示トリガーとして利用する。
+    (unless
+        (advice-member-p
+         #'my/lsp-ui-doc--suppress-default-tooltip
+         #'lsp-ui-doc--tooltip-mouse-motion)
+      (advice-add
+       #'lsp-ui-doc--tooltip-mouse-motion
+       :override
+       #'my/lsp-ui-doc--suppress-default-tooltip))
+
+    ;; マウスホバー由来の統合ポップアップは、
+    ;; マウスが次の位置へ動いた時点で閉じる。
+    (unless
+        (advice-member-p
+         #'my/lsp-ui-doc--hide-mouse-inspect-on-movement
+         #'lsp-ui-doc--handle-mouse-movement)
+      (advice-add
+       #'lsp-ui-doc--handle-mouse-movement
+       :before
+       #'my/lsp-ui-doc--hide-mouse-inspect-on-movement))
+
     ;; LSP UI Docのfileリンクを元のLSPバッファのworkspace文脈で処理する。
     (unless
         (advice-member-p
