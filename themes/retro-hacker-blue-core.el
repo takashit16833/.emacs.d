@@ -11,7 +11,7 @@
 ;;; Code:
 
 (deftheme retro-hacker-blue
-  "Dark blue retro-hacker theme with a cyber-pink cursor.")
+  "Dark blue retro-hacker theme with cyber-pink accents.")
 
 (let* ((class '((class color) (min-colors 89)))
 
@@ -39,9 +39,9 @@
        (gold "#FFD700")
        (gold-bright "#FFE866")
        (green "#00FF99")
-       (red "#FF5A5A")
-       (red-light "#FF8080")
-       (pink "#FF4DE1")
+       ;; Original red role replaced with the cyber-pink accent.
+       (red "#FF4DE1")
+       (red-light "#FF76E8")
        ;; VS Codeの括弧色分けに合わせた3色。
        (delimiter-yellow "#F9D949")
        (delimiter-pink "#CC76D1")
@@ -59,8 +59,8 @@
        (find-range "#0C1733")         ; #3670BD33
        (blue-subtle "#0D172F")
        (blue-subtle-2 "#08122E")
-       (red-subtle "#31121F")
-       (red-subtle-2 "#210C1A")
+       (red-subtle "#310F39")
+       (red-subtle-2 "#210A2B")
        (gold-subtle "#211C0F"))
 
   (custom-theme-set-faces
@@ -68,7 +68,7 @@
 
    ;; Base UI
    `(default ((,class (:background ,bg :foreground ,fg))))
-   `(cursor ((,class (:background ,pink :foreground ,bg))))
+   `(cursor ((,class (:background ,red :foreground ,bg))))
    `(fringe ((,class (:background ,bg-alt :foreground ,fg-muted))))
    `(shadow ((,class (:foreground ,fg-muted))))
    `(success ((,class (:foreground ,cyan :weight bold))))
@@ -372,6 +372,26 @@
      ((,class (:background ,blue-subtle-2 :foreground "#6CB8F0" :extend t))))
    `(magit-diff-removed
      ((,class (:background ,red-subtle-2 :foreground ,red-light :extend t))))
+
+   ;; Diff HL
+   `(diff-hl-insert
+     ((,class (:inherit fringe :foreground ,fg :background unspecified
+                         :weight normal :box nil))))
+   `(diff-hl-change
+     ((,class (:inherit fringe :foreground ,gold :background unspecified
+                         :weight normal :box nil))))
+   `(diff-hl-delete
+     ((,class (:inherit fringe :foreground ,red :background unspecified
+                         :weight normal :box nil))))
+   `(diff-hl-dired-insert
+     ((,class (:inherit fringe :foreground ,fg :background unspecified
+                         :weight normal :box nil))))
+   `(diff-hl-dired-change
+     ((,class (:inherit fringe :foreground ,gold :background unspecified
+                         :weight normal :box nil))))
+   `(diff-hl-dired-delete
+     ((,class (:inherit fringe :foreground ,red :background unspecified
+                         :weight normal :box nil))))
 
    ;; Diagnostics
    `(flymake-error
