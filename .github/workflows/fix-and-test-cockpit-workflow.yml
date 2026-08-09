@@ -28,7 +28,7 @@ jobs:
           path = Path('init.org')
           text = path.read_text(encoding='utf-8')
           old = "        (my/org-workflow-write-fields fields)\n        (setq result-marker\n              (copy-marker (point)))))\n"
-          new = "        (my/org-workflow-write-fields fields)\n        (org-back-to-heading t)\n        (setq result-marker\n              (copy-marker (point)))))\n"
+          new = "        (my/org-workflow-write-fields fields)\n        (setq result-marker\n              (my/org-task-item-marker))))\n"
           if text.count(old) != 1:
               raise RuntimeError(f'expected one result marker block, found {text.count(old)}')
           path.write_text(text.replace(old, new, 1), encoding='utf-8')
@@ -50,7 +50,7 @@ jobs:
               '(defun my/org-change-workflow-state ()',
               '(defun my/org-agenda-change-workflow-state ()',
               '("t" . my/org-agenda-change-workflow-state)',
-              '(org-back-to-heading t)\n        (setq result-marker',
+              '(my/org-workflow-write-fields fields)\n        (setq result-marker\n              (my/org-task-item-marker))',
           ):
               if value not in text:
                   raise RuntimeError(f'required code missing: {value}')
