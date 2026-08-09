@@ -4812,6 +4812,16 @@ Haskellバッファでは保存時に ~Fourmolu~ で整形し、
   :type 'string
   :group 'haskell)
 
+(defun my/lsp-hls-fix-item-needs-type (item)
+  "HLS補完のresolveデータでfalseがnullへ変換されるのを防ぐ。"
+  (when-let* ((data (lsp:completion-item-data? item))
+              (resolve-value (lsp-get data :resolveValue)))
+    (when (and (equal (lsp-get data :resolvePlugin)
+                      "ghcide-completions")
+               (lsp-member? resolve-value :itemNeedsType)
+               (null (lsp-get resolve-value :itemNeedsType)))
+      (lsp-put resolve-value :itemNeedsType :json-false))))
+
 (defun my/haskell-lsp-setup ()
   "HaskellバッファでLSP Modeと保存時整形を有効にする。"
   (lsp-deferred)
@@ -4843,6 +4853,19 @@ Haskellバッファでは保存時に ~Fourmolu~ で整形し、
   (lsp-haskell-plugin-ghcide-completions-config-auto-extend-on t)
 
   :config
+  ;; lsp-modeはJSONのfalseをnilとして保持するため、HLSの補完候補を
+  ;; completionItem/resolveで送り返す際にitemNeedsTypeがnullへ変わることがある。
+  ;; HLS側ではBool必須なので、ghcide-completionsのresolveデータだけfalseへ戻す。
+  (with-eval-after-load 'lsp-completion
+    (unless
+        (advice-member-p
+         #'my/lsp-hls-fix-item-needs-type
+         'lsp-completion--fix-resolve-data)
+      (advice-add
+       'lsp-completion--fix-resolve-data
+       :after
+       #'my/lsp-hls-fix-item-needs-type)))
+
   ;; lsp-haskellが専用変数を提供していないCabal formatterを明示する。
   (lsp-register-custom-settings
    '(("haskell.cabalFormattingProvider"
