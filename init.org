@@ -2903,7 +2903,7 @@ Orgファイルの初期表示、TODO状態、Agenda対象ファイルを設定�
           (org-todo target-todo))
         (my/org-workflow-write-fields fields)
         (setq result-marker
-              (copy-marker (point)))))
+              (my/org-task-item-marker))))
 
      ;; CockpitからInboxへ戻す場合は、Cockpit側でTODOへ戻してから移動する。
      ((file-equal-p target-file my/task-inbox-file)
