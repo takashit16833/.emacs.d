@@ -2647,6 +2647,34 @@ Orgファイルの初期表示、TODO状態、Agenda対象ファイルを設定�
        (or (file-equal-p file my/task-inbox-file)
            (file-equal-p file my/task-cockpit-file))))
 
+(defun my/org-task-item-marker (&optional marker)
+  "MARKER位置からInboxまたはCockpit直下の作業項目マーカーを返す。
+子見出しにいる場合は親の作業項目まで戻る。"
+  (org-with-point-at (or marker (point-marker))
+    (unless (my/org-task-file-p (buffer-file-name))
+      (user-error "CockpitまたはInboxの項目ではありません"))
+
+    (org-back-to-heading t)
+    (while (> (org-outline-level) 2)
+      (org-up-heading-safe))
+
+    (unless (= (org-outline-level) 2)
+      (user-error "作業項目の見出しで実行してください"))
+
+    (let ((file (buffer-file-name))
+          (parent
+           (save-excursion
+             (org-up-heading-safe)
+             (org-get-heading t t t t))))
+      (unless
+          (or (and (file-equal-p file my/task-inbox-file)
+                   (equal parent "Inbox"))
+              (and (file-equal-p file my/task-cockpit-file)
+                   (equal parent "Work Items")))
+        (user-error "InboxまたはCockpit直下の作業項目ではありません")))
+
+    (copy-marker (point))))
+
 (defun my/org-workflow-target (choice source-file)
   "CHOICEとSOURCE-FILEから移動先ファイル、TODO状態、親見出しを返す。"
   (pcase choice
@@ -2917,26 +2945,24 @@ Orgファイルの初期表示、TODO状態、Agenda対象ファイルを設定�
   (interactive)
   (if (and buffer-file-name
            (my/org-task-file-p buffer-file-name))
-      (progn
-        (org-back-to-heading t)
-        (let* ((marker (copy-marker (point)))
-               (choice (my/org-read-workflow-choice marker))
-               result-marker)
-          (unwind-protect
-              (progn
-                (setq result-marker
-                      (my/org-change-task-state-at-marker
-                       marker
-                       choice))
-                (when (and (markerp result-marker)
-                           (marker-buffer result-marker))
-                  (switch-to-buffer (marker-buffer result-marker))
-                  (goto-char result-marker)
-                  (org-reveal))
-                (message "状態を%sへ変更しました" choice))
-            (set-marker marker nil)
-            (when (markerp result-marker)
-              (set-marker result-marker nil)))))
+      (let* ((marker (my/org-task-item-marker))
+             (choice (my/org-read-workflow-choice marker))
+             result-marker)
+        (unwind-protect
+            (progn
+              (setq result-marker
+                    (my/org-change-task-state-at-marker
+                     marker
+                     choice))
+              (when (and (markerp result-marker)
+                         (marker-buffer result-marker))
+                (switch-to-buffer (marker-buffer result-marker))
+                (goto-char result-marker)
+                (org-reveal))
+              (message "状態を%sへ変更しました" choice))
+          (set-marker marker nil)
+          (when (markerp result-marker)
+            (set-marker result-marker nil))))
     (call-interactively #'org-todo)))
 
 (with-eval-after-load 'org
@@ -2988,10 +3014,14 @@ Brainstormは通常の ~org-capture~ の対象にはしません。
 (defun my/org-agenda-change-workflow-state ()
   "Cockpit Agendaでは保存先を含む状態を変更し、それ以外では通常のTODO変更を行う。"
   (interactive)
-  (let* ((marker (my/org-agenda-entry-marker))
+  (let* ((agenda-marker (my/org-agenda-entry-marker))
          (source-file
-          (org-with-point-at marker
-            (buffer-file-name))))
+          (org-with-point-at agenda-marker
+            (buffer-file-name)))
+         (marker
+          (if (my/org-task-file-p source-file)
+              (my/org-task-item-marker agenda-marker)
+            agenda-marker)))
     (if (my/org-task-file-p source-file)
         (let* ((column (current-column))
                (choice (my/org-read-workflow-choice marker))
