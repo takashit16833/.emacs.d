@@ -8,6 +8,16 @@
   (unless condition
     (error "ASSERTION FAILED: %s" message)))
 
+(defun test/literal-field-present-p (field)
+  (pcase-let ((`(,begin . ,end)
+               (my/org-workflow-body-bounds)))
+    (save-excursion
+      (goto-char begin)
+      (re-search-forward
+       (format "^[ \t]*- %s:[ \t]*.*$" (regexp-quote field))
+       end
+       t))))
+
 (let* ((root (make-temp-file "cockpit-workflow-" t))
        (my/task-inbox-file (expand-file-name "inbox.org" root))
        (my/task-cockpit-file (expand-file-name "cockpit.org" root)))
@@ -85,7 +95,7 @@
               "Interrupt task")
        "Hold reason was not written")
       (test/assert
-       (null (my/org-workflow-field-value "次の一手"))
+       (not (test/literal-field-present-p "次の一手"))
        "Obsolete Doing field remained after Hold"))
 
     ;; C-g happens before any mutation.
@@ -129,7 +139,7 @@
                          "Inbox TODO state is wrong")
             (dolist (field my/org-workflow-managed-fields)
               (test/assert
-               (null (my/org-workflow-field-value field))
+               (not (test/literal-field-present-p field))
                (format "Managed field remained in Inbox: %s" field))))
         (set-marker inbox-marker nil)))
 
