@@ -1,0 +1,100 @@
+name: Apply cockpit workflow transitions
+
+on:
+  push:
+    branches:
+      - feat/cockpit-workflow-transitions
+    paths:
+      - .github/workflows/apply-cockpit-workflow-transitions.yml
+
+permissions:
+  contents: write
+
+jobs:
+  apply:
+    if: github.actor != 'github-actions[bot]'
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout branch
+        uses: actions/checkout@v4
+        with:
+          ref: feat/cockpit-workflow-transitions
+
+      - name: Apply init.org patch
+        shell: bash
+        run: |
+          printf '%s' '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' | base64 -d | gzip -d > /tmp/init.patch
+          git apply --check /tmp/init.patch
+          git apply /tmp/init.patch
+          rm .github/workflows/apply-cockpit-workflow-transitions.yml
+
+      - name: Validate structure
+        shell: python
+        run: |
+          from pathlib import Path
+
+          text = Path('init.org').read_text(encoding='utf-8')
+
+          required = (
+              '(defun my/org-change-workflow-state ()',
+              '(defun my/org-agenda-change-workflow-state ()',
+              '"C-c C-t"',
+              '("t" . my/org-agenda-change-workflow-state)',
+              '"DOING" \'("次の一手")',
+              '"HOLD" \'("再開時の一手" "中断理由")',
+              '"WAIT" \'("待っているもの" "次に確認する時点" "解除後の一手")',
+          )
+          for value in required:
+              if value not in text:
+                  raise RuntimeError(f'required code missing: {value}')
+
+          forbidden = (
+              'my/org-agenda-workflow-lanes',
+              'my/org-agenda-move-workflow-up',
+              'my/org-agenda-move-workflow-down',
+              '("s-<up>" . my/org-agenda-move-workflow-up)',
+              '("s-<down>" . my/org-agenda-move-workflow-down)',
+          )
+          for value in forbidden:
+              if value in text:
+                  raise RuntimeError(f'obsolete lane code remains: {value}')
+
+          begin_count = text.count('#+begin_src emacs-lisp')
+          end_count = text.count('#+end_src')
+          if begin_count != end_count:
+              raise RuntimeError(
+                  f'Org source block mismatch: {begin_count} begin / {end_count} end'
+              )
+
+          workflow = Path('.github/workflows/apply-cockpit-workflow-transitions.yml')
+          if workflow.exists():
+              raise RuntimeError('temporary workflow was not removed')
+
+      - name: Install Emacs
+        shell: bash
+        run: |
+          sudo apt-get update -qq
+          sudo apt-get install -y -qq emacs-nox
+
+      - name: Tangle and parse generated Emacs Lisp
+        shell: bash
+        run: |
+          emacs --batch -Q \
+            --eval "(require 'org)" \
+            --eval "(require 'ob-tangle)" \
+            --eval "(org-babel-tangle-file \"init.org\" nil \"emacs-lisp\")"
+          emacs --batch -Q \
+            --eval "(with-temp-buffer (insert-file-contents \"init.el\") (goto-char (point-min)) (condition-case nil (while t (read (current-buffer))) (end-of-file t)))"
+          emacs --batch -Q \
+            --eval "(with-temp-buffer (insert-file-contents \"early-init.el\") (goto-char (point-min)) (condition-case nil (while t (read (current-buffer))) (end-of-file t)))"
+
+      - name: Commit and push
+        shell: bash
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add init.org .github/workflows/apply-cockpit-workflow-transitions.yml
+          git diff --cached --check
+          git commit -m "コックピットの状態遷移操作を整理"
+          git push origin HEAD:feat/cockpit-workflow-transitions
