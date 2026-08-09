@@ -21,11 +21,67 @@ jobs:
         with:
           ref: feat/cockpit-workflow-transitions
 
+      - name: Keep returned marker on work item heading
+        shell: python
+        run: |
+          from pathlib import Path
+
+          path = Path('init.org')
+          text = path.read_text(encoding='utf-8')
+          old = '''        (my/org-workflow-write-fields fields)
+        (setq result-marker
+              (copy-marker (point)))))
+'''
+          new = '''        (my/org-workflow-write-fields fields)
+        (org-back-to-heading t)
+        (setq result-marker
+              (copy-marker (point)))))
+'''
+          if text.count(old) != 1:
+              raise RuntimeError(
+                  f'expected one same-file result-marker block, found {text.count(old)}'
+              )
+          path.write_text(text.replace(old, new, 1), encoding='utf-8')
+
       - name: Install Emacs
         shell: bash
         run: |
           sudo apt-get update -qq
           sudo apt-get install -y -qq emacs-nox
+
+      - name: Validate, tangle and parse
+        shell: bash
+        run: |
+          python - <<'PY'
+          from pathlib import Path
+          text = Path('init.org').read_text(encoding='utf-8')
+          required = (
+              '(defun my/org-task-item-marker (&optional marker)',
+              '(defun my/org-change-workflow-state ()',
+              '(defun my/org-agenda-change-workflow-state ()',
+              '("t" . my/org-agenda-change-workflow-state)',
+              '(org-back-to-heading t)\n        (setq result-marker',
+          )
+          for value in required:
+              if value not in text:
+                  raise RuntimeError(f'required code missing: {value}')
+          forbidden = (
+              'my/org-agenda-workflow-lanes',
+              'my/org-agenda-move-workflow-up',
+              'my/org-agenda-move-workflow-down',
+          )
+          for value in forbidden:
+              if value in text:
+                  raise RuntimeError(f'obsolete lane code remains: {value}')
+          if text.count('#+begin_src emacs-lisp') != text.count('#+end_src'):
+              raise RuntimeError('Org source block mismatch')
+          PY
+          emacs --batch -Q \
+            --eval "(require 'org)" \
+            --eval "(require 'ob-tangle)" \
+            --eval "(org-babel-tangle-file \"init.org\" nil \"emacs-lisp\")"
+          emacs --batch -Q \
+            --eval "(with-temp-buffer (insert-file-contents \"init.el\") (goto-char (point-min)) (condition-case nil (while t (read (current-buffer))) (end-of-file t)))"
 
       - name: Extract workflow functions
         shell: python
@@ -89,7 +145,6 @@ jobs:
                       (copy-marker (line-beginning-position))))
                    doing-marker)
 
-              ;; Inbox -> Doing: prompt value is written and item moves to cockpit.org.
               (cl-letf (((symbol-function 'read-string)
                          (lambda (&rest _) "Implement parser")))
                 (setq doing-marker
@@ -106,7 +161,6 @@ jobs:
                         "Implement parser")
                  "Doing next action was not written"))
 
-              ;; Child positions normalize to the level-2 work item.
               (org-with-point-at doing-marker
                 (org-end-of-subtree t t)
                 (insert "*** Child note\n")
@@ -123,7 +177,6 @@ jobs:
                     (set-marker child-marker nil)))
                 (save-buffer))
 
-              ;; Doing -> Hold: state-specific fields replace Doing handoff data.
               (let ((responses '("Resume at parser spec" "Interrupt task")))
                 (cl-letf (((symbol-function 'read-string)
                            (lambda (&rest _)
@@ -147,7 +200,6 @@ jobs:
                  (null (my/org-workflow-field-value "次の一手"))
                  "Obsolete Doing field remained after Hold"))
 
-              ;; C-g/quit occurs before mutation: no TODO/body/file change.
               (let ((before-inbox
                      (with-temp-buffer
                        (insert-file-contents my/task-inbox-file)
@@ -176,7 +228,6 @@ jobs:
                           (buffer-string)))
                  "Cockpit changed after cancelled transition"))
 
-              ;; Hold -> Inbox: item moves back, becomes TODO, and managed fields disappear.
               (let ((inbox-marker
                      (my/org-change-task-state-at-marker doing-marker "Inbox")))
                 (unwind-protect
@@ -192,7 +243,6 @@ jobs:
                          (format "Managed field remained in Inbox: %s" field))))
                   (set-marker inbox-marker nil)))
 
-              ;; The level-1 container heading must never be transitioned as a work item.
               (let ((root-error nil))
                 (with-current-buffer (find-file-noselect my/task-cockpit-file)
                   (goto-char (point-min))
@@ -212,13 +262,13 @@ jobs:
 
           emacs --batch -Q -l /tmp/test-cockpit-workflow.el
 
-      - name: Remove temporary workflow
+      - name: Commit fix and remove temporary workflow
         shell: bash
         run: |
           rm .github/workflows/test-cockpit-workflow-transitions.yml
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          git add .github/workflows/test-cockpit-workflow-transitions.yml
+          git add init.org .github/workflows/test-cockpit-workflow-transitions.yml
           git diff --cached --check
-          git commit -m "コックピット状態遷移の動作検証を完了"
+          git commit -m "状態変更後の項目位置を見出しへ保持"
           git push origin HEAD:feat/cockpit-workflow-transitions
