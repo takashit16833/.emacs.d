@@ -1,0 +1,102 @@
+name: Fix and test cockpit workflow
+
+on:
+  push:
+    branches:
+      - feat/cockpit-workflow-transitions
+    paths:
+      - .github/workflows/fix-and-test-cockpit-workflow.yml
+
+permissions:
+  contents: write
+
+jobs:
+  test:
+    if: github.actor != 'github-actions[bot]'
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout branch
+        uses: actions/checkout@v4
+        with:
+          ref: feat/cockpit-workflow-transitions
+
+      - name: Fix returned marker
+        shell: python
+        run: |
+          from pathlib import Path
+          path = Path('init.org')
+          text = path.read_text(encoding='utf-8')
+          old = "        (my/org-workflow-write-fields fields)\n        (setq result-marker\n              (copy-marker (point)))))\n"
+          new = "        (my/org-workflow-write-fields fields)\n        (org-back-to-heading t)\n        (setq result-marker\n              (copy-marker (point)))))\n"
+          if text.count(old) != 1:
+              raise RuntimeError(f'expected one result marker block, found {text.count(old)}')
+          path.write_text(text.replace(old, new, 1), encoding='utf-8')
+
+      - name: Install Emacs
+        shell: bash
+        run: |
+          sudo apt-get update -qq
+          sudo apt-get install -y -qq emacs-nox
+
+      - name: Validate and tangle
+        shell: bash
+        run: |
+          python - <<'PY'
+          from pathlib import Path
+          text = Path('init.org').read_text(encoding='utf-8')
+          for value in (
+              '(defun my/org-task-item-marker (&optional marker)',
+              '(defun my/org-change-workflow-state ()',
+              '(defun my/org-agenda-change-workflow-state ()',
+              '("t" . my/org-agenda-change-workflow-state)',
+              '(org-back-to-heading t)\n        (setq result-marker',
+          ):
+              if value not in text:
+                  raise RuntimeError(f'required code missing: {value}')
+          for value in (
+              'my/org-agenda-workflow-lanes',
+              'my/org-agenda-move-workflow-up',
+              'my/org-agenda-move-workflow-down',
+          ):
+              if value in text:
+                  raise RuntimeError(f'obsolete lane code remains: {value}')
+          if text.count('#+begin_src emacs-lisp') != text.count('#+end_src'):
+              raise RuntimeError('Org source block mismatch')
+          PY
+          emacs --batch -Q --eval "(require 'org)" --eval "(require 'ob-tangle)" --eval "(org-babel-tangle-file \"init.org\" nil \"emacs-lisp\")"
+          emacs --batch -Q --eval "(with-temp-buffer (insert-file-contents \"init.el\") (goto-char (point-min)) (condition-case nil (while t (read (current-buffer))) (end-of-file t)))"
+
+      - name: Extract transition functions
+        shell: python
+        run: |
+          from pathlib import Path
+          import re
+          text = Path('init.org').read_text(encoding='utf-8')
+          def section_block(heading):
+              start = text.index(heading)
+              next_heading = text.find('\n** ', start + len(heading))
+              section = text[start:] if next_heading < 0 else text[start:next_heading]
+              match = re.search(r'^#\+begin_src emacs-lisp[^\n]*\n(.*?)^#\+end_src\s*$', section, flags=re.MULTILINE | re.DOTALL)
+              if not match:
+                  raise RuntimeError(f'Elisp block not found: {heading}')
+              return match.group(1)
+          Path('/tmp/cockpit-workflow.el').write_text(section_block('** InboxからCockpitへの移動') + '\n' + section_block('** Cockpitの状態遷移'), encoding='utf-8')
+
+      - name: Exercise transitions
+        shell: bash
+        run: |
+          emacs --batch -Q -l .github/tmp/cockpit-workflow-test.el
+
+      - name: Commit fix and cleanup
+        shell: bash
+        run: |
+          rm -f .github/workflows/test-cockpit-workflow-transitions.yml
+          rm -f .github/workflows/fix-and-test-cockpit-workflow.yml
+          rm -f .github/tmp/cockpit-workflow-test.el
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add init.org .github/workflows/test-cockpit-workflow-transitions.yml .github/workflows/fix-and-test-cockpit-workflow.yml .github/tmp/cockpit-workflow-test.el
+          git diff --cached --check
+          git commit -m "状態変更後の項目位置を見出しへ保持"
+          git push origin HEAD:feat/cockpit-workflow-transitions
