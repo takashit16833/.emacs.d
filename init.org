@@ -2448,73 +2448,10 @@ Brainstormは個人作業とは分離し、人間とAIで共有する設計候�
 
 Orgファイルの初期表示、TODO状態、Agenda対象ファイルを設定します。
 
-~Shift+TAB~ を連続して押すと、文書全体の表示を次の順番で切り替えます。
-
-1. すべて閉じる
-2. レベル1を開く（レベル2の見出しまで表示する）
-3. レベル1〜2を開く（レベル3の見出しまで表示する）
-4. すべて開く
-
-表の中では、標準どおり前のセルへ移動します。
 #+begin_src emacs-lisp
   (use-package org
     :ensure nil
     :defer t
-
-    :preface
-    (defvar-local my/org-global-cycle-step -1
-      "独自のOrg全体表示サイクルで現在選択している段階。")
-
-    (defun my/org-global-cycle (&optional arg)
-      "Org全体の表示を、全閉、レベル1、レベル1〜2、全開の順に切り替える。
-
-表の中では前のセルへ移動する。
-ARGが指定された場合は、Org標準の全体表示コマンドへ委譲する。"
-      (interactive "P")
-      (cond
-       ;; 表内のShift+TABは、Org標準どおり前のセルへ移動する。
-       ((org-at-table-p)
-        (setq my/org-global-cycle-step -1)
-        (call-interactively #'org-table-previous-field))
-
-       ;; 数値引数などを指定した場合は、Org標準の動作を維持する。
-       (arg
-        (setq my/org-global-cycle-step -1)
-        (org-global-cycle arg))
-
-       (t
-        ;; last-commandには依存せず、4段階を必ず順番に循環させる。
-        (setq my/org-global-cycle-step
-              (mod (1+ my/org-global-cycle-step) 4))
-
-        (pcase my/org-global-cycle-step
-          (0
-           (run-hook-with-args 'org-pre-cycle-hook 'overview)
-           (org-overview)
-           (setq org-cycle-global-status 'overview)
-           (run-hook-with-args 'org-cycle-hook 'overview)
-           (message "Org: すべての見出しを閉じました"))
-
-          (1
-           (run-hook-with-args 'org-pre-cycle-hook 'contents)
-           (org-cycle-content 2)
-           (setq org-cycle-global-status 'contents)
-           (run-hook-with-args 'org-cycle-hook 'contents)
-           (message "Org: レベル1を開きました"))
-
-          (2
-           (run-hook-with-args 'org-pre-cycle-hook 'contents)
-           (org-cycle-content 3)
-           (setq org-cycle-global-status 'contents)
-           (run-hook-with-args 'org-cycle-hook 'contents)
-           (message "Org: レベル1〜2を開きました"))
-
-          (3
-           (run-hook-with-args 'org-pre-cycle-hook 'all)
-           (org-fold-show-all)
-           (setq org-cycle-global-status 'all)
-           (run-hook-with-args 'org-cycle-hook 'all)
-           (message "Org: すべて開きました"))))))
 
     :init
     ;; Org modeでもShift+矢印による範囲選択を使用する。
@@ -2536,11 +2473,6 @@ ARGが指定された場合は、Org標準の全体表示コマンドへ委譲�
 
     ;; DONEへ変更した日時を記録する。
     (org-log-done 'time)
-
-    :bind
-    (:map org-mode-map
-          ("<backtab>" . my/org-global-cycle)
-          ("S-<tab>" . my/org-global-cycle))
 
     :config
     ;; 通常のAgenda検索対象は、個人作業のInboxとCockpitだけにする。
