@@ -2417,9 +2417,11 @@ Org Modeによる文書編集、情報整理、Capture、Agenda、作業管理�
 ** 管理対象ファイル
 
 個人の気づきや作業状態を管理するOrgファイルの場所を定義します。
+Brainstormは個人作業とは分離し、人間とAIで共有する設計候補の索引だけをAgenda対象にします。
 
-- ~inbox.org~: 未整理の気づきや疑問
-- ~cockpit.org~: 状態を持つ作業項目
+- ~inbox.org~ : 未整理の気づきや疑問
+- ~cockpit.org~ : 状態を持つ作業項目
+- ~brainstorm/brainstorm.org~ : Brainstorm本文へのリンクと採否状態の索引
 #+begin_src emacs-lisp
 (defconst my/task-org-directory
   (expand-file-name "~/org/cockpit/")
@@ -2432,6 +2434,14 @@ Org Modeによる文書編集、情報整理、Capture、Agenda、作業管理�
 (defconst my/task-cockpit-file
   (expand-file-name "cockpit.org" my/task-org-directory)
   "状態を持つ作業項目を保存するOrgファイル。")
+
+(defconst my/brainstorm-org-directory
+  (expand-file-name "~/org/brainstorm/")
+  "人間とAIで共有するBrainstormを保存するディレクトリ。")
+
+(defconst my/brainstorm-index-file
+  (expand-file-name "brainstorm.org" my/brainstorm-org-directory)
+  "Brainstorm本文へのリンクと採否状態を管理するOrgファイル。")
 #+end_src
 
 ** Org Mode本体
@@ -2533,7 +2543,8 @@ ARGが指定された場合は、Org標準の全体表示コマンドへ委譲�
           ("S-<tab>" . my/org-global-cycle))
 
     :config
-    ;; InboxとCockpitをAgendaの検索対象にする。
+    ;; 通常のAgenda検索対象は、個人作業のInboxとCockpitだけにする。
+    ;; Brainstormは専用のcustom commandから明示的に参照する。
     (setq org-agenda-files
           (list my/task-inbox-file
                 my/task-cockpit-file)))
@@ -2658,12 +2669,17 @@ ARGが指定された場合は、Org標準の全体表示コマンドへ委譲�
    #'my/move-inbox-item-to-work-items))
 #+end_src
 
-** Cockpit Agenda：作業状態の一覧
+** Org Agenda：CockpitとBrainstormの一覧
 
 ~C-c a c~ で、Cockpitの作業状態を一覧表示します。
 表示上の分類はTODO状態から自動生成します。
 
-=Agenda= 項目上では、次のキーで表示順に隣接するレーンへ移動します。
+~C-c a b~ では、Brainstormの索引を状態別に一覧表示します。
+Brainstorm本文は別ファイルへ保持し、Agendaでは本文へのリンクと
+=PROVISIONAL= 、 =ADOPTED= 、 =REJECTED= の状態だけを管理します。
+Brainstormは通常の ~org-capture~ の対象にはしません。
+
+=Cockpit Agenda= 項目上では、次のキーで表示順に隣接するレーンへ移動します。
 移動後は同じ項目へカーソルも追従するため、
 ~Cmd~ を押したまま上下を連続入力できます。
 
@@ -2889,7 +2905,27 @@ Cockpit内の移動ではTODO状態を変更し、
             (todo "TODO"
                   ((org-agenda-overriding-header "Inbox")
                    (org-agenda-files
-                    '(,my/task-inbox-file)))))))))
+                    '(,my/task-inbox-file))))))
+
+          ("b" "Brainstorm"
+           (
+            ;; 関連作業で積極的に考慮する有力な仮案。
+            (todo "PROVISIONAL"
+                  ((org-agenda-overriding-header "Provisional")
+                   (org-agenda-files
+                    '(,my/brainstorm-index-file))))
+
+            ;; 採用判断が確定した案。
+            (todo "ADOPTED"
+                  ((org-agenda-overriding-header "Adopted")
+                   (org-agenda-files
+                    '(,my/brainstorm-index-file))))
+
+            ;; 不採用判断が確定した案。
+            (todo "REJECTED"
+                  ((org-agenda-overriding-header "Rejected")
+                   (org-agenda-files
+                    '(,my/brainstorm-index-file)))))))))
 #+end_src
 
 ** Org Pomodoro：集中時間の管理
