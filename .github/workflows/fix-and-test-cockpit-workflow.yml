@@ -100,3 +100,5 @@ jobs:
           git diff --cached --check
           git commit -m "状態変更後の項目位置を見出しへ保持"
           git push origin HEAD:feat/cockpit-workflow-transitions
+
+# Runtime test corrected to check literal field names.
