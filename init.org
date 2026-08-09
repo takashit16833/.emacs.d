@@ -1350,8 +1350,8 @@ Tab Lineのバッファ名は並び順を維持し、
 戻る・進むでは同じファイルを現在のウィンドウへ開き直さず、
 元のウィンドウそのものを選択します。
 
-- ~<mouse-4>~: 1つ前の場所へ戻る
-- ~<mouse-5>~: 戻る前の場所へ進む
+- ~<home>~ : 戻る前の場所へ進む
+- ~<end>~ : 1つ前の場所へ戻る
 
 初期状態では、定義ジャンプ、Consultによるファイル内検索、
 行番号指定のジャンプを明示的なジャンプとして扱います。
@@ -1692,8 +1692,8 @@ SOURCE-MARKERは移動前の正確なカーソル位置を指す。"
     (better-jumper-add-jump-behavior 'replace)
 
     :bind
-    (("<mouse-4>" . my/navigation-history-backward)
-     ("<mouse-5>" . my/navigation-history-forward))
+    (("<home>" . my/navigation-history-forward)
+     ("<end>" . my/navigation-history-backward))
 
     :config
     (better-jumper-mode 1)
