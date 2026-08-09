@@ -2884,7 +2884,13 @@ Orgの作業項目に対してポモドーロタイマーを開始します。
   (org-pomodoro-long-break-length 15)
 
   ;; 4回のポモドーロごとに長い休憩を入れる。
-  (org-pomodoro-long-break-frequency 4))
+  (org-pomodoro-long-break-frequency 4)
+
+  :config
+  ;; Retro Hacker Blueのサイバーピンクで
+  ;; モードラインの Pomodoro~mm:ss を表示する。
+  (set-face-attribute 'org-pomodoro-mode-line nil
+                      :foreground "#FF4DE1"))
 #+end_src
 
 ** Org Modern：Orgの表示
