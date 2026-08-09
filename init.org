@@ -423,11 +423,22 @@ Emacs標準の表示機能を ~use-package emacs~ で設定します。
 *** フルスクリーン
 
 macOS標準と同じ ~Ctrl+Cmd+F~ で、
-現在のEmacsフレームのフルスクリーン表示を切り替えます。
+現在のEmacsフレームをネイティブフルスクリーンへ切り替えます。
+もう一度押すと通常表示へ戻ります。
 
 #+begin_src emacs-lisp
-;; Ctrl+Cmd+F：フルスクリーン表示を切り替える。
-(keymap-global-set "C-s-f" #'toggle-frame-fullscreen)
+(defun my/mac-toggle-native-fullscreen ()
+  "macOS標準のネイティブフルスクリーンを切り替える。"
+  (interactive)
+  (set-frame-parameter
+   nil
+   'fullscreen
+   (if (eq (frame-parameter nil 'fullscreen) 'fullscreen)
+       nil
+     'fullscreen)))
+
+;; Ctrl+Cmd+F：macOS標準のフルスクリーン表示を切り替える。
+(keymap-global-set "C-s-f" #'my/mac-toggle-native-fullscreen)
 #+end_src
 
 ** 外観
