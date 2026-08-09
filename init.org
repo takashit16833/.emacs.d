@@ -2508,27 +2508,27 @@ Orgファイルの初期表示、TODO状態、Agenda対象ファイルを設定�
           ;; まだ着手順を決めていない作業項目。
           ("ct" "TODO" entry
            (file+headline ,my/task-cockpit-file "Work Items")
-           "* TODO %?\n- 次: \n%a")
+           "* TODO %?\n%a")
 
           ;; 次に着手できる作業項目。
           ("cn" "NEXT" entry
            (file+headline ,my/task-cockpit-file "Work Items")
-           "* NEXT %?\n- 次: \n%a")
+           "* NEXT %?\n%a")
 
           ;; 現在作業中の項目。
           ("cd" "DOING" entry
            (file+headline ,my/task-cockpit-file "Work Items")
-           "* DOING %?\n- 今: \n- 次: \n%a")
+           "* DOING %?\n- 次の一手: \n%a")
 
           ;; 差し込みなどで中断する項目。
           ("ch" "HOLD" entry
            (file+headline ,my/task-cockpit-file "Work Items")
-           "* HOLD %?\n- 中断地点: \n- 再開時の一手: \n- 中断理由: \n%a")
+           "* HOLD %?\n- 再開時の一手: \n- 中断理由: \n%a")
 
           ;; 外部条件や回答を待つ項目。
           ("cw" "WAIT" entry
            (file+headline ,my/task-cockpit-file "Work Items")
-           "* WAIT %?\n- 待っているもの: \n- 解除条件: \n- 次に確認する時点: \n- 解除後の一手: \n%a"))))
+           "* WAIT %?\n- 待っているもの: \n- 次に確認する時点: \n- 解除後の一手: \n%a"))))
 #+end_src
 
 ** InboxからCockpitへの移動
@@ -2601,58 +2601,221 @@ Orgファイルの初期表示、TODO状態、Agenda対象ファイルを設定�
    #'my/move-inbox-item-to-work-items))
 #+end_src
 
-** Org Agenda：CockpitとBrainstormの一覧
+** Cockpitの状態遷移
 
-~C-c a c~ で、Cockpitの作業状態を一覧表示します。
-表示上の分類はTODO状態から自動生成します。
+~inbox.org~ と ~cockpit.org~ の項目では、TODO keywordだけでなく保存先も含めて
+1つのワークフロー状態として扱います。
 
-~C-c a b~ では、Brainstormの索引を状態別に一覧表示します。
-Brainstorm本文は別ファイルへ保持し、Agendaでは本文へのリンクと
-=PROVISIONAL= 、 =ADOPTED= 、 =REJECTED= の状態だけを管理します。
-Brainstormは通常の ~org-capture~ の対象にはしません。
+- =Inbox= : ~inbox.org~ の =TODO=
+- =Planned= : ~cockpit.org~ の =TODO=
+- =Next= : ~cockpit.org~ の =NEXT=
+- =Doing= : ~cockpit.org~ の =DOING=
+- =Hold= : ~cockpit.org~ の =HOLD=
+- =Wait= : ~cockpit.org~ の =WAIT=
+- =Done= : 現在のファイルの =DONE=
+- =Drop= : 現在のファイルの =DROP=
 
-=Cockpit Agenda= 項目上では、次のキーで表示順に隣接するレーンへ移動します。
-移動後は同じ項目へカーソルも追従するため、
-~Cmd~ を押したまま上下を連続入力できます。
+=Cockpit= / =Inbox= のOrgバッファでは ~C-c C-t~ 、Cockpit Agendaでは ~t~ で状態を選びます。
+=Inbox= とCockpit側の状態を行き来する場合は、見出し全体を対応するファイルへ移動します。
 
-Cockpit内の移動ではTODO状態を変更し、
-=Planned= と =Inbox= の境界では項目をファイル間で移動します。
+=Doing= 、 =Hold= 、 =Wait= へ変更するときは、再開に必要な項目を変更前に入力します。
+入力中に ~C-g~ で中止した場合は、状態変更もファイル移動も行いません。
 
 #+begin_src emacs-lisp
-(require 'cl-lib)
+(require 'subr-x)
 
-(defconst my/org-agenda-workflow-lanes
-  `((:name "Active"
-     :file ,my/task-cockpit-file
-     :todo "DOING"
-     :parent "Work Items")
-    (:name "Next"
-     :file ,my/task-cockpit-file
-     :todo "NEXT"
-     :parent "Work Items")
-    (:name "Suspended"
-     :file ,my/task-cockpit-file
-     :todo "HOLD"
-     :parent "Work Items")
-    (:name "Waiting"
-     :file ,my/task-cockpit-file
-     :todo "WAIT"
-     :parent "Work Items")
-    (:name "Planned"
-     :file ,my/task-cockpit-file
-     :todo "TODO"
-     :parent "Work Items")
-    (:name "Inbox"
-     :file ,my/task-inbox-file
-     :todo "TODO"
-     :parent "Inbox"))
-  "Cockpit Agendaで上下移動するワークフローレーン。")
+(defconst my/org-workflow-state-choices
+  '("Inbox" "Planned" "Next" "Doing" "Hold" "Wait" "Done" "Drop")
+  "CockpitとInboxで選択できる論理的な作業状態。")
 
-(defun my/org-agenda-entry-marker ()
-  "現在のAgenda行が参照するOrg見出しのマーカーを返す。"
-  (or (org-get-at-bol 'org-hd-marker)
-      (org-get-at-bol 'org-marker)
-      (user-error "Agenda項目の行にカーソルを置いてください")))
+(defconst my/org-workflow-managed-fields
+  '("今"
+    "次"
+    "次の一手"
+    "中断地点"
+    "再開時の一手"
+    "中断理由"
+    "待っているもの"
+    "解除条件"
+    "次に確認する時点"
+    "解除後の一手")
+  "状態遷移時にCockpitが管理する本文項目。")
+
+(defun my/org-task-file-p (file)
+  "FILEがInboxまたはCockpitの作業管理ファイルなら非nilを返す。"
+  (and file
+       (or (file-equal-p file my/task-inbox-file)
+           (file-equal-p file my/task-cockpit-file))))
+
+(defun my/org-workflow-target (choice source-file)
+  "CHOICEとSOURCE-FILEから移動先ファイル、TODO状態、親見出しを返す。"
+  (pcase choice
+    ("Inbox"
+     (list :file my/task-inbox-file
+           :todo "TODO"
+           :parent "Inbox"))
+    ("Planned"
+     (list :file my/task-cockpit-file
+           :todo "TODO"
+           :parent "Work Items"))
+    ("Next"
+     (list :file my/task-cockpit-file
+           :todo "NEXT"
+           :parent "Work Items"))
+    ("Doing"
+     (list :file my/task-cockpit-file
+           :todo "DOING"
+           :parent "Work Items"))
+    ("Hold"
+     (list :file my/task-cockpit-file
+           :todo "HOLD"
+           :parent "Work Items"))
+    ("Wait"
+     (list :file my/task-cockpit-file
+           :todo "WAIT"
+           :parent "Work Items"))
+    ("Done"
+     (list :file source-file
+           :todo "DONE"))
+    ("Drop"
+     (list :file source-file
+           :todo "DROP"))
+    (_
+     (user-error "未知のワークフロー状態です: %s" choice))))
+
+(defun my/org-workflow-current-choice (marker)
+  "MARKERが指す作業項目の論理的な状態名を返す。"
+  (org-with-point-at marker
+    (let ((file (buffer-file-name))
+          (todo (org-get-todo-state)))
+      (cond
+       ((and (file-equal-p file my/task-inbox-file)
+             (equal todo "TODO"))
+        "Inbox")
+       ((and (file-equal-p file my/task-cockpit-file)
+             (equal todo "TODO"))
+        "Planned")
+       ((equal todo "NEXT") "Next")
+       ((equal todo "DOING") "Doing")
+       ((equal todo "HOLD") "Hold")
+       ((equal todo "WAIT") "Wait")
+       ((equal todo "DONE") "Done")
+       ((equal todo "DROP") "Drop")
+       (t nil)))))
+
+(defun my/org-workflow-required-fields (todo)
+  "TODO状態へ入るときに必須となる本文項目名を返す。"
+  (pcase todo
+    ("DOING" '("次の一手"))
+    ("HOLD" '("再開時の一手" "中断理由"))
+    ("WAIT" '("待っているもの" "次に確認する時点" "解除後の一手"))
+    (_ nil)))
+
+(defun my/org-workflow-field-aliases (field)
+  "FIELDの現在値を探すときに、再利用できる旧・他状態の項目名も返す。"
+  (pcase field
+    ("次の一手"
+     '("次の一手" "次" "再開時の一手" "解除後の一手"))
+    ("再開時の一手"
+     '("再開時の一手" "次の一手" "次"))
+    ("解除後の一手"
+     '("解除後の一手" "次の一手" "次" "再開時の一手"))
+    (_
+     (list field))))
+
+(defun my/org-workflow-body-bounds ()
+  "現在見出しの本文先頭から、最初の次見出し直前までの範囲を返す。"
+  (org-back-to-heading t)
+  (let ((begin
+         (save-excursion
+           (org-end-of-meta-data t)
+           (point)))
+        (end
+         (save-excursion
+           (org-end-of-meta-data t)
+           (if (re-search-forward org-heading-regexp nil t)
+               (line-beginning-position)
+             (point-max)))))
+    (cons begin end)))
+
+(defun my/org-workflow-field-value (field)
+  "現在見出しの本文からFIELDの値を取得する。"
+  (pcase-let ((`(,begin . ,end)
+               (my/org-workflow-body-bounds)))
+    (catch 'value
+      (dolist (alias (my/org-workflow-field-aliases field))
+        (save-excursion
+          (goto-char begin)
+          (when (re-search-forward
+                 (format "^[ \\t]*- %s:[ \\t]*\\(.*\\)$"
+                         (regexp-quote alias))
+                 end
+                 t)
+            (throw 'value
+                   (string-trim
+                    (match-string-no-properties 1))))))
+      nil)))
+
+(defun my/org-read-required-workflow-value (field current)
+  "FIELDの必須値を読み取る。CURRENTがあれば既定値として使用する。"
+  (let ((default
+         (and current
+              (not (string-empty-p current))
+              current))
+        value)
+    (while (or (null value)
+               (string-empty-p (string-trim value)))
+      (setq value
+            (read-string
+             (format "%s（必須）: " field)
+             nil
+             nil
+             default)))
+    (string-trim value)))
+
+(defun my/org-workflow-read-fields (marker todo)
+  "MARKERの現在値を既定値にしつつ、TODOで必要な本文項目を読み取る。"
+  (org-with-point-at marker
+    (mapcar
+     (lambda (field)
+       (cons field
+             (my/org-read-required-workflow-value
+              field
+              (my/org-workflow-field-value field))))
+     (my/org-workflow-required-fields todo))))
+
+(defun my/org-workflow-remove-managed-fields ()
+  "現在見出しの本文から、Cockpitが管理する旧・現項目を削除する。"
+  (pcase-let ((`(,begin . ,end)
+               (my/org-workflow-body-bounds)))
+    (let ((end-marker (copy-marker end)))
+      (unwind-protect
+          (dolist (field my/org-workflow-managed-fields)
+            (save-excursion
+              (goto-char begin)
+              (while (re-search-forward
+                      (format "^[ \\t]*- %s:[ \\t]*.*$"
+                              (regexp-quote field))
+                      end-marker
+                      t)
+                (delete-region
+                 (line-beginning-position)
+                 (min (point-max)
+                      (1+ (line-end-position)))))))
+        (set-marker end-marker nil)))))
+
+(defun my/org-workflow-write-fields (fields)
+  "現在見出しの管理項目をFIELDSで置き換える。"
+  (my/org-workflow-remove-managed-fields)
+  (when fields
+    (org-back-to-heading t)
+    (org-end-of-meta-data t)
+    (unless (bolp)
+      (insert "\n"))
+    (dolist (field fields)
+      (insert (format "- %s: %s\n"
+                      (car field)
+                      (cdr field))))))
 
 (defun my/org-last-refile-marker ()
   "直前にRefileされたOrg見出しを指す新しいマーカーを返す。"
@@ -2676,6 +2839,133 @@ Cockpit内の移動ではTODO状態を変更し、
     (with-current-buffer (find-file-noselect file)
       (copy-marker position))))
 
+(defun my/org-change-task-state-at-marker (marker choice)
+  "MARKERの作業項目をCHOICEへ変更し、変更後の見出しマーカーを返す。"
+  (let* ((source-file
+          (org-with-point-at marker
+            (buffer-file-name)))
+         (target
+          (my/org-workflow-target choice source-file))
+         (target-file
+          (plist-get target :file))
+         (target-todo
+          (plist-get target :todo))
+         (target-parent
+          (plist-get target :parent))
+         (cross-file
+          (not (file-equal-p source-file target-file)))
+         ;; 入力と移動先の検証を、ファイル変更より前に完了させる。
+         (fields
+          (my/org-workflow-read-fields marker target-todo))
+         (target-location
+          (and cross-file
+               (my/org-refile-location
+                target-file
+                target-parent)))
+         result-marker)
+
+    (unless (my/org-task-file-p source-file)
+      (user-error "CockpitまたはInboxの項目ではありません"))
+
+    (cond
+     ;; 同じファイル内ではTODO状態と管理項目だけを更新する。
+     ((not cross-file)
+      (org-with-point-at marker
+        (unless (equal (org-get-todo-state) target-todo)
+          (org-todo target-todo))
+        (my/org-workflow-write-fields fields)
+        (setq result-marker
+              (copy-marker (point)))))
+
+     ;; CockpitからInboxへ戻す場合は、Cockpit側でTODOへ戻してから移動する。
+     ((file-equal-p target-file my/task-inbox-file)
+      (org-with-point-at marker
+        (unless (equal (org-get-todo-state) "TODO")
+          (org-todo "TODO"))
+        (my/org-workflow-write-fields nil)
+        (org-refile nil nil target-location))
+      (setq result-marker
+            (my/org-last-refile-marker)))
+
+     ;; InboxからCockpitへ進める場合は、移動後のCockpit側でTODO状態を設定する。
+     (t
+      (org-with-point-at marker
+        (org-refile nil nil target-location))
+      (setq result-marker
+            (my/org-last-refile-marker))
+      (org-with-point-at result-marker
+        (unless (equal (org-get-todo-state) target-todo)
+          (org-todo target-todo))
+        (my/org-workflow-write-fields fields))))
+
+    (my/save-task-org-buffers)
+    result-marker))
+
+(defun my/org-read-workflow-choice (marker)
+  "MARKERの現在状態を既定値にして、変更先の状態を選択する。"
+  (completing-read
+   "状態: "
+   my/org-workflow-state-choices
+   nil
+   t
+   nil
+   nil
+   (my/org-workflow-current-choice marker)))
+
+(defun my/org-change-workflow-state ()
+  "CockpitとInboxでは保存先を含む状態を変更し、それ以外では通常のTODO変更を行う。"
+  (interactive)
+  (if (and buffer-file-name
+           (my/org-task-file-p buffer-file-name))
+      (progn
+        (org-back-to-heading t)
+        (let* ((marker (copy-marker (point)))
+               (choice (my/org-read-workflow-choice marker))
+               result-marker)
+          (unwind-protect
+              (progn
+                (setq result-marker
+                      (my/org-change-task-state-at-marker
+                       marker
+                       choice))
+                (when (and (markerp result-marker)
+                           (marker-buffer result-marker))
+                  (switch-to-buffer (marker-buffer result-marker))
+                  (goto-char result-marker)
+                  (org-reveal))
+                (message "状態を%sへ変更しました" choice))
+            (set-marker marker nil)
+            (when (markerp result-marker)
+              (set-marker result-marker nil)))))
+    (call-interactively #'org-todo)))
+
+(with-eval-after-load 'org
+  (keymap-set
+   org-mode-map
+   "C-c C-t"
+   #'my/org-change-workflow-state))
+#+end_src
+
+** Org Agenda：CockpitとBrainstormの一覧
+
+~C-c a c~ で、Cockpitの作業状態を一覧表示します。
+表示上の分類はTODO状態から自動生成します。
+
+Cockpit Agendaの作業項目上では ~t~ で =Inbox= を含む状態を直接選択できます。
+=Inbox= とCockpit側の状態を行き来すると、対応するOrgファイルへ項目も移動します。
+
+~C-c a b~ では、Brainstormの索引を状態別に一覧表示します。
+Brainstorm本文は別ファイルへ保持し、Agendaでは本文へのリンクと
+=PROVISIONAL= 、 =ADOPTED= 、 =REJECTED= の状態だけを管理します。
+Brainstormは通常の ~org-capture~ の対象にはしません。
+
+#+begin_src emacs-lisp
+(defun my/org-agenda-entry-marker ()
+  "現在のAgenda行が参照するOrg見出しのマーカーを返す。"
+  (or (org-get-at-bol 'org-hd-marker)
+      (org-get-at-bol 'org-marker)
+      (user-error "Agenda項目の行にカーソルを置いてください")))
+
 (defun my/org-agenda-goto-marker (marker column)
   "Agenda内でMARKERに対応する項目へ移動し、COLUMNを復元する。"
   (goto-char (point-min))
@@ -2690,105 +2980,39 @@ Cockpit内の移動ではTODO状態を変更し、
             (setq found t)
           (forward-line 1))))
 
-    (unless found
-      (user-error "移動後のAgenda項目を見つけられません"))
+    (when found
+      (org-move-to-column column)
+      (org-agenda-do-context-action)
+      t)))
 
-    (org-move-to-column column)
-    (org-agenda-do-context-action)))
-
-(defun my/org-agenda-lane-index (file todo)
-  "FILEとTODOに対応するワークフローレーンの位置を返す。"
-  (or
-   (cl-position-if
-    (lambda (lane)
-      (and (file-equal-p file
-                         (plist-get lane :file))
-           (equal todo
-                  (plist-get lane :todo))))
-    my/org-agenda-workflow-lanes)
-   (user-error
-    "現在の項目はレーン移動の対象外です: %s / %s"
-    file
-    todo)))
-
-(defun my/org-agenda-move-workflow-lane (offset)
-  "Agenda項目とカーソルをOFFSET方向のワークフローレーンへ移動する。"
-  (let* ((column (current-column))
-         (marker (my/org-agenda-entry-marker))
+(defun my/org-agenda-change-workflow-state ()
+  "Cockpit Agendaでは保存先を含む状態を変更し、それ以外では通常のTODO変更を行う。"
+  (interactive)
+  (let* ((marker (my/org-agenda-entry-marker))
          (source-file
           (org-with-point-at marker
-            (buffer-file-name)))
-         (source-todo
-          (org-with-point-at marker
-            (org-get-todo-state)))
-         (source-index
-          (my/org-agenda-lane-index
-           source-file
-           source-todo))
-         (target-index (+ source-index offset)))
-
-    (unless (< -1
-               target-index
-               (length my/org-agenda-workflow-lanes))
-      (user-error
-       "これ以上%sのレーンへは移動できません"
-       (if (< offset 0) "上" "下")))
-
-    (let* ((source-lane
-            (nth source-index
-                 my/org-agenda-workflow-lanes))
-           (target-lane
-            (nth target-index
-                 my/org-agenda-workflow-lanes))
-           (target-file
-            (plist-get target-lane :file))
-           (target-todo
-            (plist-get target-lane :todo))
-           moved-marker)
-
-      (unwind-protect
-          (progn
-            (if (file-equal-p source-file target-file)
-                ;; Cockpit内では、元見出しのTODO状態だけを変更する。
-                (progn
-                  (org-agenda-todo target-todo)
-                  (setq moved-marker
-                        (copy-marker
-                         org-last-heading-marker)))
-
-              ;; InboxとCockpitの境界では、見出し全体をファイル間移動する。
-              (org-agenda-refile
-               nil
-               (my/org-refile-location
-                target-file
-                (plist-get target-lane :parent))
-               t)
-              (setq moved-marker
-                    (my/org-last-refile-marker)))
-
-            (my/save-task-org-buffers)
-            (org-agenda-redo)
-            (my/org-agenda-goto-marker
-             moved-marker
-             column)
-
-            (message
-             "%sから%sへ移動しました"
-             (plist-get source-lane :name)
-             (plist-get target-lane :name)))
-
-        (when (markerp moved-marker)
-          (set-marker moved-marker nil))))))
-
-(defun my/org-agenda-move-workflow-up ()
-  "Agenda項目を1つ上のワークフローレーンへ移動する。"
-  (interactive)
-  (my/org-agenda-move-workflow-lane -1))
-
-(defun my/org-agenda-move-workflow-down ()
-  "Agenda項目を1つ下のワークフローレーンへ移動する。"
-  (interactive)
-  (my/org-agenda-move-workflow-lane 1))
+            (buffer-file-name))))
+    (if (my/org-task-file-p source-file)
+        (let* ((column (current-column))
+               (choice (my/org-read-workflow-choice marker))
+               result-marker)
+          (unwind-protect
+              (progn
+                (setq result-marker
+                      (my/org-change-task-state-at-marker
+                       marker
+                       choice))
+                (org-agenda-redo)
+                ;; DONE / DROPなど現在のAgendaから消える状態では追従しない。
+                (when (and (markerp result-marker)
+                           (marker-buffer result-marker))
+                  (my/org-agenda-goto-marker
+                   result-marker
+                   column))
+                (message "状態を%sへ変更しました" choice))
+            (when (markerp result-marker)
+              (set-marker result-marker nil))))
+      (call-interactively #'org-agenda-todo))))
 
 (use-package org-agenda
   :ensure nil
@@ -2796,8 +3020,7 @@ Cockpit内の移動ではTODO状態を変更し、
 
   :bind
   (:map org-agenda-mode-map
-        ("s-<up>" . my/org-agenda-move-workflow-up)
-        ("s-<down>" . my/org-agenda-move-workflow-down))
+        ("t" . my/org-agenda-change-workflow-state))
 
   :config
   (setq org-agenda-custom-commands
