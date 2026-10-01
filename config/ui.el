@@ -5,6 +5,9 @@
 ;;; Code:
 
 
+(require 'ui)
+
+
 ;; 画面: 上部のメニューバーを隠す（下部のモードラインは残す）。
 (menu-bar-mode -1)
 
@@ -41,92 +44,80 @@
   (retro-hacker-blue-apply-background))
 
 
-(defun my/mood-line-segment-file-icon ()
-  "現在のファイルに対応するアイコンを返す。"
-  (when buffer-file-name
-    ;; モードラインではファイル種別ごとの色を使わず、文字色を継承する。
-    (let ((nerd-icons-color-icons nil))
-      (nerd-icons-icon-for-file buffer-file-name))))
-
-
 ;; 軽量なモードラインを使用する。
 (use-package mood-line
   :ensure t
   :custom
+  ;; Fira Code向けの記号セットを使用する。
   (mood-line-glyph-alist mood-line-glyphs-fira-code)
   :config
+  ;; モードラインの左右に表示する情報と、その間隔を定義する。
   (setq mood-line-format
         (mood-line-defformat
-	 :padding ""
+         ;; モードライン全体の左右余白を追加しない。
+         :padding ""
+         ;; 左側に表示する情報。
          :left
-         (((mood-line-segment-modal)                  . " ")
+         (;; モーダル編集状態。
+          ((mood-line-segment-modal)                  . " ")
+          ;; バッファの変更・読み取り専用などの状態。
           ((or (mood-line-segment-buffer-status) " ") . " ")
+          ;; 開いているファイルのアイコン。
           ((my/mood-line-segment-file-icon)           . " ")
+          ;; バッファ名。
           ((mood-line-segment-buffer-name)            . "  ")
+          ;; 検索結果の現在位置と件数。
           ((mood-line-segment-anzu)                   . "  ")
+          ;; multiple-cursorsの状態。
           ((mood-line-segment-multiple-cursors)       . "  ")
+          ;; カーソルの行・列位置。
           ((mood-line-segment-cursor-position)        . " ")
+          ;; バッファ内のスクロール位置。
           (mood-line-segment-scroll))
+         ;; 右側に表示する情報。
          :right
-         (((mood-line-segment-vc)         . "  ")
+         (;; Gitなどのバージョン管理情報。
+          ((mood-line-segment-vc)         . "  ")
+          ;; 現在のmajor mode。
           ((mood-line-segment-major-mode) . "  ")
+          ;; Emacsや各modeが追加する補助情報。
           ((mood-line-segment-misc-info)  . "  ")
+          ;; Flymakeなどの診断状態。
           ((mood-line-segment-checker)    . "  ")
+          ;; 実行中の外部プロセス情報。
           ((mood-line-segment-process)    . "  "))))
   (mood-line-mode))
 
 
-(defun my/tab-bar-tab-name-padding (name _tab _i)
-  "タブ名 NAME の左右に余白を加える。"
-  (concat "  " name "  "))
-
-
+;; フレーム上部にタブバーを表示する。
 (use-package tab-bar
   :ensure nil
   :demand t
   :config
-  ;; 表示方法は tab-bar 読み込み後に設定する。
-  (setq tab-bar-show 1
-        tab-bar-auto-width nil
-	tab-bar-define-keys 'numeric
-        tab-bar-format '(tab-bar-format-align-right
-                         tab-bar-format-tabs)
-        tab-bar-separator " "
-        tab-bar-tab-hints nil
-        tab-bar-close-button-show nil
-        tab-bar-new-button-show nil
-        tab-bar-tab-name-format-functions
-        '(my/tab-bar-tab-name-padding
-          tab-bar-tab-name-format-face
-          tab-bar-tab-name-format-mouse-face))
+  (setq
+   ;; タブが2個以上のときだけ表示する。
+   tab-bar-show 1
+   ;; タブ幅を自動調整しない。
+   tab-bar-auto-width nil
+   ;; 数字キーによるタブ操作だけ標準キーバインドを有効にする。
+   tab-bar-define-keys 'numeric
+   ;; タブ一覧を右寄せして表示する。
+   tab-bar-format '(tab-bar-format-align-right
+                    tab-bar-format-tabs)
+   ;; タブ同士の区切りを空白にする。
+   tab-bar-separator " "
+   ;; タブ番号のヒントを表示しない。
+   tab-bar-tab-hints nil
+   ;; 閉じるボタンを表示しない。
+   tab-bar-close-button-show nil
+   ;; 新規タブボタンを表示しない。
+   tab-bar-new-button-show nil
+   ;; タブ名に余白とfaceを適用する。
+   tab-bar-tab-name-format-functions
+   '(my/tab-bar-tab-name-padding
+     tab-bar-tab-name-format-face
+     tab-bar-tab-name-format-mouse-face))
   (tab-bar-mode 1))
-
-
-(defun my/tab-line-tab-name (buffer &optional _buffers)
-  "BUFFER のタブ名を、ファイルアイコン付きで返す。"
-  (with-current-buffer buffer
-    (if buffer-file-name
-        (let ((nerd-icons-color-icons nil))
-          (concat
-           (nerd-icons-icon-for-file buffer-file-name)
-           " "
-           (buffer-name buffer)))
-      (buffer-name buffer))))
-
-
-(defun my/tab-line-tab-name-format (tab tabs)
-  "TAB の左右に余白を加えて表示する。"
-  (let* ((formatted (tab-line-tab-name-format-default tab tabs))
-         (properties (and (> (length formatted) 0)
-                          (text-properties-at 0 formatted)))
-         (left-padding (copy-sequence "  "))
-         (right-padding (copy-sequence "  ")))
-    (when properties
-      (add-text-properties 0 (length left-padding)
-                           properties left-padding)
-      (add-text-properties 0 (length right-padding)
-                           properties right-padding))
-    (concat left-padding formatted right-padding)))
 
 
 (use-package tab-line
@@ -147,7 +138,6 @@
         tab-line-exclude-buffers
         '(or "^\\*.*\\*$"
              (derived-mode . magit-mode)))
-
   (global-tab-line-mode 1))
 
 

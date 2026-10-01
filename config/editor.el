@@ -5,7 +5,7 @@
 ;;; Code:
 
 
-(require 'my-editing)
+(require 'editor)
 
 
 ;; 対応括弧を補完する
