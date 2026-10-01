@@ -18,6 +18,12 @@
 ;; 現在行を削除する
 (keymap-global-set "S-s-k" #'my/delete-whole-line)
 
+;; カーソル行の下に新しい行を挿入し、その行へ移動する。
+(keymap-global-set "s-<return>" #'my/insert-line-below)
+
+;; カーソル行の上に新しい行を挿入し、その行へ移動する。
+(keymap-global-set "S-s-<return>" #'my/insert-line-above)
+
 ;; カーソル移動
 (keymap-global-set "s-<up>" #'beginning-of-buffer)
 (keymap-global-set "s-<down>" #'end-of-buffer)

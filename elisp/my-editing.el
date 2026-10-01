@@ -5,6 +5,19 @@
 
 ;;; Code:
 
+(defun my/insert-line-below ()
+  "カーソル行の下に新しい行を挿入し、その行へ移動する。"
+  (interactive)
+  (end-of-line)
+  (newline-and-indent))
+
+(defun my/insert-line-above ()
+  "カーソル行の上に新しい行を挿入し、その行へ移動する。"
+  (interactive)
+  (beginning-of-line)
+  (open-line 1)
+  (indent-according-to-mode))
+
 (defun my/copy-region-to-clipboard (beg end)
   "選択範囲をmacOSのクリップボードへコピーする。"
   (interactive "r")
