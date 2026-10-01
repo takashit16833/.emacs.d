@@ -11,17 +11,21 @@
 (setq-default truncate-lines nil)
 (setq truncate-partial-width-windows nil)
 
+
 ;; 折り返し位置の「\」を空白に置き換える。
 (require 'disp-table)
 (set-display-table-slot standard-display-table 'wrap ?\s)
 
+
 ;; ウィンドウの境界線を細い縦棒にする。
 (set-display-table-slot standard-display-table 'vertical-border ?│)
+
 
 ;; ファイル種別に応じたアイコンを取得する。
 (use-package nerd-icons
   :ensure t
   :commands nerd-icons-icon-for-file)
+
 
 ;; 最強のカラーテーマ
 (use-package retro-hacker-blue-theme
@@ -34,12 +38,14 @@
   (load-theme 'retro-hacker-blue t)
   (retro-hacker-blue-apply-background))
 
+
 (defun my/mood-line-segment-file-icon ()
   "現在のファイルに対応するアイコンを返す。"
   (when buffer-file-name
     ;; モードラインではファイル種別ごとの色を使わず、文字色を継承する。
     (let ((nerd-icons-color-icons nil))
       (nerd-icons-icon-for-file buffer-file-name))))
+
 
 ;; 軽量なモードラインを使用する。
 (use-package mood-line
@@ -67,5 +73,27 @@
           ((mood-line-segment-process)    . "  "))))
 
   (mood-line-mode))
+
+
+(defun my/tab-line-tab-name (buffer &optional _buffers)
+  "BUFFER のタブ名を、ファイルアイコン付きで返す。"
+  (with-current-buffer buffer
+    (if buffer-file-name
+        (let ((nerd-icons-color-icons nil))
+          (concat
+           (nerd-icons-icon-for-file buffer-file-name)
+           " "
+           (buffer-name buffer)))
+      (buffer-name buffer))))
+
+
+(use-package tab-line
+  :ensure nil
+  :custom
+  (tab-line-tab-name-function #'my/tab-line-tab-name)
+  (tab-line-new-button-show nil)
+  (tab-line-close-button-show nil)
+  :config
+  (global-tab-line-mode 1))
 
 ;;; ui.el ends here
