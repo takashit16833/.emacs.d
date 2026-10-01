@@ -22,28 +22,12 @@
 ;; Emacsのベル音を鳴らさない。
 (setq ring-bell-function #'ignore)
 
-;; Undo / Redo: Command（Super）とOption（Meta）のZを割り当てる。
-(use-package undo-fu
-  :ensure t
-  :bind (("s-z" . undo-fu-only-undo)
-         ("s-Z" . undo-fu-only-redo)
-         ;; 暫定対応: WezTermから届くShift付きのSuperキーを受け付ける。
-         ("S-s-z" . undo-fu-only-redo)
-         ("M-z" . undo-fu-only-undo)
-         ("M-Z" . undo-fu-only-redo)))
+;; ターミナル版Emacsでマウス操作を有効にする。
+(unless (display-graphic-p)
+  (xterm-mouse-mode 1))
 
-;; ミニバッファを使った検索・選択
-(use-package consult
-  :ensure t
-  :bind
-  (("s-f" . consult-line)
-   ("S-s-f" . consult-ripgrep)
-   ("s-y" . consult-yank-pop)))
-
-;; ミニバッファの候補表示
-(use-package vertico
-  :ensure t
-  :init
-  (vertico-mode 1))
+;; スクロール: 上下端の5行手前から追従し、1行移動で画面が大きく跳ねないようにする。
+(setq scroll-margin 5
+      scroll-conservatively 101)
 
 ;;; basic.el ends here

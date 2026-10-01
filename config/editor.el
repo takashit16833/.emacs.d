@@ -3,14 +3,6 @@
 ;; 編集、移動、検索、補完、ファイル操作に関する設定を置く。
 
 ;;; Code:
- 
-;; ターミナル版Emacsでマウス操作を有効にする。
-(unless (display-graphic-p)
-  (xterm-mouse-mode 1))
-
-;; スクロール: 上下端の5行手前から追従し、1行移動で画面が大きく跳ねないようにする。
-(setq scroll-margin 5
-      scroll-conservatively 101)
 
 ;; 対応括弧を補完する
 (electric-pair-mode 1)
@@ -20,5 +12,15 @@
 
 ;; 現在行または選択した行のコメントを切り替える。
 (keymap-global-set "s-/" #'comment-line)
+
+;; Undo / Redo: Command（Super）とOption（Meta）のZを割り当てる。
+(use-package undo-fu
+  :ensure t
+  :bind (("s-z" . undo-fu-only-undo)
+         ("s-Z" . undo-fu-only-redo)
+         ;; 暫定対応: WezTermから届くShift付きのSuperキーを受け付ける。
+         ("S-s-z" . undo-fu-only-redo)
+         ("M-z" . undo-fu-only-undo)
+         ("M-Z" . undo-fu-only-redo)))
 
 ;;; editor.el ends here
