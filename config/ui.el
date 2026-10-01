@@ -87,7 +87,8 @@
   ;; 表示方法は tab-bar 読み込み後に設定する。
   (setq tab-bar-show t
         tab-bar-auto-width nil
-        tab-bar-format '(tab-bar-format-tabs)
+        tab-bar-format '(tab-bar-format-align-right
+                         tab-bar-format-tabs)
         tab-bar-separator " "
         tab-bar-tab-hints nil
         tab-bar-close-button-show nil
