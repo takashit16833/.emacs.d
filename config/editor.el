@@ -25,9 +25,11 @@
   :demand t
   :bind
   (:map selected-keymap
-        ("s-c" . my/copy-region-to-clipboard)))
+        ("s-c" . my/copy-region-to-clipboard))
+  :config
+  (selected-global-mode 1))
 
-;; VSCodeの行スワップ
+;; 行スワップ
 (use-package move-text
   :ensure t
   :bind
@@ -43,11 +45,7 @@
 (use-package undo-fu
   :ensure t
   :bind (("s-z" . undo-fu-only-undo)
-         ("s-Z" . undo-fu-only-redo)
-         ;; 暫定対応: WezTermから届くShift付きのSuperキーを受け付ける。
-         ("S-s-z" . undo-fu-only-redo)
-         ("M-z" . undo-fu-only-undo)
-         ("M-Z" . undo-fu-only-redo)))
+         ("S-s-z" . undo-fu-only-redo)))
 
 ;; プログラム編集中に補完候補を表示する。
 (use-package corfu
