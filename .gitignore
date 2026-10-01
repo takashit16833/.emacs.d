@@ -14,6 +14,8 @@
 /recentf
 /places
 /bookmarks
+/history
+/projects.eld
 
 # Package quickstart cache
 /package-quickstart.el
