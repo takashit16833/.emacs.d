@@ -31,4 +31,19 @@
          ("S-s-z" . undo-fu-only-redo)
          ("M-z" . undo-fu-only-undo)
          ("M-Z" . undo-fu-only-redo)))
+
+;; ミニバッファを使った検索・選択
+(use-package consult
+  :ensure t
+  :bind
+  (("s-f" . consult-line)
+   ("S-s-f" . consult-ripgrep)
+   ("s-y" . consult-yank-pop)))
+
+;; ミニバッファの候補表示
+(use-package vertico
+  :ensure t
+  :init
+  (vertico-mode 1))
+
 ;;; basic.el ends here
