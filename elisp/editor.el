@@ -1,9 +1,9 @@
 ;;; editor.el --- Editing commands -*- lexical-binding: t; -*-
-
 ;;; Commentary:
 ;; 行の挿入・削除・複製と選択操作をまとめる。
 
 ;;; Code:
+
 
 (defun my/insert-line-below ()
   "カーソル行の下に新しい行を挿入し、その行へ移動する。"
@@ -30,6 +30,26 @@
   "カーソル位置から行末までを削除する。"
   (interactive)
   (delete-region (point) (line-end-position)))
+
+
+(defun my/delete-word-forward (arg)
+  "カーソルから前方の単語を削除する。"
+  (interactive "p")
+  (delete-region
+   (point)
+   (save-excursion
+     (forward-word arg)
+     (point))))
+
+
+(defun my/delete-word-backward (arg)
+  "カーソルから後方の単語を削除する。"
+  (interactive "p")
+  (delete-region
+   (point)
+   (save-excursion
+     (backward-word arg)
+     (point))))
 
 
 (defun my/copy-region-to-clipboard (beg end)

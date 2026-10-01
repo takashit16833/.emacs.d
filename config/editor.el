@@ -24,6 +24,11 @@
 (keymap-global-set "S-s-k" #'my/delete-whole-line)
 
 
+;; 単語単位で削除する。
+(keymap-global-set "M-<delete>" #'my/delete-word-forward)
+(keymap-global-set "M-<backspace>" #'my/delete-word-backward)
+
+
 ;; カーソル行の下に新しい行を挿入し、その行へ移動する。
 (keymap-global-set "s-<return>" #'my/insert-line-below)
 
