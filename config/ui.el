@@ -25,4 +25,43 @@
   (load-theme 'retro-hacker-blue t)
   (retro-hacker-blue-apply-background))
 
+;; ファイル種別に応じたアイコンを取得する。
+(use-package nerd-icons
+  :ensure t
+  :commands nerd-icons-icon-for-file)
+
+(defun my/mood-line-segment-file-icon ()
+  "現在のファイルに対応するアイコンを返す。"
+  (when buffer-file-name
+    (nerd-icons-icon-for-file
+     buffer-file-name
+     :face 'mood-line-buffer-name)))
+
+;; 軽量なモードラインを使用する。
+(use-package mood-line
+  :ensure t
+  :custom
+  (mood-line-glyph-alist mood-line-glyphs-fira-code)
+  :config
+  (setq mood-line-format
+        (mood-line-defformat
+         :padding ""
+         :left
+         (((mood-line-segment-modal)                  . " ")
+          ((or (mood-line-segment-buffer-status) " ") . " ")
+          ((my/mood-line-segment-file-icon)           . " ")
+          ((mood-line-segment-buffer-name)            . "  ")
+          ((mood-line-segment-anzu)                   . "  ")
+          ((mood-line-segment-multiple-cursors)       . "  ")
+          ((mood-line-segment-cursor-position)        . " ")
+          (mood-line-segment-scroll))
+         :right
+         (((mood-line-segment-vc)         . "  ")
+          ((mood-line-segment-major-mode) . "  ")
+          ((mood-line-segment-misc-info)  . "  ")
+          ((mood-line-segment-checker)    . "  ")
+          ((mood-line-segment-process)    . "  "))))
+
+  (mood-line-mode))
+
 ;;; ui.el ends here
