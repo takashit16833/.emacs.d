@@ -4,4 +4,7 @@
 
 ;;; Code:
 
+;; Project内のファイルを検索して開く。
+(keymap-global-set "s-p" #'project-find-file)
+
 ;;; development.el ends here
