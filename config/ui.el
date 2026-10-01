@@ -15,6 +15,12 @@
 ;; ウィンドウの境界線を細い縦棒にする。
 (set-display-table-slot standard-display-table 'vertical-border ?│)
 
+;; ファイル種別に応じたアイコンを取得する。
+(use-package nerd-icons
+  :ensure t
+  :commands nerd-icons-icon-for-file)
+
+;; 最強のカラーテーマ
 (use-package retro-hacker-blue-theme
   :vc (:url "https://github.com/takashit16833/emacs-retro-hacker-blue-theme.git"
        :rev :newest)
@@ -25,6 +31,11 @@
   (load-theme 'retro-hacker-blue t)
   (retro-hacker-blue-apply-background))
 
+(defun my/mood-line-segment-file-icon ()
+  "現在のファイルに対応するアイコンを返す。"
+  (when buffer-file-name
+    (nerd-icons-icon-for-file buffer-file-name)))
+
 ;; ファイル種別に応じたアイコンを取得する。
 (use-package nerd-icons
   :ensure t
@@ -33,9 +44,7 @@
 (defun my/mood-line-segment-file-icon ()
   "現在のファイルに対応するアイコンを返す。"
   (when buffer-file-name
-    (nerd-icons-icon-for-file
-     buffer-file-name
-     :face 'mood-line-buffer-name)))
+    (nerd-icons-icon-for-file buffer-file-name)))
 
 ;; 軽量なモードラインを使用する。
 (use-package mood-line
@@ -45,7 +54,7 @@
   :config
   (setq mood-line-format
         (mood-line-defformat
-         :padding ""
+	 :padding ""
          :left
          (((mood-line-segment-modal)                  . " ")
           ((or (mood-line-segment-buffer-status) " ") . " ")
