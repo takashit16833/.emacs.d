@@ -91,8 +91,6 @@
   :ensure nil
   :custom
   (tab-line-tab-name-function #'my/tab-line-tab-name)
-  (tab-line-new-button-show nil)
-  (tab-line-close-button-show nil)
   :config
   (global-tab-line-mode 1))
 
