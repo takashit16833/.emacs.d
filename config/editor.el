@@ -4,6 +4,8 @@
 
 ;;; Code:
 
+(require 'my-editing)
+
 ;; 対応括弧を補完する
 (electric-pair-mode 1)
 
@@ -16,6 +18,14 @@
 ;; カーソル移動
 (keymap-global-set "s-<up>" #'beginning-of-buffer)
 (keymap-global-set "s-<down>" #'end-of-buffer)
+
+;; 範囲選択中だけRETをクリップボードへのコピーに使用する。
+(use-package selected
+  :ensure t
+  :demand t
+  :bind
+  (:map selected-keymap
+        ("s-c" . my/copy-region-to-clipboard)))
 
 ;; VSCodeの行スワップ
 (use-package move-text

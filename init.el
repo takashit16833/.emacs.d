@@ -4,6 +4,11 @@
 
 ;;; Code:
 
+;; Emacs Lisp を置くディレクトリ。
+(add-to-list 'load-path
+             (expand-file-name "elisp" user-emacs-directory))
+
+;; 設定を読み込む。
 (load (expand-file-name "config/packages.el" user-emacs-directory))
 (load (expand-file-name "config/basic.el" user-emacs-directory))
 (load (expand-file-name "config/minibuffer.el" user-emacs-directory))
