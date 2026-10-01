@@ -131,12 +131,21 @@
   :ensure nil
   :demand t
   :config
-  ;; tab-line-separator は defcustom ではないため、読み込み後に直接設定する。
   (setq tab-line-separator " "
         tab-line-new-button-show nil
         tab-line-close-button-show nil
         tab-line-tab-name-function #'my/tab-line-tab-name
-        tab-line-tab-name-format-function #'my/tab-line-tab-name-format)
+        tab-line-tab-name-format-function #'my/tab-line-tab-name-format
+
+        ;; 除外条件を使って tab-line に表示するバッファを絞る。
+        tab-line-tabs-window-buffers-filter-function
+        #'tab-line-tabs-non-excluded
+
+        ;; *Messages* などの *...* バッファと Magit 系バッファを除外する。
+        tab-line-exclude-buffers
+        '(or "^\\*.*\\*$"
+             (derived-mode . magit-mode)))
+
   (global-tab-line-mode 1))
 
 ;;; ui.el ends here
