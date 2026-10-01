@@ -1,4 +1,9 @@
 ;;; minibuffer.el --- Minibuffer settings -*- lexical-binding: t; -*-
+;;; Commentary:
+;; ミニバッファと補完UIに関する設定を置く。
+
+;;; Code:
+
 
 ;; ミニバッファの入力履歴をEmacs終了後も保存する。
 (use-package savehist
