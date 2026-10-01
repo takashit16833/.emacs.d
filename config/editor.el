@@ -28,6 +28,9 @@
 (keymap-global-set "s-<up>" #'beginning-of-buffer)
 (keymap-global-set "s-<down>" #'end-of-buffer)
 
+;; 現在行選択
+(global-set-key (kbd "s-l") #'my/select-current-line)
+
 ;; 範囲選択中だけRETをクリップボードへのコピーに使用する。
 (use-package selected
   :ensure t

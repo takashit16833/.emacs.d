@@ -42,5 +42,24 @@
     (delete-region beg end)
     (move-to-column current-column)))
 
+(defun my/select-current-line ()
+  "現在行を選択する。
+続けて実行すると、選択範囲を次の行まで広げる。"
+  (interactive)
+  (if (region-active-p)
+      (goto-char (line-beginning-position 2))
+
+    (let ((beg (line-beginning-position)))
+      (goto-char (line-beginning-position 2))
+
+      ;; Shift+カーソルによる選択と同じ一時的な選択状態にする。
+      (setq-local transient-mark-mode
+                  (cons 'only
+                        (unless (eq transient-mark-mode 'lambda)
+                          transient-mark-mode)))
+
+      (set-mark beg)
+      (activate-mark))))
+
 (provide 'my-editing)
 ;;; my-editing.el ends here
