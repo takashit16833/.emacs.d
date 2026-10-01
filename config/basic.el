@@ -29,7 +29,10 @@
 
 ;; ターミナル版Emacsでマウス操作を有効にする。
 (unless (display-graphic-p)
-  (xterm-mouse-mode 1))
+  (xterm-mouse-mode 1)
+  (mouse-wheel-mode 1)
+  ;; 1ノッチで2行動かす。
+  (setq mouse-wheel-scroll-amount '(2)))
 
 
 ;; スクロール: 上下端の5行手前から追従し、1行移動で画面が大きく跳ねないようにする。
