@@ -4,6 +4,7 @@
 
 ;;; Code:
 
+
 ;; 端末の機能確認が終わってからKKPを有効にする。
 (use-package kkp
   :ensure t
@@ -30,6 +31,7 @@
     (advice-add 'kkp-enable-in-terminal
                 :around #'my/kkp-enable-after-xterm)))
 
+
 ;; WezTermのJIS配列でOption+:を正しく認識する。
 (with-eval-after-load 'kkp
   (defun my/kkp-jis-colon (orig input)
@@ -40,5 +42,6 @@
 
   (advice-add 'kkp--translate-terminal-input
               :around #'my/kkp-jis-colon))
+
 
 ;;; terminal.el ends here

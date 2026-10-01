@@ -6,11 +6,13 @@
   :init
   (savehist-mode))
 
+
 ;; ミニバッファの候補を縦に一覧表示する。
 (use-package vertico
   :ensure t
   :init
   (vertico-mode))
+
 
 ;; 空白で区切った複数の条件を、順序に関係なく候補へ一致させる。
 (use-package orderless
@@ -21,11 +23,13 @@
    '((file (styles partial-completion))))
   (completion-pcm-leading-wildcard t))
 
+
 ;; 候補の右側に補足情報を表示する。
 (use-package marginalia
   :ensure t
   :init
   (marginalia-mode))
+
 
 ;; ミニバッファを利用した検索・選択コマンドを追加する。
 ;; キーを実行するまでConsult本体は読み込まない。
@@ -34,6 +38,7 @@
   :bind
   (("C-x b" . consult-buffer)
    ("s-f" . consult-line)))
+
 
 ;; 補完候補にNerd Fontのアイコンを表示する。
 (use-package nerd-icons-completion
@@ -44,5 +49,5 @@
   (add-hook 'marginalia-mode-hook
             #'nerd-icons-completion-marginalia-setup))
 
-(provide 'minibuffer)
+
 ;;; minibuffer.el ends here

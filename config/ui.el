@@ -4,8 +4,10 @@
 
 ;;; Code:
 
+
 ;; 画面: 上部のメニューバーを隠す（下部のモードラインは残す）。
 (menu-bar-mode -1)
+
 
 ;; すべてのバッファで行を折り返す。
 (setq-default truncate-lines nil)
@@ -71,7 +73,6 @@
           ((mood-line-segment-misc-info)  . "  ")
           ((mood-line-segment-checker)    . "  ")
           ((mood-line-segment-process)    . "  "))))
-
   (mood-line-mode))
 
 
@@ -85,8 +86,9 @@
   :demand t
   :config
   ;; 表示方法は tab-bar 読み込み後に設定する。
-  (setq tab-bar-show t
+  (setq tab-bar-show 1
         tab-bar-auto-width nil
+	tab-bar-define-keys 'numeric
         tab-bar-format '(tab-bar-format-align-right
                          tab-bar-format-tabs)
         tab-bar-separator " "
@@ -147,5 +149,13 @@
              (derived-mode . magit-mode)))
 
   (global-tab-line-mode 1))
+
+
+;; アクティブなtab-lineの切り替え
+(global-set-key (kbd "C-<tab>")
+                #'tab-line-switch-to-next-tab)
+(global-set-key (kbd "C-S-<tab>")
+                #'tab-line-switch-to-prev-tab)
+
 
 ;;; ui.el ends here

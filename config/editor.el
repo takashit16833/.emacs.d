@@ -4,32 +4,42 @@
 
 ;;; Code:
 
+
 (require 'my-editing)
+
 
 ;; 対応括弧を補完する
 (electric-pair-mode 1)
 
+
 ;; Command+Sで現在のバッファを保存する。
 (keymap-global-set "s-s" #'save-buffer)
+
 
 ;; 現在行または選択した行のコメントを切り替える。
 (keymap-global-set "s-/" #'comment-line)
 
+
 ;; 現在行を削除する
 (keymap-global-set "S-s-k" #'my/delete-whole-line)
+
 
 ;; カーソル行の下に新しい行を挿入し、その行へ移動する。
 (keymap-global-set "s-<return>" #'my/insert-line-below)
 
+
 ;; カーソル行の上に新しい行を挿入し、その行へ移動する。
 (keymap-global-set "S-s-<return>" #'my/insert-line-above)
+
 
 ;; カーソル移動
 (keymap-global-set "s-<up>" #'beginning-of-buffer)
 (keymap-global-set "s-<down>" #'end-of-buffer)
 
+
 ;; 現在行選択
 (global-set-key (kbd "s-l") #'my/select-current-line)
+
 
 ;; 範囲選択中だけRETをクリップボードへのコピーに使用する。
 (use-package selected
@@ -41,6 +51,7 @@
   :config
   (selected-global-mode 1))
 
+
 ;; 行スワップ
 (use-package move-text
   :ensure t
@@ -48,16 +59,19 @@
   (("M-<up>"   . move-text-up)
    ("M-<down>" . move-text-down)))
 
+
 ;; 選択範囲を単語や括弧などの単位で広げる。
 (use-package expand-region
   :ensure t
   :bind ("s-x" . er/expand-region))
+
 
 ;; Undo / Redo: Command（Super）とOption（Meta）のZを割り当てる。
 (use-package undo-fu
   :ensure t
   :bind (("s-z" . undo-fu-only-undo)
          ("S-s-z" . undo-fu-only-redo)))
+
 
 ;; プログラム編集中に補完候補を表示する。
 (use-package corfu
@@ -78,6 +92,7 @@
   ;; 補完候補の説明を表示する。
   (corfu-popupinfo-mode 1))
 
+
 ;; 補完候補にアイコンを表示する。
 (use-package nerd-icons-corfu
   :ensure t
@@ -86,11 +101,13 @@
   (add-to-list 'corfu-margin-formatters
                #'nerd-icons-corfu-formatter))
 
+
 ;; 表示中の文字へジャンプする。
 (use-package avy
   :ensure t
   :bind ("s-j" . avy-goto-char-timer)
   :custom
   (avy-keys '(?o ?t ?a ?n ?i ?s ?e ?h)))
+
 
 ;;; editor.el ends here
