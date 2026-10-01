@@ -11,12 +11,14 @@
   (end-of-line)
   (newline-and-indent))
 
+
 (defun my/insert-line-above ()
   "カーソル行の上に新しい行を挿入し、その行へ移動する。"
   (interactive)
   (beginning-of-line)
   (open-line 1)
   (indent-according-to-mode))
+
 
 (defun my/copy-region-to-clipboard (beg end)
   "選択範囲をmacOSのクリップボードへコピーする。"
@@ -27,6 +29,7 @@
     (user-error "クリップボードへのコピーに失敗しました"))
   (deactivate-mark)
   (message "クリップボードにコピーしました"))
+
 
 (defun my/delete-whole-line ()
   "現在の行を改行ごと削除し、空行を残さない。"
@@ -41,6 +44,7 @@
       (setq beg (1- beg)))
     (delete-region beg end)
     (move-to-column current-column)))
+
 
 (defun my/select-current-line ()
   "現在行を選択する。
