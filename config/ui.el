@@ -96,4 +96,7 @@
   :config
   (global-tab-line-mode 1))
 
+;; フレーム上部にタブバーを表示する。
+(tab-bar-mode 1)
+
 ;;; ui.el ends here
