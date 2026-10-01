@@ -66,6 +66,27 @@
   (call-interactively #'move-end-of-line))
 
 
+(defun my/clear-undo-history ()
+  "現在のバッファのUndo・Redo履歴を消去する。"
+  (interactive)
+  (setq buffer-undo-list nil
+	pending-undo-list nil)
+  (message "Undo履歴を消去しました"))
+
+
+(defun my/clear-undo-history-all ()
+  "Undoが有効なすべてのバッファのUndo・Redo履歴を消去する。"
+  (interactive)
+  (let ((count 0))
+    (dolist (buffer (buffer-list))
+      (with-current-buffer buffer
+	(unless (eq buffer-undo-list t)
+	  (setq buffer-undo-list nil
+		count (1+ count)))))
+    (setq pending-undo-list nil)
+    (message "%d個のバッファのUndo履歴を削除しました" count)))
+
+
 (defun my/copy-region-to-clipboard (beg end)
   "選択範囲をmacOSのクリップボードへコピーする。"
   (interactive "r")
