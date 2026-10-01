@@ -24,6 +24,15 @@
 (keymap-global-set "S-s-k" #'my/delete-whole-line)
 
 
+;; Command+Aでバッファ全体を選択する。
+(keymap-global-set "s-a" #'mark-whole-buffer)
+
+
+;; カーソル位置から行頭・行末までを選択する
+(keymap-global-set "s-<left>" #'my/select-to-line-beginning)
+(keymap-global-set "s-<right>" #'my/select-to-line-end)
+
+
 ;; 単語単位で削除する。
 (keymap-global-set "M-<delete>" #'my/delete-word-forward)
 (keymap-global-set "M-<backspace>" #'my/delete-word-backward)

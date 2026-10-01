@@ -52,6 +52,20 @@
      (point))))
 
 
+(defun my/select-to-line-beginning ()
+  "カーソル位置から行頭まで一時的に選択する。"
+  (interactive)
+  (setq this-command-keys-shift-translated t)
+  (call-interactively #'move-beginning-of-line))
+
+
+(defun my/select-to-line-end ()
+  "カーソル位置から行末まで一時的に選択する。"
+  (interactive)
+  (setq this-command-keys-shift-translated t)
+  (call-interactively #'move-end-of-line))
+
+
 (defun my/copy-region-to-clipboard (beg end)
   "選択範囲をmacOSのクリップボードへコピーする。"
   (interactive "r")
