@@ -34,17 +34,9 @@
 (defun my/mood-line-segment-file-icon ()
   "現在のファイルに対応するアイコンを返す。"
   (when buffer-file-name
-    (nerd-icons-icon-for-file buffer-file-name)))
-
-;; ファイル種別に応じたアイコンを取得する。
-(use-package nerd-icons
-  :ensure t
-  :commands nerd-icons-icon-for-file)
-
-(defun my/mood-line-segment-file-icon ()
-  "現在のファイルに対応するアイコンを返す。"
-  (when buffer-file-name
-    (nerd-icons-icon-for-file buffer-file-name)))
+    ;; モードラインではファイル種別ごとの色を使わず、文字色を継承する。
+    (let ((nerd-icons-color-icons nil))
+      (nerd-icons-icon-for-file buffer-file-name))))
 
 ;; 軽量なモードラインを使用する。
 (use-package mood-line
