@@ -4,6 +4,9 @@
 
 ;;; Code:
 
+;; 画面: 上部のメニューバーを隠す（下部のモードラインは残す）。
+(menu-bar-mode -1)
+
 ;; すべてのバッファで行を折り返す。
 (setq-default truncate-lines nil)
 (setq truncate-partial-width-windows nil)
