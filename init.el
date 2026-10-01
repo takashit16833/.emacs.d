@@ -12,6 +12,7 @@
 (load (expand-file-name "config/editor.el" user-emacs-directory))
 (load (expand-file-name "config/development.el" user-emacs-directory))
 (load (expand-file-name "config/org.el" user-emacs-directory))
+(load (expand-file-name "config/git.el" user-emacs-directory))
 
 ;;; init.el ends here
 (custom-set-variables
