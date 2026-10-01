@@ -9,4 +9,16 @@
 (keymap-global-set "s-p" #'project-find-file)
 
 
+;; project-switch-projectの選択肢を変更する
+(setopt project-switch-commands
+         '((project-find-file "Find file")
+          (project-find-regexp "Find regexp")
+          (project-any-command "Other")))
+
+
+ ;; project-switch-projectの選択肢にMagitを追加する。
+(add-to-list 'project-switch-commands
+             '(magit-project-status "Magit" ?m)
+             t)
+
 ;;; development.el ends here
