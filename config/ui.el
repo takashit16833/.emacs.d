@@ -148,4 +148,11 @@
                 #'tab-line-switch-to-prev-tab)
 
 
+;; 括弧の色分け
+(use-package rainbow-delimiters
+  :ensure t
+  :hook
+  (prog-mode . rainbow-delimiters-mode))
+
+
 ;;; ui.el ends here

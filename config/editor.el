@@ -12,6 +12,14 @@
 (electric-pair-mode 1)
 
 
+;; C-w / M-wがOSのクリップボードを更新しないようにする。
+(setq interprogram-cut-function nil)
+
+
+;; OSのクリップボード貼り付け時にキルリングを更新しないようにする。
+(setq xterm-store-paste-on-kill-ring nil)
+
+
 ;; Command+Sで現在のバッファを保存する。
 (keymap-global-set "s-s" #'save-buffer)
 

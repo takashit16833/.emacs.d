@@ -1,3 +1,4 @@
+
 ;;; development.el --- Development configuration -*- lexical-binding: t; -*-
 ;;; Commentary:
 ;; プログラミング、Git、言語固有の開発設定を置く。
@@ -20,5 +21,12 @@
 (add-to-list 'project-switch-commands
              '(magit-project-status "Magit" ?m)
              t)
+
+
+;; プロジェクトの.editorconfigを反映する。
+(use-package editorconfig
+  :ensure nil
+  :hook (after-init . editorconfig-mode))
+
 
 ;;; development.el ends here
