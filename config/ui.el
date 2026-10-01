@@ -82,20 +82,20 @@
 
 (use-package tab-bar
   :ensure nil
-  :custom
-  ;; tab-bar-mode が有効なら、タブが1個でも常に表示する。
-  (tab-bar-show 0)
-  (tab-bar-auto-width nil)
-  (tab-bar-format '(tab-bar-format-tabs))
-  (tab-bar-separator " ")
-  (tab-bar-tab-hints nil)
-  (tab-bar-close-button-show nil)
-  (tab-bar-new-button-show nil)
-  (tab-bar-tab-name-format-functions
-   '(my/tab-bar-tab-name-padding
-     tab-bar-tab-name-format-face
-     tab-bar-tab-name-format-mouse-face))
+  :demand t
   :config
+  ;; 表示方法は tab-bar 読み込み後に設定する。
+  (setq tab-bar-show t
+        tab-bar-auto-width nil
+        tab-bar-format '(tab-bar-format-tabs)
+        tab-bar-separator " "
+        tab-bar-tab-hints nil
+        tab-bar-close-button-show nil
+        tab-bar-new-button-show nil
+        tab-bar-tab-name-format-functions
+        '(my/tab-bar-tab-name-padding
+          tab-bar-tab-name-format-face
+          tab-bar-tab-name-format-mouse-face))
   (tab-bar-mode 1))
 
 
@@ -128,13 +128,14 @@
 
 (use-package tab-line
   :ensure nil
-  :custom
-  (tab-line-separator " ")
-  (tab-line-new-button-show nil)
-  (tab-line-close-button-show nil)
-  (tab-line-tab-name-function #'my/tab-line-tab-name)
-  (tab-line-tab-name-format-function #'my/tab-line-tab-name-format)
+  :demand t
   :config
+  ;; tab-line-separator は defcustom ではないため、読み込み後に直接設定する。
+  (setq tab-line-separator " "
+        tab-line-new-button-show nil
+        tab-line-close-button-show nil
+        tab-line-tab-name-function #'my/tab-line-tab-name
+        tab-line-tab-name-format-function #'my/tab-line-tab-name-format)
   (global-tab-line-mode 1))
 
 ;;; ui.el ends here
