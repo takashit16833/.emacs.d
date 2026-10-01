@@ -132,10 +132,12 @@
         ;; 除外条件を使って tab-line に表示するバッファを絞る。
         tab-line-tabs-window-buffers-filter-function
         #'tab-line-tabs-non-excluded
-        ;; *Messages* などの *...* バッファと Magit 系バッファを除外する。
+        ;; *Messages* などの *...* バッファ、
+        ;; Magit 系バッファ、Dired バッファを除外する。
         tab-line-exclude-buffers
         '(or "^\\*.*\\*$"
-             (derived-mode . magit-mode)))
+             (derived-mode . magit-mode)
+	     (derived-mode . dired-mode)))
   (global-tab-line-mode 1))
 
 
