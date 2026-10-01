@@ -13,6 +13,18 @@
 ;; 現在行または選択した行のコメントを切り替える。
 (keymap-global-set "s-/" #'comment-line)
 
+;; VSCodeの行スワップ
+(use-package move-text
+  :ensure t
+  :bind
+  (("M-<up>"   . move-text-up)
+   ("M-<down>" . move-text-down)))
+
+;; 選択範囲を単語や括弧などの単位で広げる。
+(use-package expand-region
+  :ensure t
+  :bind ("s-x" . er/expand-region))
+
 ;; Undo / Redo: Command（Super）とOption（Meta）のZを割り当てる。
 (use-package undo-fu
   :ensure t
