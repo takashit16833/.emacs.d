@@ -16,6 +16,7 @@
 /bookmarks
 /history
 /projects.eld
+/transient/
 
 # Package quickstart cache
 /package-quickstart.el
