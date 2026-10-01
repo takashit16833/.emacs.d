@@ -38,4 +38,7 @@
         (kbd "M-:")
       (funcall orig input)))
 
+  (advice-add 'kkp--translate-terminal-input
+              :around #'my/kkp-jis-colon))
+
 ;;; terminal.el ends here

@@ -1,0 +1,31 @@
+# macOS
+.DS_Store
+
+# Emacs package files
+/elpa/
+
+# Native compilation cache
+/eln-cache/
+
+# Emacs generated state/cache
+/auto-save-list/
+/url/
+/tramp
+/recentf
+/places
+/bookmarks
+
+# Package quickstart cache
+/package-quickstart.el
+/package-quickstart.elc
+
+# Emacs server files
+/server/
+
+# Backup files
+*~
+\#*\#
+.\#*
+
+# Compiled Emacs Lisp
+*.elc
