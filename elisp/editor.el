@@ -20,6 +20,18 @@
   (indent-according-to-mode))
 
 
+(defun my/delete-to-line-beginning ()
+  "カーソル位置から行頭までを削除する。"
+  (interactive)
+  (delete-region (line-beginning-position) (point)))
+
+
+(defun my/delete-to-line-end ()
+  "カーソル位置から行末までを削除する。"
+  (interactive)
+  (delete-region (point) (line-end-position)))
+
+
 (defun my/copy-region-to-clipboard (beg end)
   "選択範囲をmacOSのクリップボードへコピーする。"
   (interactive "r")

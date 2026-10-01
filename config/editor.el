@@ -41,6 +41,11 @@
 (global-set-key (kbd "s-l") #'my/select-current-line)
 
 
+;; 現在位置から行頭・行末まで削除する。
+(global-set-key (kbd "s-<delete>") #'my/delete-to-line-end)
+(global-set-key (kbd "s-<backspace>") #'my/delete-to-line-beginning)
+
+
 ;; 範囲選択中だけRETをクリップボードへのコピーに使用する。
 (use-package selected
   :ensure t
