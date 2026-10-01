@@ -15,5 +15,29 @@
   (deactivate-mark)
   (message "クリップボードにコピーしました"))
 
+(defun my/delete-current-line ()
+  (interactive)
+  (let ((current-point (current-column)))
+    (delete-region
+     (line-beginning-position)
+     (line-beginning-position 2))    
+    (when (eobp)
+      (backward-delete-char-untabify 1))
+    (move-to-column current-point)))
+
+(defun my/delete-whole-line ()
+  "現在の行を改行ごと削除し、空行を残さない。"
+  (interactive)
+  (let ((beg (line-beginning-position))
+        (end (line-beginning-position 2))
+	(current-column (current-column)))
+    (when (and (= end (point-max))
+               (> beg (point-min))
+               (or (= beg end)
+                   (not (eq (char-before end) ?\n))))
+      (setq beg (1- beg)))
+    (delete-region beg end)
+    (move-to-column current-column)))
+
 (provide 'my-editing)
 ;;; my-editing.el ends here

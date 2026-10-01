@@ -15,6 +15,9 @@
 ;; 現在行または選択した行のコメントを切り替える。
 (keymap-global-set "s-/" #'comment-line)
 
+;; 現在行を削除する
+(keymap-global-set "S-s-k" #'my/delete-whole-line)
+
 ;; カーソル移動
 (keymap-global-set "s-<up>" #'beginning-of-buffer)
 (keymap-global-set "s-<down>" #'end-of-buffer)
