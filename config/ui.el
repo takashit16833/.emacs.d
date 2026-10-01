@@ -129,11 +129,9 @@
         tab-line-close-button-show nil
         tab-line-tab-name-function #'my/tab-line-tab-name
         tab-line-tab-name-format-function #'my/tab-line-tab-name-format
-
         ;; 除外条件を使って tab-line に表示するバッファを絞る。
         tab-line-tabs-window-buffers-filter-function
         #'tab-line-tabs-non-excluded
-
         ;; *Messages* などの *...* バッファと Magit 系バッファを除外する。
         tab-line-exclude-buffers
         '(or "^\\*.*\\*$"
