@@ -41,8 +41,7 @@
 (use-package consult
   :ensure t
   :bind
-  (("C-x b" . consult-buffer)
-   ("s-f" . consult-line)
+  (("s-f" . consult-line)
    ("s-y" . consult-yank-pop)))
 
 

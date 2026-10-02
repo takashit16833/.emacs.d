@@ -40,4 +40,19 @@
       scroll-conservatively 101)
 
 
+;; フレーム・タブローカル機能
+(use-package bufferlo
+  :ensure t
+  :demand t
+  :init
+  (setq tab-bar-new-tab-choice "*scratch*"
+        bufferlo-prefer-local-buffers 'tabs
+	bufferlo-hidden-buffers '("\\`magit"))
+  :bind
+  (("C-x b" . bufferlo-switch-to-buffer)
+   ("C-x k" . bufferlo-remove))
+  :config
+  (bufferlo-mode 1))
+
+
 ;;; basic.el ends here
