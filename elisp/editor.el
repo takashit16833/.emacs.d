@@ -5,6 +5,11 @@
 ;;; Code:
 
 
+;; ペースト時に選択範囲を上書きする。
+(delete-selection-mode 1)
+(with-eval-after-load 'term/xterm
+  (put 'xterm-paste 'delete-selection 'yank))
+
 (defun my/insert-line-below ()
   "カーソル行の下に新しい行を挿入し、その行へ移動する。"
   (interactive)
