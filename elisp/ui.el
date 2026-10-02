@@ -17,8 +17,8 @@
                buffer-file-name)
         (cdr my/file-icon-cache)
       ;; ファイル種別ごとの色を使わず、表示先の文字色を継承する。
-      (let ((nerd-icons-color-icons nil)
-            (icon (nerd-icons-icon-for-file buffer-file-name)))
+      (let* ((nerd-icons-color-icons nil)
+             (icon (nerd-icons-icon-for-file buffer-file-name)))
         (setq my/file-icon-cache
               (cons buffer-file-name icon))
         icon))))
