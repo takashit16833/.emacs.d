@@ -95,6 +95,8 @@
   :demand t
   :config
   (setq
+   ;; 新しいタブは*scratch*をデフォルトにする。
+   tab-bar-new-tab-choice "*scratch*"
    ;; タブが2個以上のときだけ表示する。
    tab-bar-show 1
    ;; タブ幅を自動調整しない。
