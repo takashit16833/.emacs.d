@@ -68,6 +68,11 @@
 (global-set-key (kbd "s-<backspace>") #'my/delete-to-line-beginning)
 
 
+;; 選択範囲またはカーソル行のテキストを複製する。
+(global-set-key (kbd "S-M-<up>") #'my/duplicate-lines-up)
+(global-set-key (kbd "S-M-<down>") #'my/duplicate-lines-down)
+
+
 ;; 範囲選択中だけRETをクリップボードへのコピーに使用する。
 (use-package selected
   :ensure t

@@ -133,5 +133,98 @@
       (activate-mark))))
 
 
+(defun my/line-block-bounds ()
+  "現在行、または選択範囲を含む行全体の範囲を返す。"
+  (if (use-region-p)
+      (let ((begin (region-beginning))
+	    (end (region-end)))
+	(cons
+	 (save-excursion
+	   (goto-char begin)
+	   (line-beginning-position))
+	 (save-excursion
+	   (goto-char end)
+	   ; 選択範囲の末尾が行頭の場合、その行は含めない。
+	   (if (and (bolp) (> end begin))
+	       end
+	     (line-beginning-position 2)))))
+    (cons
+     (line-beginning-position)
+     (line-beginning-position 2))))
+
+
+(defun my/duplicate-lines (direction)
+  "現在行または選択した行をDIRECTION方向へ複製する。"
+  (let* (;; コピーテキストを準備する。
+	 (bounds (my/line-block-bounds))
+	 (begin (car bounds))
+	 (end (cdr bounds))
+	 (text (buffer-substring begin end))
+	 ;; 現在の情報を取得する。
+	 (region-active-p (use-region-p))
+	 (original-point (point))
+	 (original-mark (and region-active-p (mark)))
+	 (point-offset (- original-point begin))
+         (mark-offset
+          (and region-active-p
+               (- original-mark begin)))
+	 ;; 末尾行に改行があるか調べる。
+	 (ends-with-newline-p
+          (and (> end begin)
+               (eq (char-before end) ?\n)))
+	 copy-begin)
+    
+    ;; 編集によって選択が解除されないようにする。
+    (let (deactivate-mark)
+      ;; 異常終了した場合、この中で行ったバッファ変更を取り消す。
+      (atomic-change-group
+	(pcase direction
+	  ('down
+	   (goto-char end)
+
+	   ;; 末尾行に改行がない状態で、そのまま文字列を挿入すると
+	   ;; 「次の行」にならず、同じ行に連結されてしまう
+	   (unless ends-with-newline-p
+	     (insert "\n"))
+
+	   ;; コピー開始位置を記憶する。
+	   (setq copy-begin (point))
+
+	   ;; コピーしたいテキストを挿入する。
+	   (insert text))
+	  ('up
+	   (goto-char begin)
+	   
+	   ;; コピー開始位置を記憶する。
+	   (setq copy-begin (point))
+	   
+	   ;; コピーしたいテキストを挿入する。
+	   (insert text)
+	   
+	   ;; 末尾行に改行がない状態で、そのまま文字列を挿入すると
+	   ;; 「次の行」にならず、同じ行に連結されてしまう
+	   (unless ends-with-newline-p
+	     (insert "\n"))))
+
+	;; 複製した側でも、元と同じ相対位置へカーソルを移動する。
+	(goto-char (+ copy-begin point-offset))
+
+	;; 複製した側でも、元と同じ相対位置にmarkを設定する。
+	(when region-active-p
+	  (set-mark (+ copy-begin mark-offset)))))))
+
+
+(defun my/duplicate-lines-up ()
+  "現在行または選択した行を上へ複製する。"
+  (interactive)
+  (my/duplicate-lines 'up))
+
+
+(defun my/duplicate-lines-down ()
+  "現在行または選択した行を下へ複製する。"
+  (interactive)
+  (my/duplicate-lines 'down))
+
+
 (provide 'editor)
 ;;; editor.el ends here

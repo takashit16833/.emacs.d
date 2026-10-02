@@ -17,6 +17,7 @@
 /history
 /projects.eld
 /transient/
+/tree-sitter
 
 # Package quickstart cache
 /package-quickstart.el
