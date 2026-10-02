@@ -144,7 +144,7 @@
 	   (line-beginning-position))
 	 (save-excursion
 	   (goto-char end)
-	   ; 選択範囲の末尾が行頭の場合、その行は含めない。
+	   ;; 選択範囲の末尾が行頭の場合、その行は含めない。
 	   (if (and (bolp) (> end begin))
 	       end
 	     (line-beginning-position 2)))))
