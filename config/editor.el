@@ -110,9 +110,10 @@
   :ensure t
   :hook (prog-mode . corfu-mode)
   :custom
-  ;; 1文字目から補完する。
+  ;; 2文字入力後、少し待ってから自動補完する。
   (corfu-auto t)
-  (corfu-auto-prefix 1)
+  (corfu-auto-prefix 2)
+  (corfu-auto-delay 0.15)
 
   ;; 補完候補の説明を１秒後に表示する。
   (corfu-popupinfo-delay 1.0)
