@@ -144,10 +144,8 @@
 
 
 ;; アクティブなtab-lineの切り替え
-(global-set-key (kbd "C-<tab>")
-                #'tab-line-switch-to-next-tab)
-(global-set-key (kbd "C-S-<tab>")
-                #'tab-line-switch-to-prev-tab)
+(global-set-key (kbd "C-<tab>") #'tab-line-switch-to-next-tab)
+(global-set-key (kbd "C-S-<tab>") #'tab-line-switch-to-prev-tab)
 
 
 ;; 括弧の色分け
