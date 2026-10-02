@@ -42,7 +42,8 @@
   :ensure t
   :bind
   (("C-x b" . consult-buffer)
-   ("s-f" . consult-line)))
+   ("s-f" . consult-line)
+   ("s-y" . consult-yank-pop)))
 
 
 ;; 補完候補にNerd Fontのアイコンを表示する。
