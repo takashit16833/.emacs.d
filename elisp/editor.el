@@ -59,7 +59,7 @@
 
 (defun my/smart-beginning-of-line ()
   "カーソル位置を文頭・行頭でトグルする。"
-  (interactive)
+  (interactive "^")
   (let ((indentation-position
 	 (save-excursion
 	   (back-to-indentation)
@@ -73,7 +73,7 @@
   "カーソル位置から行頭まで一時的に選択する。"
   (interactive)
   (setq this-command-keys-shift-translated t)
-  (call-interactively #'move-beginning-of-line))
+  (call-interactively #'my/smart-beginning-of-line))
 
 
 (defun my/select-to-line-end ()

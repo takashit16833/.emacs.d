@@ -36,9 +36,13 @@
 (keymap-global-set "s-a" #'mark-whole-buffer)
 
 
+;; カーソルを行頭へ移動する。
+(keymap-global-set "s-<left>" #'my/smart-beginning-of-line)
+
+
 ;; カーソル位置から行頭・行末までを選択する
-(keymap-global-set "s-<left>" #'my/select-to-line-beginning)
-(keymap-global-set "s-<right>" #'my/select-to-line-end)
+(keymap-global-set "S-s-<left>" #'my/select-to-line-beginning)
+(keymap-global-set "S-s-<right>" #'my/select-to-line-end)
 
 
 ;; 単語単位で削除する。
