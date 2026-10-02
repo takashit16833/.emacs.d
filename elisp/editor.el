@@ -57,6 +57,18 @@
      (point))))
 
 
+(defun my/smart-beginning-of-line ()
+  "カーソル位置を文頭・行頭でトグルする。"
+  (interactive)
+  (let ((indentation-position
+	 (save-excursion
+	   (back-to-indentation)
+	   (point))))
+    (if (not (= indentation-position (point)))
+	(back-to-indentation)
+      (beginning-of-line))))
+
+
 (defun my/select-to-line-beginning ()
   "カーソル位置から行頭まで一時的に選択する。"
   (interactive)
