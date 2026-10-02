@@ -10,6 +10,7 @@
 (with-eval-after-load 'term/xterm
   (put 'xterm-paste 'delete-selection 'yank))
 
+
 (defun my/insert-line-below ()
   "カーソル行の下に新しい行を挿入し、その行へ移動する。"
   (interactive)
