@@ -4,6 +4,7 @@
 
 ;;; Code:
 
+(require 'my-project-command)
 
 ;; Tree-sitterの色分けを最大レベルにする。
 (setq treesit-font-lock-level 4)
