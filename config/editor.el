@@ -36,8 +36,9 @@
 (keymap-global-set "s-a" #'mark-whole-buffer)
 
 
-;; カーソルを行頭へ移動する。
+;; カーソルを行頭・行末へ移動する。
 (keymap-global-set "s-<left>" #'my/smart-beginning-of-line)
+(keymap-global-set "s-<right>" #'end-of-line)
 
 
 ;; カーソル位置から行頭・行末までを選択する
