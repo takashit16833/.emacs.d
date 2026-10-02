@@ -126,7 +126,7 @@
   :ensure nil
   :demand t
   :config
-  (setq tab-line-separator " "
+  (setq tab-line-separator ""
         tab-line-new-button-show nil
         tab-line-close-button-show nil
         tab-line-tab-name-function #'my/tab-line-tab-name
