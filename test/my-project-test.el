@@ -78,6 +78,37 @@
 ;;; my/project-command--get-project-commands -------------------------------
 
 
+(ert-deftest my/project-command--get-project-commands-defined ()
+  "ROOT に定義されたプロジェクトコマンドを返すこと。"
+  (let ((root (file-name-as-directory (make-temp-file "my-project-test-" t))))
+    (unwind-protect
+	(let ((file (expand-file-name ".dir-locals.el" root)))
+	  (with-temp-file file
+	    (prin1
+	     '((nil . ((my/project-commands
+			. (("name"
+			    :command "test command"
+			    :description "test description"))))))
+	     (current-buffer)))
+	    
+	  (let ((commands
+		 (my/project-command--get-project-commands root)))
+	    (should
+	     (equal
+	      commands
+	      '(("name" :command "test command" :description "test description")))))))
+    (delete-directory root t)))
+
+
+(ert-deftest my/project-command--get-project-commands-not-defined ()
+  "ROOT にプロジェクトコマンドが定義されていなければ nil を返すこと。"
+  )
+
+
+(ert-deftest my/project-command--get-project-commands-uses-root ()
+  "現在位置ではなく指定された ROOT のプロジェクトコマンドを返すこと。"
+  )
+
 
 ;;; my/project-command--completion-extra-properties ------------------------
 
