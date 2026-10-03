@@ -5,6 +5,13 @@
 ;;; Code:
 
 
+(require 'my-basic)
+
+
+;; init.el を読み込む
+(keymap-global-set "<f9>" #'my/reload-init-file)
+
+
 ;; 起動時の案内画面を表示しない。
 (setq inhibit-startup-screen t)
 
