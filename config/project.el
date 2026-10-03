@@ -14,6 +14,9 @@
 (keymap-global-set "s-p" #'project-find-file)
 
 
+;; Project commandsを実行する。
+(keymap-global-set "C-x p t" #'my/project-run-command)
+
 ;; project-switch-projectの選択肢を設定する。
 (setopt project-switch-commands
         '((project-find-file "Find file")
