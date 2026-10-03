@@ -102,16 +102,70 @@
 
 (ert-deftest my/project-command--get-project-commands-not-defined ()
   "ROOT にプロジェクトコマンドが定義されていなければ nil を返すこと。"
-  )
+  (let ((root
+         (file-name-as-directory
+          (make-temp-file "my-project-test-" t))))
+    (unwind-protect
+        (should-not
+         (my/project-command--get-project-commands root))
+      (delete-directory root t))))
 
 
 (ert-deftest my/project-command--get-project-commands-uses-root ()
   "現在位置ではなく指定された ROOT のプロジェクトコマンドを返すこと。"
-  )
+  (let* ((parent
+          (file-name-as-directory
+           (make-temp-file "my-project-test-" t)))
+         (current-root
+          (file-name-as-directory
+           (expand-file-name "current" parent)))
+         (target-root
+          (file-name-as-directory
+           (expand-file-name "target" parent))))
+    (unwind-protect
+        (progn
+          (make-directory current-root)
+          (make-directory target-root)
+          (with-temp-file
+              (expand-file-name ".dir-locals.el" target-root)
+            (prin1
+             '((nil . ((my/project-commands
+                        . (("target"
+                            :command "target command"
+                            :description "target description"))))))
+             (current-buffer)))
+          (let ((default-directory current-root)
+                (commands
+                 (my/project-command--get-project-commands target-root)))
+            (should
+             (equal
+              commands
+              '(("target"
+                 :command "target command"
+                 :description "target description"))))))
+      (delete-directory parent t))))
 
 
 ;;; my/project-command--completion-extra-properties ------------------------
 
+
+(ert-deftest my/project-command--completion-extra-properties-description ()
+  "コマンド名に対応する説明を補完候補の注釈として返すこと。"
+  (let* ((commands
+          '(("first"
+             :command "first command"
+             :description "first description")
+            ("second"
+             :command "second command"
+             :description "second description")))
+         (properties
+          (my/project-command--completion-extra-properties commands))
+         (annotation-function
+          (plist-get properties :annotation-function)))
+    (should
+     (equal
+      (funcall annotation-function "second")
+      "\tsecond description"))))
 
 
 ;;; my-project-test.el ends here
