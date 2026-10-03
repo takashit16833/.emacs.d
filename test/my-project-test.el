@@ -47,27 +47,32 @@
 
 (ert-deftest my/project-commands-safe-p-name-not-string ()
   "コマンド名が文字列でない場合は安全と判定しないこと。"
-  )
+  (should-not
+   (my/project-commands-safe-p '((1 :command "test" :description "desc")))))
 
 
 (ert-deftest my/project-commands-safe-p-command-missing ()
   "`:command' が存在しない場合は安全と判定しないこと。"
-  )
+  (should-not
+   (my/project-commands-safe-p '(("name" :description "desc")))))
 
 
 (ert-deftest my/project-commands-safe-p-command-not-string ()
   "`:command' の値が文字列でない場合は安全と判定しないこと。"
-  )
+  (should-not
+   (my/project-commands-safe-p '(("name" :command 1 :description "desc")))))
 
 
 (ert-deftest my/project-commands-safe-p-description-missing ()
   "`:description' が存在しない場合は安全と判定しないこと。"
-  )
+  (should-not
+   (my/project-commands-safe-p '(("name" :command "test")))))
 
 
 (ert-deftest my/project-commands-safe-p-description-not-string ()
   "`:description' の値が文字列でない場合は安全と判定しないこと。"
-  )
+  (should-not
+   (my/project-commands-safe-p '(("name" :command "test" :description 1)))))
 
 
 ;;; my/project-command--get-project-commands -------------------------------
