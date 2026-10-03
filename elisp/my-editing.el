@@ -1,4 +1,5 @@
-;;; editor.el --- Editing commands -*- lexical-binding: t; -*-
+;;; my-editing.el --- Editing commands -*- lexical-binding: t; -*-
+
 ;;; Commentary:
 ;; 行の挿入・削除・複製と選択操作をまとめる。
 
@@ -244,5 +245,5 @@
   (my/duplicate-lines 'down))
 
 
-(provide 'editor)
-;;; editor.el ends here
+(provide 'my-editing)
+;;; my-editing.el ends here

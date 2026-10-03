@@ -1,11 +1,12 @@
 ;;; ui.el --- User interface configuration -*- lexical-binding: t; -*-
+
 ;;; Commentary:
 ;; Emacs の表示と見た目に関する設定を置く。
 
 ;;; Code:
 
 
-(require 'ui)
+(require 'my-ui)
 
 
 ;; 画面: 上部のメニューバーを隠す（下部のモードラインは残す）。

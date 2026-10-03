@@ -16,6 +16,7 @@
 (load (expand-file-name "config/ui.el" user-emacs-directory))
 (load (expand-file-name "config/editor.el" user-emacs-directory))
 (load (expand-file-name "config/development.el" user-emacs-directory))
+(load (expand-file-name "config/project.el" user-emacs-directory))
 (load (expand-file-name "config/git.el" user-emacs-directory))
 
 ;;; init.el ends here

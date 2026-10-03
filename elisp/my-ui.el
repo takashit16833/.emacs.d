@@ -1,4 +1,4 @@
-;;; ui.el --- Editing commands -*- lexical-binding: t; -*-
+;;; my-ui.el --- Editing commands -*- lexical-binding: t; -*-
 
 ;;; Commentary:
 ;; 見た目の設定関数をまとめる。
@@ -60,5 +60,7 @@
     (concat left-padding formatted right-padding)))
 
 
-(provide 'ui)
-;;; ui.el ends here
+(provide 'my-ui)
+
+
+;;; my-ui.el ends here
