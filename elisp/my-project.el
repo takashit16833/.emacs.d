@@ -1,4 +1,4 @@
-;;; my-project-command.el --- Project-local command runner -*- lexical-binding: t; -*-
+;;; my-project.el --- Project-local command runner -*- lexical-binding: t; -*-
 
 ;;; Commentary:
 ;; `.dir-locals.el' に定義したプロジェクト固有のコマンドを、
@@ -97,6 +97,6 @@
      #'my/project-commands-safe-p)
 
 
-(provide 'my-project-command)
+(provide 'my-project)
 
-;;; my-project-command.el ends here
+;;; my-project.el ends here

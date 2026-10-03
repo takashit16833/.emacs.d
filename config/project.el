@@ -7,7 +7,7 @@
 
 
 (require 'project)
-(require 'my-project-command)
+(require 'my-project)
 
 
 ;; Project内のファイルを検索して開く。
