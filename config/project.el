@@ -15,7 +15,8 @@
 
 
 ;; Project commandsを実行する。
-(keymap-global-set "C-x p t" #'my/project-run-command)
+(keymap-set project-prefix-map "t" #'my/project-run-command)
+
 
 ;; project-switch-projectの選択肢を設定する。
 (setopt project-switch-commands
