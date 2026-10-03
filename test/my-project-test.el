@@ -7,7 +7,7 @@
 
 (require 'ert)
 (require 'my-project)
-
+(require 'seq)
 
 ;;; my/project-commands-safe-p ----------------------------------------------
 
@@ -35,12 +35,14 @@
 
 (ert-deftest my/project-commands-safe-p-command-not-list ()
   "各コマンドがリストでない場合は安全と判定しないこと。"
-  )
+  (should-not
+    (my/project-commands-safe-p '("not a list"))))
 
 
 (ert-deftest my/project-commands-safe-p-body-not-plist ()
   "コマンド本体が plist でない場合は安全と判定しないこと。"
-  )
+  (should-not
+   (my/project-commands-safe-p '(("name"  :command . "not a plist")))))
 
 
 (ert-deftest my/project-commands-safe-p-name-not-string ()
