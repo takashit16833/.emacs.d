@@ -20,6 +20,10 @@
 (require 'my-navigation)
 
 
+;; Browsing History に移動を記録する。
+(my/navigation-setup)
+
+
 ;; Browsing History を戻る・進む。
 (keymap-global-set "s-[" #'my/browsing-history-back)
 (keymap-global-set "s-]" #'my/browsing-history-forward)
