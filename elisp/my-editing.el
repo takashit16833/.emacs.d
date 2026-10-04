@@ -117,6 +117,19 @@
   (message "クリップボードにコピーしました"))
 
 
+(defun my/paste-from-clipboard ()
+  "macOSのクリップボードから貼り付ける。"
+  (interactive)
+  (let ((text
+         (with-temp-buffer
+           (call-process "pbpaste" nil t nil)
+           (buffer-string))))
+    (insert-for-yank text)))
+
+;; 選択中に貼り付けた場合は、選択範囲を貼り付け内容で置き換える。
+(put 'my/paste-from-clipboard 'delete-selection 'yank)
+
+
 (defun my/delete-whole-line ()
   "現在の行を改行ごと削除し、空行を残さない。"
   (interactive)
@@ -243,22 +256,6 @@
   "現在行または選択した行を下へ複製する。"
   (interactive)
   (my/duplicate-lines 'down))
-
-
-(defun my/paste-from-clipboard ()
-  "macOSのクリップボードの内容を現在位置へ貼り付ける。"
-  (interactive)
-  (unless (executable-find "pbpaste")
-    (user-error "pbpaste が見つかりません"))
-  (let ((text
-         (with-temp-buffer
-           (unless (zerop (call-process "pbpaste" nil t nil))
-             (user-error "クリップボードからの読み込みに失敗しました"))
-           (buffer-string))))
-    ;; 選択中なら、その範囲を置き換える。
-    (when (use-region-p)
-      (delete-region (region-beginning) (region-end)))
-    (insert-for-yank text)))
 
 
 (provide 'my-editing)
