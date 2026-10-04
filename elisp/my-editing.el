@@ -71,11 +71,14 @@
       (beginning-of-line))))
 
 
-(defun my/select-to-line-beginning ()
-  "カーソル位置から行頭まで一時的に選択する。"
+(defun my/delete-to-line-beginning ()
+  "カーソル位置から行頭まで削除する。
+すでに行頭にいる場合は、直前の改行を削除して前の行と結合する。"
   (interactive)
-  (setq this-command-keys-shift-translated t)
-  (call-interactively #'my/smart-beginning-of-line))
+  (if (bolp)
+      (unless (bobp)
+        (delete-char -1))
+    (delete-region (line-beginning-position) (point))))
 
 
 (defun my/select-to-line-end ()
