@@ -245,5 +245,21 @@
   (my/duplicate-lines 'down))
 
 
+(defun my/paste-from-clipboard ()
+  "macOSのクリップボードの内容を現在位置へ貼り付ける。"
+  (interactive)
+  (unless (executable-find "pbpaste")
+    (user-error "pbpaste が見つかりません"))
+  (let ((text
+         (with-temp-buffer
+           (unless (zerop (call-process "pbpaste" nil t nil))
+             (user-error "クリップボードからの読み込みに失敗しました"))
+           (buffer-string))))
+    ;; 選択中なら、その範囲を置き換える。
+    (when (use-region-p)
+      (delete-region (region-beginning) (region-end)))
+    (insert-for-yank text)))
+
+
 (provide 'my-editing)
 ;;; my-editing.el ends here

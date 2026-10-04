@@ -78,12 +78,17 @@
 (global-set-key (kbd "S-M-<down>") #'my/duplicate-lines-down)
 
 
-;; 範囲選択中だけRETをクリップボードへのコピーに使用する。
+;; クリップボードからペーストする。
+(keymap-global-set "s-v" #'my/paste-from-clipboard)
+
+
+;; クリップボードへコピーする。
 (use-package selected
   :ensure t
   :demand t
   :bind
   (:map selected-keymap
+        ("w"   . kill-ring-save)
         ("s-c" . my/copy-region-to-clipboard))
   :config
   (selected-global-mode 1))
