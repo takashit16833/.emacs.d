@@ -20,4 +20,9 @@
 (require 'my-navigation)
 
 
+;; Browsing History を戻る・進む。
+(keymap-global-set "s-[" #'my/browsing-history-back)
+(keymap-global-set "s-]" #'my/browsing-history-forward)
+
+
 ;;; navigation.el ends here
