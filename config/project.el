@@ -22,13 +22,9 @@
 (setopt project-switch-commands
         '((project-find-file "Find file")
           (project-find-regexp "Find regexp")
+          (my/project-run-command "Run command" ?t)
+          (magit-project-status "Magit" ?m)
           (project-any-command "Other")))
-
-
-;; project-switch-projectの選択肢にMagitを追加する。
-(add-to-list 'project-switch-commands
-             '(magit-project-status "Magit" ?m)
-             t)
 
 
 ;;; project.el ends here
