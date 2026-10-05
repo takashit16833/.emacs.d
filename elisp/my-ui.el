@@ -60,6 +60,16 @@
     (concat left-padding formatted right-padding)))
 
 
+(defun my/tab-line-tabs-bufferlo-buffers ()
+  "現在のTabに属するBufferloのbufferを返す。"
+  (tab-line-tabs-non-excluded
+   (seq-filter
+    (lambda (buffer)
+      ;; " *Minibuf-1*" などの内部bufferは表示しない。
+      (not (string-prefix-p " " (buffer-name buffer))))
+    (bufferlo-buffer-list))))
+
+
 (provide 'my-ui)
 
 

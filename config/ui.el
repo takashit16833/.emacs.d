@@ -140,7 +140,9 @@
         tab-line-exclude-buffers
         '(or "^\\*.*\\*$"
              (derived-mode . magit-mode)
-	     (derived-mode . dired-mode)))
+	     (derived-mode . dired-mode))
+	tab-line-tabs-function
+	'my/tab-line-tabs-bufferlo-buffers)
   (global-tab-line-mode 1))
 
 
