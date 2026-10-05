@@ -43,6 +43,7 @@
   :bind
   (("s-f" . consult-line)
    ("S-s-f" . consult-ripgrep)
+   ("s-r" . consult-recent-file)
    ("s-y" . consult-yank-pop)))
 
 

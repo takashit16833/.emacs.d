@@ -5,6 +5,15 @@
 ;;; Code:
 
 
+;; 最近開いたファイルの履歴を保存する。
+(use-package recentf
+  :ensure nil
+  :custom
+  (recentf-max-saved-items 200)
+  :init
+  (recentf-mode 1))
+
+
 ;; "." と ".." は表示せず、それ以外の隠しファイルは表示する。
 (use-package dired
   :ensure nil
