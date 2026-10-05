@@ -7,6 +7,41 @@
 (require 'my-tab-context)
 
 
+;; 編集中のファイルにGitとの差分を表示する。
+(use-package diff-hl
+  :ensure t
+  :demand t
+
+  :bind
+  (:map diff-hl-mode-map
+        ("<f5>"   . diff-hl-next-hunk)
+        ("S-<f5>" . diff-hl-previous-hunk))
+
+  :config
+  ;; 端末ではfringeを表示できないため、左marginに差分を表示する。
+  (require 'diff-hl-margin)
+
+  ;; 差分を1文字の縦線で表示する。
+  (setopt diff-hl-margin-symbols-alist
+          '((insert . "│")
+            (change . "│")
+            (delete . "│")
+            (unknown . "?")
+            (ignored . "i")
+            (reference . " ")))
+
+  ;; global-diff-hl-modeを有効にする前にmargin表示へ切り替える。
+  ;; 最初の描画から端末用の表示方法を使わせる。
+  (diff-hl-margin-mode 1)
+  (global-diff-hl-mode 1)
+
+  ;; Magitの状態更新後に、開いているファイルの差分表示も更新する。
+  ;; ここではMagit自体を読み込まない。
+  (with-eval-after-load 'magit
+    (add-hook 'magit-post-refresh-hook
+              #'diff-hl-magit-post-refresh)))
+
+
 ;; Emacs内で状態確認・差分確認・コミットなどを行う。
 (use-package magit
   :ensure t
