@@ -97,6 +97,19 @@ CURRENT-BUFFERS にないbufferは除外する。"
     ordered-buffers))
 
 
+(defun my/corfu-offset-tty-popup (original frame x y width height)
+  "TTYのCorfu候補を右へ1文字、下へ1行ずらす。"
+  (if (and (not (display-graphic-p))
+           (string= (buffer-name) " *corfu*"))
+      (funcall original
+               frame
+               (+ x (default-font-width))
+               (+ y (default-line-height))
+               width
+               height)
+    (funcall original frame x y width height)))
+
+
 (provide 'my-ui)
 
 

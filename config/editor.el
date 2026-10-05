@@ -142,6 +142,11 @@
   ;; 補完候補の説明を表示する。
   (corfu-popupinfo-mode 1))
 
+;; ポップアップの位置をずらす
+(advice-add 'corfu--make-frame
+            :around
+            #'my/corfu-offset-tty-popup)
+
 
 ;; 補完候補にアイコンを表示する。
 (use-package nerd-icons-corfu
