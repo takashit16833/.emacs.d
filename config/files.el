@@ -5,13 +5,6 @@
 ;;; Code:
 
 
-(require 'my-tab-context)
-
-
-;; 現在のTabに設定された基準ディレクトリをDiredで開く。
-(keymap-global-set "C-x d" #'my/dired)
-
-
 ;; Diredを拡張したファイルマネージャ。
 (use-package dirvish
   :ensure t

@@ -49,17 +49,6 @@ Tabに基準ディレクトリが設定されていない場合は、
     (call-interactively #'magit-status)))
 
 
-(defun my/dired ()
-  "現在のTabを基準にDiredを開く。
-
-Tabに基準ディレクトリが設定されていない場合は、
-通常の `dired' を実行する。"
-  (interactive)
-  (if-let* ((directory (my/tab-context-directory)))
-      (dired directory)
-    (call-interactively #'dired)))
-
-
 (provide 'my-tab-context)
 
 ;;; my-tab-context.el ends here
