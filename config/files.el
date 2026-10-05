@@ -36,10 +36,6 @@
   ;; TTYでは画像ベースの先頭バーを表示しない。
   (dirvish-mode-line-bar-image-width 0)
 
-  ;; ファイルを開いた場合もqで閉じた場合も、
-  ;; 最後のDirvishセッションを次回再利用する。
-  (dirvish-reuse-session t)
-
   ;; 上部:
   ;; 現在のパス / Project / Gitブランチ / ディスク空き容量。
   (dirvish-header-line-format
