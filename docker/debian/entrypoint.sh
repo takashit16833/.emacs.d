@@ -48,9 +48,14 @@ tar \
 
 cd "$target_dir"
 
-if [ "${1:-}" = "--shell" ]; then
-  shift
-  exec bash "$@"
-fi
+case "${1:-}" in
+  --keepalive)
+    exec tail -f /dev/null
+    ;;
+  --shell)
+    shift
+    exec bash "$@"
+    ;;
+esac
 
 exec emacs -nw --debug-init "$@"
