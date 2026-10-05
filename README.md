@@ -1,27 +1,30 @@
 # .emacs.d
 
-## Debian での動作確認
+## Debian 系コンテナ
 
-前提:
+### 現場の既存コンテナへ導入する
 
-- Docker または Colima が利用できること
-- GitHub CLI (`gh`) で `gh auth login` 済みであること
+現在の `.emacs.d` をコンテナ内に置いた状態で:
 
-リポジトリ直下で次を実行する。
+```sh
+cd ~/.emacs.d
+bash scripts/debian-setup.sh
+```
+
+依存パッケージ、GNU Emacs 31.1、GitHub 認証、UTF-8 / true color 環境を準備して Emacs を起動する。
+
+セットアップ済みなら:
+
+```sh
+bash scripts/debian-emacs.sh
+```
+
+### まっさらな Debian で再現性を確認する
+
+こちらは現場導入ではなくテスト用。
 
 ```sh
 bash scripts/debian-test.sh
-```
-
-Debian trixie 上に GNU Emacs 31.1 をビルドした Docker イメージを作成し、
-現在の `.emacs.d` を読み取り専用で渡して `emacs -nw --debug-init` を起動する。
-
-初回は Emacs のビルドが必要だが、2回目以降は Docker のキャッシュを利用する。
-
-コンテナ内のシェルで調査したい場合:
-
-```sh
-bash scripts/debian-test.sh --shell
 ```
 
 詳細は Workbench の `Notes/Emacs/Debian-動作確認.md` を参照。
