@@ -5,8 +5,11 @@
 ;;; Code:
 
 
-;; Tree-sitterの色分けを最大レベルにする。
-(setq treesit-font-lock-level 4)
+(require 'my-development)
+
+
+;; Tree-sitterの色分けを最大レベル（４が最大）。
+(setq treesit-font-lock-level 3)
 
 
 ;; プロジェクトの.editorconfigを反映する。
@@ -15,11 +18,22 @@
   :hook (after-init . editorconfig-mode))
 
 
+;; 括弧を階層ごとに色分けする。
+(use-package rainbow-delimiters
+  :ensure t
+  :hook
+  (prog-mode . rainbow-delimiters-mode))
+
+
+;;; Lua -------------------------------------------------------------
+
 ;; LuaでTree-sitterを使用する。
 (use-package lua-ts-mode
   :ensure nil
   :mode ("\\.lua\\'" . lua-ts-mode))
 
+
+;;; Haskell ---------------------------------------------------------
 
 ;; HaskellでTree-sitterを使用する。
 (use-package haskell-ts-mode
@@ -27,11 +41,12 @@
   :mode ("\\.hs\\'" . haskell-ts-mode))
 
 
-;; 括弧を階層ごとに色分けする。
-(use-package rainbow-delimiters
+;; Cabalファイルを色分けする。
+(use-package haskell-mode
   :ensure t
-  :hook
-  (prog-mode . rainbow-delimiters-mode))
+  :mode
+  ("\\.cabal\\'" . haskell-cabal-mode)
+  ("/cabal\\.project\\'" . haskell-cabal-mode))
 
 
 ;;; LSP -------------------------------------------------------------
@@ -43,7 +58,8 @@
   :commands lsp-deferred
   :hook
   ((lua-ts-mode . lsp-deferred)
-   (haskell-ts-mode . lsp-deferred))
+   (haskell-ts-mode . lsp-deferred)
+   (lsp-mode . lsp-enable-which-key-integration))
 
   :init
   (setq lsp-keymap-prefix "C-c l")
@@ -78,7 +94,12 @@
   (lsp-modeline-workspace-status-enable nil)
 
   ;; バッファ上部にパンくずリストを表示しない。
-  (lsp-headerline-breadcrumb-enable nil))
+  (lsp-headerline-breadcrumb-enable nil)
+  :bind
+  (:map lsp-mode-map
+	("<f12>" . lsp-find-definition))
+  (:map lsp-command-map
+        ("d" . my/flymake-show-diagnostic)))
 
 
 ;; Haskell Language Serverを使用する。
@@ -121,7 +142,8 @@
   :hook
   ;; 保存時の整形も手動実行と同じApheleiaの設定を使用する。
   ((lua-ts-mode . apheleia-mode)
-   (haskell-ts-mode . apheleia-mode))
+   (haskell-ts-mode . apheleia-mode)
+   (haskell-cabal-mode . apheleia-mode))
 
   :config
   ;; LuaはStyLuaで整形する。
@@ -149,7 +171,14 @@
 
   ;; haskell-ts-modeでは必ずFourmoluを使用する。
   (setf (alist-get 'haskell-ts-mode apheleia-mode-alist)
-        'fourmolu))
+        'fourmolu)
+
+  ;; Cabalファイルはcabal-gildで整形する。
+  (setf (alist-get 'cabal-gild apheleia-formatters)
+	'("cabal-gild"))
+  
+  (setf (alist-get 'haskell-cabal-mode apheleia-mode-alist)
+	'cabal-gild))
 
 
 ;; 手動整形も保存時と同じApheleiaのformatter選択を使用する。
