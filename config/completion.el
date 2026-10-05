@@ -46,6 +46,23 @@
    ("s-y" . consult-yank-pop)))
 
 
+;; 補完候補やカーソル位置の対象に対して、その場で操作する。
+(use-package embark
+  :ensure t
+  :bind
+  (("C-." . embark-act)
+   ("C-h B" . embark-bindings))
+  :init
+  ;; プレフィックスキーのヘルプをEmbarkで表示する。
+  (setq prefix-help-command #'embark-prefix-help-command))
+
+
+;; Consultの検索結果をEmbarkからexportできるようにする。
+(use-package embark-consult
+  :ensure t
+  :defer t)
+
+
 ;; 補完候補にNerd Fontのアイコンを表示する。
 (use-package nerd-icons-completion
   :ensure t
