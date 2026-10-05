@@ -18,44 +18,51 @@ fi
 # 認証情報そのものはイメージには保存せず、実行時の GH_TOKEN を gh 経由で使う。
 gh auth setup-git >/dev/null
 
-# macOS 側で生成されたキャッシュやコンパイル済みファイルは持ち込まず、
-# 設定ソースだけを Debian 側の ~/.emacs.d にコピーする。
-rm -rf "$target_dir"
-mkdir -p "$target_dir"
+sync_config() {
+  mkdir -p "$target_dir"
 
-cd "$source_dir"
-
-tar \
-  --exclude='./.git' \
-  --exclude='./elpa' \
-  --exclude='./eln-cache' \
-  --exclude='./tree-sitter' \
-  --exclude='./transient' \
-  --exclude='./auto-save-list' \
-  --exclude='./url' \
-  --exclude='./server' \
-  --exclude='./history' \
-  --exclude='./projects.eld' \
-  --exclude='./tramp' \
-  --exclude='./recentf' \
-  --exclude='./places' \
-  --exclude='./bookmarks' \
-  --exclude='./package-quickstart.el' \
-  --exclude='./package-quickstart.elc' \
-  --exclude='*.elc' \
-  -cf - . \
-  | tar -xf - -C "$target_dir"
-
-cd "$target_dir"
+  # macOS 側で生成されたキャッシュやコンパイル済みファイルは持ち込まず、
+  # 設定ソースだけを Debian 側の ~/.emacs.d に同期する。
+  # Debian 側で生成されたパッケージやキャッシュは削除せず保持する。
+  rsync -a --delete \
+    --exclude='.git/' \
+    --exclude='elpa/' \
+    --exclude='eln-cache/' \
+    --exclude='tree-sitter/' \
+    --exclude='transient/' \
+    --exclude='auto-save-list/' \
+    --exclude='url/' \
+    --exclude='server/' \
+    --exclude='history' \
+    --exclude='projects.eld' \
+    --exclude='tramp' \
+    --exclude='recentf' \
+    --exclude='places' \
+    --exclude='bookmarks' \
+    --exclude='package-quickstart.el' \
+    --exclude='package-quickstart.elc' \
+    --exclude='*.elc' \
+    "$source_dir/" \
+    "$target_dir/"
+}
 
 case "${1:-}" in
+  --sync)
+    sync_config
+    exit 0
+    ;;
   --keepalive)
+    sync_config
     exec tail -f /dev/null
     ;;
   --shell)
     shift
+    sync_config
+    cd "$target_dir"
     exec bash "$@"
     ;;
 esac
 
+sync_config
+cd "$target_dir"
 exec emacs -nw --debug-init "$@"
