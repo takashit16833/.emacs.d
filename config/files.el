@@ -62,7 +62,6 @@
    '(subtree-state
      nerd-icons
      collapse
-     git-msg
      file-modes
      file-time
      file-size))
