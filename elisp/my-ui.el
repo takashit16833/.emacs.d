@@ -5,6 +5,8 @@
 
 ;;; Code:
 
+(require 'seq)
+
 
 (defvar-local my/file-icon-cache nil
   "現在のバッファのファイルアイコンをキャッシュする。")
@@ -60,14 +62,39 @@
     (concat left-padding formatted right-padding)))
 
 
+(defun my/tab-line--stable-buffer-order (old-buffers current-buffers)
+  "CURRENT-BUFFERS を OLD-BUFFERS の既存順を維持して並べる。
+OLD-BUFFERS にない新しいbufferは末尾へ追加し、
+CURRENT-BUFFERS にないbufferは除外する。"
+  (let ((existing-buffers
+         (seq-filter
+          (lambda (buffer)
+            (memq buffer current-buffers))
+          old-buffers))
+        (new-buffers
+         (seq-remove
+          (lambda (buffer)
+            (memq buffer old-buffers))
+          current-buffers)))
+    (append existing-buffers new-buffers)))
+
+
 (defun my/tab-line-tabs-bufferlo-buffers ()
-  "現在のTabに属するBufferloのbufferを返す。"
-  (tab-line-tabs-non-excluded
-   (seq-filter
-    (lambda (buffer)
-      ;; " *Minibuf-1*" などの内部bufferは表示しない。
-      (not (string-prefix-p " " (buffer-name buffer))))
-    (bufferlo-buffer-list))))
+  "現在のTabに属するBufferloのbufferを安定した順番で返す。"
+  (let* ((window (selected-window))
+         (buffers
+          (tab-line-tabs-non-excluded
+           (seq-filter
+            (lambda (buffer)
+              ;; " *Minibuf-1*" などの内部bufferは表示しない。
+              (not (string-prefix-p " " (buffer-name buffer))))
+            (bufferlo-buffer-list))))
+         (ordered-buffers
+          (my/tab-line--stable-buffer-order
+           (window-parameter window 'tab-line-buffers)
+           buffers)))
+    (set-window-parameter window 'tab-line-buffers ordered-buffers)
+    ordered-buffers))
 
 
 (provide 'my-ui)
