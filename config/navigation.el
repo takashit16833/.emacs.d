@@ -1,9 +1,17 @@
 ;;; navigation.el --- Navigation configuration -*- lexical-binding: t; -*-
 
 ;;; Commentary:
-;; ファイルやコード内の移動に関する設定を置く。
+;; ファイル、コード、ウィンドウ、Tabなどの移動に関する設定を置く。
 
 ;;; Code:
+
+
+;; Tabを切り替える。
+(keymap-global-set "M-t" #'tab-bar-switch-to-tab)
+
+
+;; 次のウィンドウへ移動する。
+(keymap-global-set "M-o" #'other-window)
 
 
 ;; ブラウザのような戻る・進む履歴を提供する。
