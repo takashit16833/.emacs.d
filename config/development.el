@@ -21,6 +21,12 @@
   :mode ("\\.lua\\'" . lua-ts-mode))
 
 
+;; HaskellでTree-sitterを使用する。
+(use-package haskell-ts-mode
+  :vc (:url "https://github.com/dschrempf/haskell-ts-mode")
+  :mode ("\\.hs\\'" . haskell-ts-mode))
+
+
 ;; 括弧を階層ごとに色分けする。
 (use-package rainbow-delimiters
   :ensure t
@@ -36,8 +42,9 @@
   :ensure t
   :commands lsp-deferred
   :hook
-  (lua-ts-mode . lsp-deferred)
-  
+  ((lua-ts-mode . lsp-deferred)
+   (haskell-ts-mode . lsp-deferred))
+
   :init
   (setq lsp-keymap-prefix "C-c l")
 
@@ -74,6 +81,19 @@
   (lsp-headerline-breadcrumb-enable nil))
 
 
+;; Haskell Language Serverを使用する。
+(use-package lsp-haskell
+  :ensure t
+  :after lsp-mode
+  :custom
+  ;; HLSから明示的に整形した場合もFourmoluを使用する。
+  (lsp-haskell-formatting-provider "fourmolu")
+
+  ;; HLS内蔵版ではなくPATH上のFourmoluを使用する。
+  ;; Apheleiaと同じ実行ファイルを使うことで整形結果の差を防ぐ。
+  (lsp-haskell-plugin-fourmolu-config-external t))
+
+
 ;; LSPのシンボルや診断をConsultから検索できるようにする。
 (use-package consult-lsp
   :ensure t
@@ -99,8 +119,9 @@
 (use-package apheleia
   :ensure t
   :hook
-  ;; Luaファイルを保存するとStyLuaで整形する。
-  (lua-ts-mode . apheleia-mode)
+  ;; 保存時の整形も手動実行と同じApheleiaの設定を使用する。
+  ((lua-ts-mode . apheleia-mode)
+   (haskell-ts-mode . apheleia-mode))
 
   :config
   ;; LuaはStyLuaで整形する。
@@ -119,7 +140,21 @@
           "--respect-ignores"
           "--stdin-filepath" filepath
           "--search-parent-directories"
-          "-")))
+          "-"))
+
+  ;; HaskellはFourmoluで整形する。
+  ;; 元ファイルの場所を渡し、Fourmoluの設定やCabal情報を正しく探索させる。
+  (setf (alist-get 'fourmolu apheleia-formatters)
+        '("fourmolu" "--stdin-input-file" filepath))
+
+  ;; haskell-ts-modeでは必ずFourmoluを使用する。
+  (setf (alist-get 'haskell-ts-mode apheleia-mode-alist)
+        'fourmolu))
+
+
+;; 手動整形も保存時と同じApheleiaのformatter選択を使用する。
+(with-eval-after-load 'lsp-mode
+  (keymap-set lsp-command-map "= =" #'apheleia-format-buffer))
 
 
 ;;; development.el ends here
