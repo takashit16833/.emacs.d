@@ -8,8 +8,16 @@
 
 ;; ペースト時に選択範囲を上書きする。
 (delete-selection-mode 1)
+
+(defun my/xterm-paste-silence-mark-message (orig-fun &rest args)
+  "`xterm-paste' の `Mark set' メッセージを表示しない。"
+  (let ((inhibit-message t))
+    (apply orig-fun args)))
+
 (with-eval-after-load 'term/xterm
-  (put 'xterm-paste 'delete-selection 'yank))
+  (put 'xterm-paste 'delete-selection 'yank)
+  (advice-add 'xterm-paste
+              :around #'my/xterm-paste-silence-mark-message))
 
 
 (defun my/insert-line-below ()
