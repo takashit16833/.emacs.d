@@ -127,11 +127,18 @@
 
   ;; 補完候補の説明を１秒後に表示する。
   (corfu-popupinfo-delay 1.0)
-  
+
   :config
-  ;; RETは通常の改行にしようする。TABで補完する。
+  ;; TTY child frame に枠を表示する。
+  (setf (alist-get 'undecorated corfu--frame-parameters) nil)
+
+  ;; Corfu の背景を Emacs 本体の背景に合わせる。
+  (set-face-attribute 'corfu-default nil
+                      :background (face-background 'default nil t))
+
+  ;; RETは通常の改行にする。TABで補完する。
   (keymap-unset corfu-map "RET")
-  
+
   ;; 補完候補の説明を表示する。
   (corfu-popupinfo-mode 1))
 

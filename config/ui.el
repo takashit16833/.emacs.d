@@ -23,8 +23,26 @@
 (set-display-table-slot standard-display-table 'wrap ?\s)
 
 
-;; ウィンドウの境界線を細い縦棒にする。
-(set-display-table-slot standard-display-table 'vertical-border ?│)
+;; TTY child frame の枠を角丸にする。
+;; 枠色はウィンドウ境界線と同じ `vertical-border' face を使う。
+(set-display-table-slot standard-display-table
+                        'box-vertical
+                        (make-glyph-code ?│ 'vertical-border))
+(set-display-table-slot standard-display-table
+                        'box-horizontal
+                        (make-glyph-code ?─ 'vertical-border))
+(set-display-table-slot standard-display-table
+                        'box-down-right
+                        (make-glyph-code ?╭ 'vertical-border))
+(set-display-table-slot standard-display-table
+                        'box-down-left
+                        (make-glyph-code ?╮ 'vertical-border))
+(set-display-table-slot standard-display-table
+                        'box-up-right
+                        (make-glyph-code ?╰ 'vertical-border))
+(set-display-table-slot standard-display-table
+                        'box-up-left
+                        (make-glyph-code ?╯ 'vertical-border))
 
 
 ;; ファイル種別に応じたアイコンを取得する。
