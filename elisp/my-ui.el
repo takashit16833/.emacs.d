@@ -48,7 +48,7 @@
 
 
 (defun my/tab-line-tab-name-format (tab tabs)
-  "TAB の左右に余白を加えて表示する。"
+  "TAB の左右に余白を加え、右側にタブ間の余白を入れて表示する。"
   (let* ((formatted (tab-line-tab-name-format-default tab tabs))
          (properties (and (> (length formatted) 0)
                           (text-properties-at 0 formatted)))
@@ -59,7 +59,10 @@
                            properties left-padding)
       (add-text-properties 0 (length right-padding)
                            properties right-padding))
-    (concat left-padding formatted right-padding)))
+    (concat left-padding
+            formatted
+            right-padding
+            " ")))
 
 
 (defun my/tab-line--stable-buffer-order (old-buffers current-buffers)

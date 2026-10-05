@@ -1,31 +1,34 @@
 ;;; project.el --- Project configuration -*- lexical-binding: t; -*-
 
 ;;; Commentary:
-;; Project機能とプロジェクト固有の設定を置く。
 
 ;;; Code:
 
-
-(require 'project)
 (require 'my-project)
 (require 'my-tab-context)
 
-
-;; 現在のTabに設定されたProjectからファイルを検索して開く。
-(keymap-global-set "s-p" #'my/project-find-file)
-
-
-;; Project commandsを実行する。
-(keymap-set project-prefix-map "t" #'my/project-run-command)
+;; vterm本体とmy-vtermは、実際に使うまで読み込まない。
+(autoload 'my/vterm-toggle "my-vterm" nil t)
 
 
-;; project-switch-projectの選択肢を設定する。
-(setopt project-switch-commands
-        '((project-find-file "Find file")
-          (project-find-regexp "Find regexp")
-          (my/project-run-command "Run command" ?t)
-          (magit-project-status "Magit" ?m)
-          (project-any-command "Other")))
+(use-package project
+  :ensure nil
 
+  :bind
+  (("s-p" . my/project-find-file)
+   :map project-prefix-map
+   ("t" . my/project-run-command))
+
+  :custom
+  (project-switch-commands
+   '((project-find-file "Find file" ?p)
+     (project-find-regexp "Find regexp" ?f)
+     (my/project-run-command "Run command" ?t)
+     (my/vterm-toggle "Vterm" ?j)
+     (magit-project-status "Magit" ?m)
+     (project-any-command "Other" ?o))))
+
+
+(provide 'project-config)
 
 ;;; project.el ends here
