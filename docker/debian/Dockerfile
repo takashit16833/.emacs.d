@@ -77,6 +77,11 @@ RUN set -eux; \
     chmod +x /usr/local/bin/lua-language-server; \
     lua-language-server --version
 
+# LSPの動作確認に使う小さなLuaプロジェクトを配置する。
+COPY workspace /workspace
+
+RUN git -C /workspace/lua-lsp-test init -q
+
 COPY entrypoint.sh /usr/local/bin/emacs-debian-entrypoint
 
 RUN chmod +x /usr/local/bin/emacs-debian-entrypoint
