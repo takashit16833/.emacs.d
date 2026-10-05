@@ -10,10 +10,10 @@
 
 ;; 設定を読み込む。
 (load (expand-file-name "config/packages.el" user-emacs-directory))
+(load (expand-file-name "config/ui.el" user-emacs-directory))
 (load (expand-file-name "config/basic.el" user-emacs-directory))
 (load (expand-file-name "config/minibuffer.el" user-emacs-directory))
 (load (expand-file-name "config/terminal.el" user-emacs-directory))
-(load (expand-file-name "config/ui.el" user-emacs-directory))
 (load (expand-file-name "config/editor.el" user-emacs-directory))
 (load (expand-file-name "config/development.el" user-emacs-directory))
 (load (expand-file-name "config/project.el" user-emacs-directory))

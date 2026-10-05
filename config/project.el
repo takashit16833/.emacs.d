@@ -8,10 +8,11 @@
 
 (require 'project)
 (require 'my-project)
+(require 'my-tab-context)
 
 
-;; Project内のファイルを検索して開く。
-(keymap-global-set "s-p" #'project-find-file)
+;; 現在のTabに設定されたProjectからファイルを検索して開く。
+(keymap-global-set "s-p" #'my/project-find-file)
 
 
 ;; Project commandsを実行する。
