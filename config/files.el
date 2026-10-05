@@ -5,41 +5,37 @@
 ;;; Code:
 
 
-;; Diredで "." と ".." を表示しない。
-(use-package dired-x
+;; "." と ".." は表示せず、それ以外の隠しファイルは表示する。
+(use-package dired
   :ensure nil
-  :hook
-  (dired-mode . dired-omit-mode)
+  :defer t
   :custom
-  ;; "." と ".." だけを除外する。
-  ;; ".git" などの通常の隠しファイルは表示する。
-  (dired-omit-files "\\`[.][.]?\\'")
-  ;; 拡張子による自動除外は行わない。
-  (dired-omit-extensions nil))
+  (dired-listing-switches "-Al"))
 
 
 ;; Diredを拡張したファイルマネージャ。
 (use-package dirvish
   :ensure t
-
-  :init
-  ;; 通常のDiredもDirvishの表示・機能で扱う。
-  (dirvish-override-dired-mode)
+  :commands (dirvish dirvish-dwim)
 
   :custom
   ;; 起動時は単一ペインにする。
   ;; `dirvish-layout-toggle' で親ディレクトリとプレビューを表示できる。
   (dirvish-default-layout nil)
 
-  ;; フルレイアウト時もヘッダーを全ペインにまたがって表示する。
+  ;; フルレイアウト時はヘッダーを全ペインにまたがって表示する。
   (dirvish-use-header-line 'global)
 
-  ;; フルレイアウト時もフッターを全ペインにまたがって表示する。
+  ;; フルレイアウト時はフッターを全ペインにまたがって表示する。
   (dirvish-use-mode-line 'global)
 
-  ;; 状態を残す。
+  ;; TTYでは画像ベースの先頭バーを表示しない。
+  (dirvish-mode-line-bar-image-width 0)
+
+  ;; ファイルを開いた場合もqで閉じた場合も、
+  ;; 最後のDirvishセッションを次回再利用する。
   (dirvish-reuse-session t)
-  
+
   ;; 上部:
   ;; 現在のパス / Project / Gitブランチ / ディスク空き容量。
   (dirvish-header-line-format
@@ -49,11 +45,11 @@
      (project "  " vc-info "  " free-space)))
 
   ;; 下部:
-  ;; ソート状態 / Omit状態 / symlink先 /
+  ;; ソート状態 / symlink先 /
   ;; 権限 / 更新日時 / サイズ / コピー進捗 / 現在位置。
   (dirvish-mode-line-format
    '(:left
-     (sort "  " omit "  " symlink)
+     (sort "  " symlink)
      :right
      (file-modes "  "
                  file-time "  "
@@ -71,10 +67,6 @@
      file-time
      file-size))
 
-  ;; ディレクトリをプレビューした場合にも
-  ;; "." と ".." の非表示状態を引き継ぐ。
-  (dirvish-preview-dired-sync-omit t)
-
   :bind
   (:map dirvish-mode-map
         ;; 上の階層へ移動する。
@@ -87,7 +79,12 @@
         ("TAB" . dirvish-subtree-toggle)
 
         ;; Dirvishの機能一覧を開く。
-        ("?" . dirvish-dispatch)))
+        ("?" . dirvish-dispatch))
+
+  :config
+  ;; Dirvishを初めて読み込んだ時点で、
+  ;; 以降のDiredもDirvishとして扱う。
+  (dirvish-override-dired-mode))
 
 
 ;;; files.el ends here
