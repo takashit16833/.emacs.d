@@ -42,6 +42,7 @@
   :ensure t
   :bind
   (("s-f" . consult-line)
+   ("S-s-f" . consult-ripgrep)
    ("s-y" . consult-yank-pop)))
 
 
