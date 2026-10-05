@@ -27,6 +27,7 @@ RUN apt-get update \
        libxml2-dev \
        pkg-config \
        ripgrep \
+       rsync \
        texinfo \
        xz-utils \
        zlib1g-dev \
