@@ -28,4 +28,7 @@
   (prog-mode . rainbow-delimiters-mode))
 
 
+;;; lsp -------------------------------------------------------------
+
+
 ;;; development.el ends here

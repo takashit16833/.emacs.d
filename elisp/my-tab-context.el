@@ -10,6 +10,7 @@
 
 (declare-function tab-router-current-directory "tab-router")
 (declare-function magit-status "magit-status")
+(declare-function dirvish "dirvish" (&optional path))
 
 
 (defun my/tab-context-directory ()
@@ -47,6 +48,17 @@ Tabに基準ディレクトリが設定されていない場合は、
   (if-let* ((directory (my/tab-context-directory)))
       (magit-status directory)
     (call-interactively #'magit-status)))
+
+
+(defun my/dirvish ()
+  "現在のTabを基準にDirvishを開く。
+
+Tabに基準ディレクトリが設定されていない場合は、
+通常の `dirvish' を実行する。"
+  (interactive)
+  (if-let* ((directory (my/tab-context-directory)))
+      (dirvish directory)
+    (call-interactively #'dirvish)))
 
 
 (provide 'my-tab-context)
