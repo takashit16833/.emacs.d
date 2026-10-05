@@ -68,7 +68,8 @@
      file-size))
 
   :bind
-  (:map dirvish-mode-map
+  (("C-x d" . dirvish)
+   :map dirvish-mode-map
         ;; 上の階層へ移動する。
         ("<left>" . dired-up-directory)
 
