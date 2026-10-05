@@ -16,7 +16,11 @@
 ;; Diredを拡張したファイルマネージャ。
 (use-package dirvish
   :ensure t
-  :commands (dirvish dirvish-dwim)
+
+  :init
+  ;; DirvishをDiredへ統合する。
+  ;; 現行Dirvishでは、これをDirvish起動前に有効にしておく必要がある。
+  (dirvish-override-dired-mode)
 
   :custom
   ;; 起動時は単一ペインにする。
@@ -79,12 +83,7 @@
         ("TAB" . dirvish-subtree-toggle)
 
         ;; Dirvishの機能一覧を開く。
-        ("?" . dirvish-dispatch))
-
-  :config
-  ;; Dirvishを初めて読み込んだ時点で、
-  ;; 以降のDiredもDirvishとして扱う。
-  (dirvish-override-dired-mode))
+        ("?" . dirvish-dispatch)))
 
 
 ;;; files.el ends here
