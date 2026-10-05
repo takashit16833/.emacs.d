@@ -11,6 +11,7 @@ RUN apt-get update \
     && apt-get install -y --no-install-recommends \
        build-essential \
        ca-certificates \
+       cmake \
        curl \
        gh \
        git \
@@ -19,7 +20,9 @@ RUN apt-get update \
        libgnutls28-dev \
        libncurses-dev \
        libsqlite3-dev \
+       libtool-bin \
        libtree-sitter-dev \
+       libvterm-dev \
        libxml2-dev \
        pkg-config \
        ripgrep \
