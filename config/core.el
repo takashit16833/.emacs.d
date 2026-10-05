@@ -1,4 +1,4 @@
-;;; basic.el --- Basic Emacs configuration -*- lexical-binding: t; -*-
+;;; core.el --- Core Emacs configuration -*- lexical-binding: t; -*-
 ;;; Commentary:
 ;; Emacs 全体の基本動作を設定する。
 
@@ -6,7 +6,6 @@
 
 
 (require 'my-basic)
-(require 'my-tab-context)
 
 
 ;; init.el を読み込む
@@ -15,10 +14,6 @@
 
 ;; 起動時の案内画面を表示しない。
 (setq inhibit-startup-screen t)
-
-
-;; 現在のTabに設定された基準ディレクトリをDiredで開く。
-(keymap-global-set "C-x d" #'my/dired)
 
 
 ;; バックアップ: 編集中のファイルの隣に *~ を作らず、キャッシュ配下へまとめる。
@@ -39,31 +34,9 @@
 (setq ring-bell-function #'ignore)
 
 
-;; ターミナル版Emacsでマウス操作を有効にする。
-(unless (display-graphic-p)
-  (xterm-mouse-mode 1)
-  (mouse-wheel-mode 1)
-  ;; 1ノッチで2行動かす。
-  (setq mouse-wheel-scroll-amount '(2)))
-
-
 ;; スクロール: 上下端の5行手前から追従し、1行移動で画面が大きく跳ねないようにする。
 (setq scroll-margin 5
       scroll-conservatively 101)
 
 
-;; フレーム・タブローカル機能
-(use-package bufferlo
-  :ensure t
-  :demand t
-  :init
-  (setq bufferlo-prefer-local-buffers 'tabs
-	bufferlo-hidden-buffers '("\\`magit"))
-  :bind
-  (("C-x b" . bufferlo-switch-to-buffer)
-   ("C-x k" . bufferlo-remove))
-  :config
-  (bufferlo-mode 1))
-
-
-;;; basic.el ends here
+;;; core.el ends here

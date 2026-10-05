@@ -10,16 +10,16 @@
 
 ;; 設定を読み込む。
 (load (expand-file-name "config/packages.el" user-emacs-directory))
-(load (expand-file-name "config/ui.el" user-emacs-directory))
-(load (expand-file-name "config/basic.el" user-emacs-directory))
-(load (expand-file-name "config/minibuffer.el" user-emacs-directory))
+(load (expand-file-name "config/appearance.el" user-emacs-directory))
+(load (expand-file-name "config/core.el" user-emacs-directory))
+(load (expand-file-name "config/completion.el" user-emacs-directory))
 (load (expand-file-name "config/terminal.el" user-emacs-directory))
-(load (expand-file-name "config/editor.el" user-emacs-directory))
+(load (expand-file-name "config/editing.el" user-emacs-directory))
 (load (expand-file-name "config/development.el" user-emacs-directory))
 (load (expand-file-name "config/project.el" user-emacs-directory))
 (load (expand-file-name "config/git.el" user-emacs-directory))
 (load (expand-file-name "config/navigation.el" user-emacs-directory))
-(load (expand-file-name "config/tab-router.el" user-emacs-directory))
+(load (expand-file-name "config/files.el" user-emacs-directory))
 
 ;;; init.el ends here
 (custom-set-variables

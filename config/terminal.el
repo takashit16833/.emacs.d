@@ -4,6 +4,14 @@
 
 ;;; Code:
 
+;; ターミナル版Emacsでマウス操作を有効にする。
+(unless (display-graphic-p)
+  (xterm-mouse-mode 1)
+  (mouse-wheel-mode 1)
+  ;; 1ノッチで2行動かす。
+  (setq mouse-wheel-scroll-amount '(2)))
+
+
 ;; 端末でKitty Keyboard Protocolを有効にする。
 (use-package kkp
   :ensure t

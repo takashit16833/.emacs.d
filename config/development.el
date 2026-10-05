@@ -21,4 +21,11 @@
   :mode ("\\.lua\\'" . lua-ts-mode))
 
 
+;; 括弧の色分け
+(use-package rainbow-delimiters
+  :ensure t
+  :hook
+  (prog-mode . rainbow-delimiters-mode))
+
+
 ;;; development.el ends here

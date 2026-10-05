@@ -1,6 +1,6 @@
-;;; editor.el --- Editing configuration -*- lexical-binding: t; -*-
+;;; editing.el --- Editing configuration -*- lexical-binding: t; -*-
 ;;; Commentary:
-;; 編集、移動、検索、補完、ファイル操作に関する設定を置く。
+;; テキスト編集に関する設定を置く。
 
 ;;; Code:
 
@@ -111,54 +111,4 @@
          ("S-s-z" . undo-fu-only-redo)))
 
 
-;; プログラム編集中に補完候補を表示する。
-(use-package corfu
-  :ensure t
-  :hook (prog-mode . corfu-mode)
-  :custom
-  ;; 2文字入力後、少し待ってから自動補完する。
-  (corfu-auto t)
-  (corfu-auto-prefix 2)
-  (corfu-auto-delay 0.15)
-
-  ;; 補完候補の説明を１秒後に表示する。
-  (corfu-popupinfo-delay 1.0)
-
-  :config
-  ;; TTY child frame に枠を表示する。
-  (setf (alist-get 'undecorated corfu--frame-parameters) nil)
-
-  ;; Corfu の背景を Emacs 本体の背景に合わせる。
-  (set-face-attribute 'corfu-default nil
-                      :background (face-background 'default nil t))
-
-  ;; RETは通常の改行にする。TABで補完する。
-  (keymap-unset corfu-map "RET")
-
-  ;; 補完候補の説明を表示する。
-  (corfu-popupinfo-mode 1))
-
-;; ポップアップの位置をずらす
-(advice-add 'corfu--make-frame
-            :around
-            #'my/corfu-offset-tty-popup)
-
-
-;; 補完候補にアイコンを表示する。
-(use-package nerd-icons-corfu
-  :ensure t
-  :after corfu
-  :config
-  (add-to-list 'corfu-margin-formatters
-               #'nerd-icons-corfu-formatter))
-
-
-;; 表示中の文字へジャンプする。
-(use-package avy
-  :ensure t
-  :bind ("C-;" . avy-goto-char-timer)
-  :custom
-  (avy-keys '(?o ?t ?a ?n ?i ?s ?e ?h)))
-
-
-;;; editor.el ends here
+;;; editing.el ends here
