@@ -39,4 +39,13 @@
       scroll-conservatively 101)
 
 
+;; キー操作の候補を表示する。
+(use-package which-key
+  :ensure nil
+  :custom
+  (which-key-idle-delay 0.3)
+  :config
+  (which-key-mode 1))
+
+
 ;;; core.el ends here
