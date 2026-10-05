@@ -89,8 +89,14 @@ ensure_container_running() {
   fi
 }
 
+sync_config() {
+  docker exec "$container" \
+    /usr/local/bin/emacs-debian-entrypoint --sync
+}
+
 run_shell() {
   ensure_container_running
+  sync_config
 
   docker exec -it \
     -e TERM="${TERM:-xterm-256color}" \
@@ -101,6 +107,7 @@ run_shell() {
 
 run_emacs() {
   ensure_container_running
+  sync_config
 
   docker exec -it \
     -e TERM="${TERM:-xterm-256color}" \
