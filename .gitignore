@@ -1,5 +1,5 @@
 # macOS
-.DS_Store
+0u65;4;6;18;22;52c.DS_Store
 
 # Emacs package files
 /elpa/
@@ -19,6 +19,7 @@
 /transient/
 /tree-sitter
 /recentf.eld
+/.lsp-session-v1
 
 # Package quickstart cache
 /package-quickstart.el
