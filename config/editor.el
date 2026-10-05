@@ -156,7 +156,7 @@
 ;; 表示中の文字へジャンプする。
 (use-package avy
   :ensure t
-  :bind ("s-j" . avy-goto-char-timer)
+  :bind ("C-;" . avy-goto-char-timer)
   :custom
   (avy-keys '(?o ?t ?a ?n ?i ?s ?e ?h)))
 

@@ -14,6 +14,16 @@
 (keymap-global-set "M-o" #'other-window)
 
 
+;; Windmove：バッファの表示先指定
+(use-package windmove
+  :ensure nil
+  :bind
+  (("C-c <left>"  . windmove-display-left)
+   ("C-c <right>" . windmove-display-right)
+   ("C-c <up>"    . windmove-display-up)
+   ("C-c <down>"  . windmove-display-down)))
+
+
 ;; ブラウザのような戻る・進む履歴を提供する。
 (use-package browsing-history
   :vc (:url "https://github.com/takashit16833/emacs-browsing-history.git"

@@ -4,7 +4,6 @@
 
 ;;; Code:
 
-
 ;; 端末でKitty Keyboard Protocolを有効にする。
 (use-package kkp
   :ensure t
@@ -23,6 +22,14 @@
                            'kkp--translate-terminal-input)
     (advice-add 'kkp--translate-terminal-input
                 :around #'my/kkp-jis-colon)))
+
+
+(use-package vterm
+  :ensure t
+  :commands vterm
+  :bind ("s-j" . my/vterm-toggle))
+
+(autoload 'my/vterm-toggle "my-vterm" nil t)
 
 
 ;;; terminal.el ends here
