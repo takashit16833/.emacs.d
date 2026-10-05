@@ -78,10 +78,6 @@
 (global-set-key (kbd "S-M-<down>") #'my/duplicate-lines-down)
 
 
-;; Command+VでmacOSのクリップボードから貼り付ける。
-(keymap-global-set "s-v" #'my/paste-from-clipboard)
-
-
 ;; クリップボードへコピーする。
 (use-package selected
   :ensure t

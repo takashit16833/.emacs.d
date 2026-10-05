@@ -110,27 +110,15 @@
 
 
 (defun my/copy-region-to-clipboard (beg end)
-  "選択範囲をmacOSのクリップボードへコピーする。"
+  "選択範囲をOSのクリップボードへコピーする。"
   (interactive "r")
   (unless (use-region-p)
     (user-error "選択範囲がありません"))
-  (unless (zerop (call-process-region beg end "pbcopy" nil nil nil))
-    (user-error "クリップボードへのコピーに失敗しました"))
+  (gui-set-selection
+   'CLIPBOARD
+   (buffer-substring-no-properties beg end))
   (deactivate-mark)
   (message "クリップボードにコピーしました"))
-
-
-(defun my/paste-from-clipboard ()
-  "macOSのクリップボードから貼り付ける。"
-  (interactive)
-  (let ((text
-         (with-temp-buffer
-           (call-process "pbpaste" nil t nil)
-           (buffer-string))))
-    (insert-for-yank text)))
-
-;; 選択中に貼り付けた場合は、選択範囲を貼り付け内容で置き換える。
-(put 'my/paste-from-clipboard 'delete-selection 'yank)
 
 
 (defun my/delete-whole-line ()
