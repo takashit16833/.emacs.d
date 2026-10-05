@@ -24,6 +24,20 @@
    ("C-c <down>"  . windmove-display-down)))
 
 
+;; Diredを拡張したファイルマネージャ。
+(use-package dirvish
+  :ensure t
+  :init
+  (dirvish-override-dired-mode)
+  :custom
+  (dirvish-attributes
+   '(nerd-icons
+     subtree-state
+     collapse
+     file-time
+     file-size)))
+
+
 ;; ブラウザのような戻る・進む履歴を提供する。
 (use-package browsing-history
   :vc (:url "https://github.com/takashit16833/emacs-browsing-history.git"
