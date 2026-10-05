@@ -37,6 +37,9 @@
   ;; フルレイアウト時もフッターを全ペインにまたがって表示する。
   (dirvish-use-mode-line 'global)
 
+  ;; 状態を残す。
+  (dirvish-reuse-session t)
+  
   ;; 上部:
   ;; 現在のパス / Project / Gitブランチ / ディスク空き容量。
   (dirvish-header-line-format

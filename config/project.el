@@ -26,7 +26,7 @@
      (my/project-run-command "Run command" ?t)
      (my/vterm-toggle "Vterm" ?j)
      (magit-project-status "Magit" ?m)
-     (my/dirvish "Dirvish" ?d)
+     (dirvish "Dirvish" ?d)
      (project-any-command "Other" ?o))))
 
 
