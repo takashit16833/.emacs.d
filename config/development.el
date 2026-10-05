@@ -37,6 +37,9 @@
   :commands lsp-deferred
   :hook
   (lua-ts-mode . lsp-deferred)
+  
+  :init
+  (setq lsp-keymap-prefix "C-c l")
 
   :custom
   ;; LSPの補完候補はEmacs標準のcompletion-at-pointへ登録する。
@@ -69,29 +72,6 @@
 
   ;; バッファ上部にパンくずリストを表示しない。
   (lsp-headerline-breadcrumb-enable nil))
-
-
-;; LSPのドキュメントなどを見やすく表示する。
-(use-package lsp-ui
-  :ensure t
-  :after lsp-mode
-  :commands lsp-ui-mode
-  :hook
-  (lsp-mode . lsp-ui-mode)
-
-  :custom
-  ;; カーソル位置のシンボルのドキュメントを表示する。
-  (lsp-ui-doc-enable t)
-  (lsp-ui-doc-show-with-cursor t)
-  (lsp-ui-doc-show-with-mouse nil)
-  (lsp-ui-doc-position 'at-point)
-  (lsp-ui-doc-delay 0.7)
-
-  ;; 行の右側へ診断やコードアクションを常時表示しない。
-  (lsp-ui-sideline-enable nil)
-
-  ;; 定義や参照をコード付きで表示する機能は利用可能にしておく。
-  (lsp-ui-peek-enable t))
 
 
 ;; LSPのシンボルや診断をConsultから検索できるようにする。
