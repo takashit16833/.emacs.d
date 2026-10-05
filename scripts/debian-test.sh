@@ -65,9 +65,7 @@ start_container() {
     return
   fi
 
-  if ! docker image inspect "$image" >/dev/null 2>&1; then
-    build_image
-  fi
+  build_image
 
   token=$(github_token)
 
@@ -126,7 +124,6 @@ rebuild_container() {
     docker rm -f "$container" >/dev/null
   fi
 
-  build_image
   start_container
 }
 
