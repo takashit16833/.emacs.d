@@ -31,11 +31,13 @@
   (dirvish-override-dired-mode)
   :custom
   (dirvish-attributes
-   '(nerd-icons
-     subtree-state
+   '(subtree-state
+     nerd-icons
      collapse
+     file-modes
      file-time
-     file-size)))
+     file-size
+     git-msg)))
 
 
 ;; ブラウザのような戻る・進む履歴を提供する。
