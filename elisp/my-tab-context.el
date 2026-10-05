@@ -44,7 +44,7 @@ Projectを判定する。"
 Tabに基準ディレクトリが設定されていない場合は、
 通常の `magit-status' を実行する。"
   (interactive)
-  (if-let ((directory (my/tab-context-directory)))
+  (if-let* ((directory (my/tab-context-directory)))
       (magit-status directory)
     (call-interactively #'magit-status)))
 
@@ -55,7 +55,7 @@ Tabに基準ディレクトリが設定されていない場合は、
 Tabに基準ディレクトリが設定されていない場合は、
 通常の `dired' を実行する。"
   (interactive)
-  (if-let ((directory (my/tab-context-directory)))
+  (if-let* ((directory (my/tab-context-directory)))
       (dired directory)
     (call-interactively #'dired)))
 

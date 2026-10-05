@@ -4,11 +4,14 @@
 
 ;;; Code:
 
+(require 'my-tab-context)
+
 
 ;; Emacs内で状態確認・差分確認・コミットなどを行う。
 (use-package magit
   :ensure t
-  :bind ("C-x g" . magit-status))
+  :commands magit-status
+  :bind ("C-x g" . my/magit-status))
 
 
 ;; Magitの差分をdeltaで色付けする。

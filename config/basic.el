@@ -6,6 +6,7 @@
 
 
 (require 'my-basic)
+(require 'my-tab-context)
 
 
 ;; init.el を読み込む
@@ -14,6 +15,10 @@
 
 ;; 起動時の案内画面を表示しない。
 (setq inhibit-startup-screen t)
+
+
+;; 現在のTabに設定された基準ディレクトリをDiredで開く。
+(keymap-global-set "C-x d" #'my/dired)
 
 
 ;; バックアップ: 編集中のファイルの隣に *~ を作らず、キャッシュ配下へまとめる。
