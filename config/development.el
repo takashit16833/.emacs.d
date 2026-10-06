@@ -11,6 +11,11 @@
 ;; Tree-sitterの色分けを最大レベル（４が最大）。
 (setq treesit-font-lock-level 3)
 
+;; PythonではEmacs標準のTree-sitter modeを使用する。
+;; Emacs 31.1では `treesit-enabled-modes' が
+;; `major-mode-remap-alist' への反映を管理する。
+(setopt treesit-enabled-modes '(python-ts-mode))
+
 
 ;; プロジェクトの.editorconfigを反映する。
 (use-package editorconfig
