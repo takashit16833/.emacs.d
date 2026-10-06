@@ -178,7 +178,7 @@ VS Code の Toggle Vertical/Horizontal Editor Layout と同様に、
                 (select-window new-selected))))
         (error
          (set-window-configuration configuration)
-         (signal (car err) (cdr err))))))))
+         (signal (car err) (cdr err)))))))
 
 
 (provide 'my-window)
