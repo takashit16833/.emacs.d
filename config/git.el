@@ -39,6 +39,11 @@
 (use-package diff-hl
   :ensure t
   :demand t
+  
+  :custom
+  ;; TRAMPでは起動直後のdiff-hlを抑止する。
+  ;; LSP接続完了後に明示的に有効化する。
+  (diff-hl-disable-on-remote t)
 
   :custom
   ;; TRAMPではLSP起動前のGit問い合わせを避け、

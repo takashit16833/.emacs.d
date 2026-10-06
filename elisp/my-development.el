@@ -46,6 +46,12 @@
                     "\n\n"))))))
 
 
+(defun my/diff-hl-enable-after-lsp-open ()
+  "TRAMP先ではLSP接続完了後にdiff-hlを有効にする。"
+  (when (and buffer-file-name
+             (file-remote-p buffer-file-name))
+    (diff-hl-mode 1)))
+
 (provide 'my-development)
 
 ;;; my-development.el ends here

@@ -186,6 +186,9 @@
 ;; 外部フォーマッタを非同期で実行する。
 (use-package apheleia
   :ensure t
+  :custom
+  ;; TRAMP上ではformatterをリモート側で実行する。
+  (apheleia-remote-algorithm 'remote)
   :hook
   ;; 保存時の整形も手動実行と同じApheleiaの設定を使用する。
   ((lua-ts-mode . apheleia-mode)
@@ -245,5 +248,9 @@
 (with-eval-after-load 'lsp-mode
   (keymap-set lsp-command-map "= =" #'apheleia-format-buffer))
 
+
+(with-eval-after-load 'tramp
+  ;; GHCupでインストールしたコマンドをTRAMPから見つけられるようにする。
+  (add-to-list 'tramp-remote-path "/root/.ghcup/bin"))
 
 ;;; development.el ends here
