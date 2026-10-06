@@ -6,6 +6,7 @@
 
 
 (require 'my-development)
+(require 'my-lsp-problems)
 
 
 ;; Tree-sitterの色分けを最大レベル（４が最大）。
