@@ -118,6 +118,13 @@
                #'nerd-icons-corfu-formatter))
 
 
+(use-package dabbrev
+  :ensure nil
+  :custom
+  ;; バッファ内の単語は元の大文字小文字を保持する。
+  (dabbrev-case-replace nil))
+
+
 ;; LSP候補と現在のバッファ内の単語を同じ補完一覧へ統合する。
 (defvar-local my/lsp-completion-capf nil
   "LSPとdabbrevを統合した現在バッファ用のCAPF。")
