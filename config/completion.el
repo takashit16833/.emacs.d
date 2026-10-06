@@ -118,4 +118,15 @@
                #'nerd-icons-corfu-formatter))
 
 
+;; CAPF周りを補助するためのパッケージ
+(use-package cape
+  :ensure t
+  :after lsp-mode
+  :config
+  ;; 入力が変わったらLSP補完候補を取り直す。
+  (advice-add #'lsp-completion-at-point
+              :around
+              #'cape-wrap-buster))
+
+
 ;;; completion.el ends here

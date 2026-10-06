@@ -28,7 +28,7 @@
  ;; Your init file should contain only one such instance.
  ;; If there is more than one, they won't work right.
  '(package-selected-packages
-   '(avy browsing-history bufferlo embark embark-consult
+   '(avy browsing-history bufferlo cape embark embark-consult
 	 retro-hacker-blue-theme tab-router undo-fu))
  '(package-vc-selected-packages
    '((retro-hacker-blue-theme :url
