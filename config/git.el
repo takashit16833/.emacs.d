@@ -9,6 +9,7 @@
 
 (declare-function magit-file-status "magit-git" (&rest args))
 (declare-function magit-toplevel "magit-git" (&optional directory))
+(declare-function diff-hl-magit-post-refresh "diff-hl" ())
 
 
 (defun my/magit-refresh-tab-line-git-status ()
@@ -26,10 +27,23 @@
       (my/tab-line-update-git-modified-cache root modified-files))))
 
 
+(defun my/diff-hl-magit-post-refresh ()
+  "Magitの更新後にdiff-hlの表示を更新する。"
+  ;; TRAMPでは起動時だけdiff-hlを抑止しているため、
+  ;; Magitから明示的に更新するときはremote制限を解除する。
+  (let ((diff-hl-disable-on-remote nil))
+    (diff-hl-magit-post-refresh)))
+
+
 ;; 編集中のファイルにGitとの差分を表示する。
 (use-package diff-hl
   :ensure t
   :demand t
+
+  :custom
+  ;; TRAMPではLSP起動前のGit問い合わせを避け、
+  ;; LSP接続後にバッファ単位で有効にする。
+  (diff-hl-disable-on-remote t)
 
   :bind
   (:map diff-hl-mode-map
@@ -58,7 +72,7 @@
   ;; ここではMagit自体を読み込まない。
   (with-eval-after-load 'magit
     (add-hook 'magit-post-refresh-hook
-              #'diff-hl-magit-post-refresh)
+              #'my/diff-hl-magit-post-refresh)
     (add-hook 'magit-post-refresh-hook
               #'my/magit-refresh-tab-line-git-status)))
 
