@@ -27,6 +27,16 @@
    (flymake-diagnostic-text diagnostic)))
 
 
+(defun my/lsp-completion-fix-haskell-resolve-data (item)
+  "HLSへ返す補完候補ITEMのfalse値をJSON falseとして保持する。"
+  (let ((data (lsp:completion-item-data? item)))
+    ;; HLSのitemNeedsTypeはBoolだが、Emacs LispのnilをそのままJSON化すると
+    ;; nullになるため、completionItem/resolveでHLSのデコードに失敗する。
+    (when (and (lsp-member? data :itemNeedsType)
+               (null (lsp-get data :itemNeedsType)))
+      (lsp-put data :itemNeedsType :json-false))))
+
+
 (defun my/diff-hl-enable-after-lsp-open ()
   "TRAMP先ではLSP接続完了後にdiff-hlを有効にする。"
   (when (and buffer-file-name
