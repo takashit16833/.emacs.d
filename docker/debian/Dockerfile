@@ -206,6 +206,8 @@ RUN git -C /workspace/lua-lsp-test init -q \
 
 COPY entrypoint.sh /usr/local/bin/emacs-debian-entrypoint
 
-RUN chmod +x /usr/local/bin/emacs-debian-entrypoint
+# コンテナ内では `e` でTTY版Emacsを起動できるようにする。
+RUN printf '%s\n' '#!/bin/sh' 'exec emacs -nw "$@"' > /usr/local/bin/e \
+    && chmod +x /usr/local/bin/e /usr/local/bin/emacs-debian-entrypoint
 
 ENTRYPOINT ["/usr/local/bin/emacs-debian-entrypoint"]
