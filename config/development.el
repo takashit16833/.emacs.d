@@ -132,7 +132,12 @@
 	("<f12>" . lsp-find-definition)
 	("S-<f12>" . lsp-find-references))
   (:map lsp-command-map
-        ("d" . my/flymake-show-diagnostic)))
+        ("d" . my/lsp-problems))
+
+  :config
+  ;; ProblemsバッファをLSP診断の更新に追従させる。
+  (add-hook 'lsp-diagnostics-updated-hook
+            #'my/lsp-problems-refresh-if-open))
 
 
 ;; TypeScriptはプロジェクトにインストールされたTypeScriptを優先する。
