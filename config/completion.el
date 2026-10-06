@@ -15,6 +15,8 @@
 ;; ミニバッファの候補を縦に一覧表示する。
 (use-package vertico
   :ensure t
+  :custom
+  (vertico-count 20)
   :init
   (vertico-mode))
 
