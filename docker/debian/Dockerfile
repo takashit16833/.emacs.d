@@ -6,6 +6,10 @@ ARG GHC_VERSION=9.6.7
 ARG CABAL_VERSION=3.12.1.0
 ARG HLS_VERSION=2.15.0.0
 ARG FOURMOLU_VERSION=0.20.1.0
+ARG INTELEPHENSE_VERSION=1.18.5
+ARG PHP_CODESNIFFER_VERSION=4.0.4
+ARG PHPCS_SHA256=4b010cd21d8bc8a17e2504792e3c77ef8259126f24caf7eafe7eddef1fa871e9
+ARG PHPCBF_SHA256=0b3b8c5571543e94452f6edec0d7e924b287a64c13b73d8dcf3d25f0ee004948
 ARG HASKELL_TREE_SITTER_REV=f3fd0ad1e47aa0ff590479afb1f3e8275e4381cb
 ARG GHCUP_METADATA_URL=https://raw.githubusercontent.com/haskell/ghcup-metadata/master/ghcup-vanilla-0.1.0.yaml
 
@@ -34,6 +38,9 @@ RUN apt-get update \
        libtree-sitter-dev \
        libvterm-dev \
        libxml2-dev \
+       nodejs \
+       npm \
+       php-cli \
        pkg-config \
        ripgrep \
        rsync \
@@ -85,6 +92,14 @@ RUN git clone -q https://github.com/dschrempf/tree-sitter-haskell.git /tmp/tree-
       --eval "(unless (treesit-language-available-p 'haskell) (kill-emacs 1))" \
     && rm -rf /tmp/tree-sitter-haskell
 
+# php-ts-modeが使用するTree-sitter grammarをインストールする。
+RUN emacs --batch -Q \
+      --eval "(require 'php-ts-mode)" \
+      --eval "(dolist (lang '(html css javascript jsdoc php phpdoc)) (treesit-install-language-grammar lang \"/usr/local/lib\"))" \
+    && ldconfig \
+    && emacs --batch -Q \
+      --eval "(dolist (lang '(html css javascript jsdoc php phpdoc)) (unless (treesit-language-available-p lang) (kill-emacs 1)))"
+
 # Lua Language Serverをインストールする。
 RUN set -eux; \
     case "$(dpkg --print-architecture)" in \
@@ -102,6 +117,24 @@ RUN set -eux; \
       > /usr/local/bin/lua-language-server; \
     chmod +x /usr/local/bin/lua-language-server; \
     lua-language-server --version
+
+# PHP Language ServerとしてIntelephenseをインストールする。
+RUN npm install --global --no-audit --no-fund "intelephense@${INTELEPHENSE_VERSION}" \
+    && command -v intelephense \
+    && npm cache clean --force
+
+# Apheleiaが使用するPHPCBFと、確認用のPHPCSをインストールする。
+RUN curl -fsSL \
+      "https://github.com/PHPCSStandards/PHP_CodeSniffer/releases/download/${PHP_CODESNIFFER_VERSION}/phpcs.phar" \
+      -o /usr/local/bin/phpcs \
+    && printf '%s  %s\n' "${PHPCS_SHA256}" /usr/local/bin/phpcs | sha256sum -c - \
+    && curl -fsSL \
+      "https://github.com/PHPCSStandards/PHP_CodeSniffer/releases/download/${PHP_CODESNIFFER_VERSION}/phpcbf.phar" \
+      -o /usr/local/bin/phpcbf \
+    && printf '%s  %s\n' "${PHPCBF_SHA256}" /usr/local/bin/phpcbf | sha256sum -c - \
+    && chmod +x /usr/local/bin/phpcs /usr/local/bin/phpcbf \
+    && phpcs --version \
+    && phpcbf --version
 
 # Haskell Language Serverが対応しているGHCとCabalをGHCupでインストールする。
 RUN curl --proto '=https' --tlsv1.2 -sSf https://get-ghcup.haskell.org \
