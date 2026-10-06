@@ -12,6 +12,7 @@
 (load (expand-file-name "config/packages.el" user-emacs-directory))
 (load (expand-file-name "config/appearance.el" user-emacs-directory))
 (load (expand-file-name "config/core.el" user-emacs-directory))
+(load (expand-file-name "config/window.el" user-emacs-directory))
 (load (expand-file-name "config/completion.el" user-emacs-directory))
 (load (expand-file-name "config/terminal.el" user-emacs-directory))
 (load (expand-file-name "config/editing.el" user-emacs-directory))

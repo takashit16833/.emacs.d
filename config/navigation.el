@@ -1,7 +1,7 @@
 ;;; navigation.el --- Navigation configuration -*- lexical-binding: t; -*-
 
 ;;; Commentary:
-;; コード、ウィンドウ、バッファ、Tabなどの移動に関する設定を置く。
+;; コード、バッファ、Tabなどの移動に関する設定を置く。
 
 ;;; Code:
 
@@ -100,20 +100,6 @@
    ("C-x k" . bufferlo-remove))
   :config
   (bufferlo-mode 1))
-
-
-;; 次のウィンドウへ移動する。
-(keymap-global-set "M-o" #'other-window)
-
-
-;; Windmove：バッファの表示先指定
-(use-package windmove
-  :ensure nil
-  :bind
-  (("C-c <left>"  . windmove-display-left)
-   ("C-c <right>" . windmove-display-right)
-   ("C-c <up>"    . windmove-display-up)
-   ("C-c <down>"  . windmove-display-down)))
 
 
 ;; 表示中の文字へジャンプする。
