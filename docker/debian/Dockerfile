@@ -55,7 +55,7 @@ RUN apt-get update \
 
 WORKDIR /tmp
 
-RUN curl -fsSLO "https://ftp.gnu.org/gnu/emacs/emacs-${EMACS_VERSION}.tar.xz" \
+RUN curl -fsSLO "https://ftp.jaist.ac.jp/pub/GNU/emacs/emacs-${EMACS_VERSION}.tar.xz" \
     && tar -xf "emacs-${EMACS_VERSION}.tar.xz" \
     && cd "emacs-${EMACS_VERSION}" \
     && ./configure \
