@@ -46,7 +46,6 @@
   (("s-f" . consult-line)
    ("S-s-f" . consult-ripgrep)
    ("s-r" . consult-recent-file)
-   ("S-s-m" . consult-flymake)
    ("s-y" . consult-yank-pop)))
 
 

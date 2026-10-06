@@ -139,9 +139,8 @@
   :bind
   (:map lsp-mode-map
 	("<f12>" . lsp-find-definition)
-	("S-<f12>" . lsp-find-references))
-  (:map lsp-command-map
-        ("d" . my/lsp-problems))
+	("S-<f12>" . lsp-find-references)
+	("S-s-m" . my/lsp-problems))
 
   :config
   ;; ProblemsバッファをLSP診断の更新に追従させる。
