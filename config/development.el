@@ -68,6 +68,16 @@
 ;;; LSP -------------------------------------------------------------
 
 
+(declare-function diff-hl-mode "diff-hl" (&optional arg))
+
+
+(defun my/diff-hl-enable-after-lsp-open ()
+  "TRAMP先ではLSP接続完了後にdiff-hlを有効にする。"
+  (when (and buffer-file-name
+             (file-remote-p buffer-file-name))
+    (diff-hl-mode 1)))
+
+
 ;; Language Server Protocolを利用する。
 (use-package lsp-mode
   :ensure t
@@ -79,6 +89,8 @@
    (python-ts-mode . lsp-deferred)
    (typescript-ts-mode . lsp-deferred)
    (tsx-ts-mode . lsp-deferred)
+   ;; TRAMP先ではLSP接続後にdiff-hlを有効にする。
+   (lsp-after-open . my/diff-hl-enable-after-lsp-open)
    (lsp-mode . lsp-enable-which-key-integration))
 
   :init
@@ -183,6 +195,10 @@
    (python-ts-mode . apheleia-mode)
    (typescript-ts-mode . apheleia-mode)
    (tsx-ts-mode . apheleia-mode))
+
+  :custom
+  ;; TRAMP先ではformatterをリモート側で実行する。
+  (apheleia-remote-algorithm 'remote)
 
   :config
   ;; LuaはStyLuaで整形する。
