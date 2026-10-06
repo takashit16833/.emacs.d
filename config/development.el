@@ -36,7 +36,12 @@
   :ensure nil
   :custom
   (flymake-indicator-type 'margins)
-  (flymake-margin-indicator-position 'right-margin))
+  (flymake-margin-indicator-position 'right-margin)
+  ;; VS Code と同じ Codicons を使う。
+  (flymake-margin-indicators-string
+   '((error "" compilation-error)
+     (warning "" compilation-warning)
+     (note "" compilation-info))))
 
 
 ;;; Lua -------------------------------------------------------------
