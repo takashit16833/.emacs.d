@@ -6,6 +6,16 @@
 ;;; Code:
 
 
+;; タブを切り替える。
+(keymap-global-set "C-<prior>" #'tab-bar-switch-to-prev-tab)
+(keymap-global-set "C-<next>" #'tab-bar-switch-to-next-tab)
+
+
+;; タブを並べ替える。
+(keymap-global-set "C-S-<prior>" #'tab-bar-move-tab-backward)
+(keymap-global-set "C-S-<next>" #'tab-bar-move-tab)
+
+
 ;; フレーム上部にタブバーを表示する。
 (use-package tab-bar
   :ensure nil
