@@ -35,18 +35,20 @@
 
 ;;; Haskell ---------------------------------------------------------
 
-;; HaskellでTree-sitterを使用する。
-(use-package haskell-ts-mode
-  :vc (:url "https://github.com/dschrempf/haskell-ts-mode")
-  :mode ("\\.hs\\'" . haskell-ts-mode))
-
-
 ;; Cabalファイルを色分けする。
 (use-package haskell-mode
   :ensure t
   :mode
   ("\\.cabal\\'" . haskell-cabal-mode)
   ("/cabal\\.project\\'" . haskell-cabal-mode))
+
+
+;; HaskellではTree-sitter版のmajor modeを使用する。
+(use-package haskell-ts-mode
+  :vc (:url "https://github.com/dschrempf/haskell-ts-mode")
+  :init
+  (add-to-list 'major-mode-remap-alist
+               '(haskell-mode . haskell-ts-mode)))
 
 
 ;;; LSP -------------------------------------------------------------
@@ -97,7 +99,8 @@
   (lsp-headerline-breadcrumb-enable nil)
   :bind
   (:map lsp-mode-map
-	("<f12>" . lsp-find-definition))
+	("<f12>" . lsp-find-definition)
+	("S-<f12>" . lsp-find-references))
   (:map lsp-command-map
         ("d" . my/flymake-show-diagnostic)))
 
