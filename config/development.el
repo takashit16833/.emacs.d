@@ -178,7 +178,14 @@
 
   ;; HLS内蔵版ではなくPATH上のFourmoluを使用する。
   ;; Apheleiaと同じ実行ファイルを使うことで整形結果の差を防ぐ。
-  (lsp-haskell-plugin-fourmolu-config-external t))
+  (lsp-haskell-plugin-fourmolu-config-external t)
+
+  :config
+  ;; ファイル末尾の空行でnotes hoverが存在しない行を参照し、
+  ;; "Line not found in file" を出す問題を避ける。
+  ;; notesの補完・定義ジャンプ・参照検索はそのまま利用する。
+  (lsp-register-custom-settings
+   '(("haskell.plugin.notes.hoverOn" nil t))))
 
 
 ;; LSPのシンボルや診断をConsultから検索できるようにする。
