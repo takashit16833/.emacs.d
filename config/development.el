@@ -30,6 +30,14 @@
   (prog-mode . rainbow-delimiters-mode))
 
 
+;; 診断マーカーはdiff-hlと重ならないよう右marginへ表示する。
+(use-package flymake
+  :ensure nil
+  :custom
+  (flymake-indicator-type 'margins)
+  (flymake-margin-indicator-position 'right-margin))
+
+
 ;;; Lua -------------------------------------------------------------
 
 ;; LuaでTree-sitterを使用する。
