@@ -32,6 +32,23 @@
                 :around #'my/kkp-jis-colon)))
 
 
+;; TRAMP先でGHCupのコマンドを見つけられるようにする。
+(with-eval-after-load 'tramp
+  (add-to-list 'tramp-remote-path "/root/.ghcup/bin"))
+
+
+;; DockerコンテナではbashをTRAMPのリモートシェルとして使用する。
+(with-eval-after-load 'tramp-container
+  (let ((method (assoc "docker" tramp-methods)))
+    (when method
+      (let ((remote-shell (assq 'tramp-remote-shell (cdr method)))
+            (direct-async (assq 'tramp-direct-async (cdr method))))
+        (when remote-shell
+          (setcdr remote-shell '("/bin/bash")))
+        (when direct-async
+          (setcdr direct-async '(("/bin/bash" "-c"))))))))
+
+
 (use-package vterm
   :ensure t
   :commands vterm
