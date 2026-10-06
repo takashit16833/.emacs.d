@@ -51,6 +51,7 @@
 ;; HaskellではTree-sitter版のmajor modeを使用する。
 (use-package haskell-ts-mode
   :vc (:url "https://github.com/dschrempf/haskell-ts-mode")
+  :commands haskell-ts-mode
   :init
   (add-to-list 'major-mode-remap-alist
                '(haskell-mode . haskell-ts-mode)))
