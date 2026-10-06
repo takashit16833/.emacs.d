@@ -179,7 +179,8 @@ RUN set -eux; \
 COPY workspace /workspace
 
 RUN git -C /workspace/lua-lsp-test init -q \
-    && git -C /workspace/haskell-lsp-test init -q
+    && git -C /workspace/haskell-lsp-test init -q \
+    && git -C /workspace/php-lsp-test init -q
 
 COPY entrypoint.sh /usr/local/bin/emacs-debian-entrypoint
 
