@@ -50,7 +50,9 @@
 (defun my/project-command--get-project-commands (root)
   "ROOT の `.dir-locals.el' からプロジェクトコマンド一覧を取得する。"
   (with-temp-buffer
-    (let ((default-directory root))
+    (let ((default-directory root)
+          ;; TRAMP先でもプロジェクト固有コマンドを読み込む。
+          (enable-remote-dir-locals t))
       ;; 非ファイルバッファなので、ディレクトリローカル変数を
       ;; 明示的に適用する。
       (hack-dir-local-variables-non-file-buffer)
