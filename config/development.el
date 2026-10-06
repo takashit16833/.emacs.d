@@ -51,6 +51,14 @@
                '(haskell-mode . haskell-ts-mode)))
 
 
+;;; PHP -------------------------------------------------------------
+
+;; PHPではEmacs標準のTree-sitter modeを使用する。
+(use-package php-ts-mode
+  :ensure nil
+  :commands php-ts-mode)
+
+
 ;;; LSP -------------------------------------------------------------
 
 
@@ -61,6 +69,7 @@
   :hook
   ((lua-ts-mode . lsp-deferred)
    (haskell-ts-mode . lsp-deferred)
+   (php-ts-mode . lsp-deferred)
    (lsp-mode . lsp-enable-which-key-integration))
 
   :init
@@ -146,7 +155,8 @@
   ;; 保存時の整形も手動実行と同じApheleiaの設定を使用する。
   ((lua-ts-mode . apheleia-mode)
    (haskell-ts-mode . apheleia-mode)
-   (haskell-cabal-mode . apheleia-mode))
+   (haskell-cabal-mode . apheleia-mode)
+   (php-ts-mode . apheleia-mode))
 
   :config
   ;; LuaはStyLuaで整形する。
