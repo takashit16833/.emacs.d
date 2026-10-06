@@ -39,6 +39,10 @@
       scroll-conservatively 101)
 
 
+;; ウィンドウの最大化・復元。
+(keymap-global-set "M-z" #'my/toggle-window-zoom)
+
+
 ;; キー操作の候補を表示する。
 (use-package which-key
   :ensure nil
