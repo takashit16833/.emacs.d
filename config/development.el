@@ -143,6 +143,12 @@
 	("S-s-m" . my/lsp-problems))
 
   :config
+  ;; HLSのcompletionItem/resolveでfalseがnullへ変換されるのを防ぐ。
+  ;; lsp-mode本体にもrust-analyzer向けの同種の補正がある。
+  (advice-add #'lsp-completion--fix-resolve-data
+              :after
+              #'my/lsp-completion-fix-haskell-resolve-data)
+
   ;; ProblemsバッファをLSP診断の更新に追従させる。
   (add-hook 'lsp-diagnostics-updated-hook
             #'my/lsp-problems-refresh-if-open))
