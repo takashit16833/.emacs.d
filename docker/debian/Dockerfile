@@ -8,6 +8,8 @@ ARG HLS_VERSION=2.15.0.0
 ARG FOURMOLU_VERSION=0.20.1.0
 ARG INTELEPHENSE_VERSION=1.18.5
 ARG TYPESCRIPT_LANGUAGE_SERVER_VERSION=5.3.0
+ARG PYRIGHT_VERSION=1.1.414
+ARG RUFF_VERSION=0.16.10
 ARG PHP_CODESNIFFER_VERSION=4.0.4
 ARG PHPCS_SHA256=4b010cd21d8bc8a17e2504792e3c77ef8259126f24caf7eafe7eddef1fa871e9
 ARG PHPCBF_SHA256=0b3b8c5571543e94452f6edec0d7e924b287a64c13b73d8dcf3d25f0ee004948
@@ -43,6 +45,8 @@ RUN apt-get update \
        npm \
        php-cli \
        php-xml \
+       python3 \
+       python3-venv \
        pkg-config \
        ripgrep \
        rsync \
@@ -110,6 +114,14 @@ RUN emacs --batch -Q \
     && emacs --batch -Q \
       --eval "(dolist (lang '(typescript tsx)) (unless (treesit-language-available-p lang) (kill-emacs 1)))"
 
+# python-ts-modeが使用するTree-sitter grammarをインストールする。
+RUN emacs --batch -Q \
+      --eval "(require 'python)" \
+      --eval "(treesit-install-language-grammar 'python \"/usr/local/lib\")" \
+    && ldconfig \
+    && emacs --batch -Q \
+      --eval "(unless (treesit-language-available-p 'python) (kill-emacs 1))"
+
 # Lua Language Serverをインストールする。
 RUN set -eux; \
     case "$(dpkg --print-architecture)" in \
@@ -138,6 +150,36 @@ RUN npm install --global --no-audit --no-fund \
       "typescript-language-server@${TYPESCRIPT_LANGUAGE_SERVER_VERSION}" \
     && typescript-language-server --version \
     && npm cache clean --force
+
+# Python Language ServerとしてPyrightをインストールする。
+RUN npm install --global --no-audit --no-fund "pyright@${PYRIGHT_VERSION}" \
+    && pyright --version \
+    && command -v pyright-langserver \
+    && npm cache clean --force
+
+# Apheleiaが使用するRuffをインストールする。
+RUN set -eux; \
+    case "$(dpkg --print-architecture)" in \
+      amd64) \
+        ruff_arch=x86_64; \
+        ruff_sha256=9567ff1201e2fb3da31ff04c35587d768c66d6cb42dfa84de474e2bfe360b608 \
+        ;; \
+      arm64) \
+        ruff_arch=aarch64; \
+        ruff_sha256=dc0d74de837ef0a7bcc62ce98c48a622b075d057161f13b958be2934becd55a6 \
+        ;; \
+      *) echo "Unsupported architecture: $(dpkg --print-architecture)" >&2; exit 1 ;; \
+    esac; \
+    archive="ruff-${ruff_arch}-unknown-linux-gnu.tar.gz"; \
+    curl -fsSLO \
+      "https://github.com/astral-sh/ruff/releases/download/${RUFF_VERSION}/${archive}"; \
+    printf '%s  %s\n' "${ruff_sha256}" "${archive}" | sha256sum -c -; \
+    tar -xzf "${archive}"; \
+    install -m 0755 \
+      "ruff-${ruff_arch}-unknown-linux-gnu/ruff" \
+      /usr/local/bin/ruff; \
+    ruff --version; \
+    rm -rf "${archive}" "ruff-${ruff_arch}-unknown-linux-gnu"
 
 # Apheleiaが使用するPHPCBFと、確認用のPHPCSをインストールする。
 RUN curl -fsSL \
@@ -202,6 +244,7 @@ RUN cd /workspace/typescript-lsp-test \
 RUN git -C /workspace/lua-lsp-test init -q \
     && git -C /workspace/haskell-lsp-test init -q \
     && git -C /workspace/php-lsp-test init -q \
+    && git -C /workspace/python-lsp-test init -q \
     && git -C /workspace/typescript-lsp-test init -q
 
 COPY entrypoint.sh /usr/local/bin/emacs-debian-entrypoint

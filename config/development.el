@@ -70,6 +70,7 @@
   ((lua-ts-mode . lsp-deferred)
    (haskell-ts-mode . lsp-deferred)
    (php-ts-mode . lsp-deferred)
+   (python-ts-mode . lsp-deferred)
    (typescript-ts-mode . lsp-deferred)
    (tsx-ts-mode . lsp-deferred)
    (lsp-mode . lsp-enable-which-key-integration))
@@ -121,6 +122,15 @@
   (setopt lsp-clients-typescript-prefer-use-project-ts-server t))
 
 
+;; Python Language ServerとしてPyrightを使用する。
+(use-package lsp-pyright
+  :ensure t
+  :after lsp-mode
+  :custom
+  ;; .venv / venv がなければPATH上のpython3を使用する。
+  (lsp-pyright-python-executable-cmd "python3"))
+
+
 ;; Haskell Language Serverを使用する。
 (use-package lsp-haskell
   :ensure t
@@ -164,6 +174,7 @@
    (haskell-ts-mode . apheleia-mode)
    (haskell-cabal-mode . apheleia-mode)
    (php-ts-mode . apheleia-mode)
+   (python-ts-mode . apheleia-mode)
    (typescript-ts-mode . apheleia-mode)
    (tsx-ts-mode . apheleia-mode))
 
@@ -185,6 +196,11 @@
           "--stdin-filepath" filepath
           "--search-parent-directories"
           "-"))
+
+  ;; PythonはRuffで整形する。
+  ;; Apheleia標準のRuff formatter定義を使用する。
+  (setf (alist-get 'python-ts-mode apheleia-mode-alist)
+        'ruff)
 
   ;; HaskellはFourmoluで整形する。
   ;; 元ファイルの場所を渡し、Fourmoluの設定やCabal情報を正しく探索させる。

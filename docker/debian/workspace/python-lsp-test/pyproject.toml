@@ -1,0 +1,11 @@
+[project]
+name = "python-lsp-test"
+version = "0.0.0"
+requires-python = ">=3.11"
+
+[tool.pyright]
+include = ["src"]
+typeCheckingMode = "standard"
+
+[tool.ruff]
+line-length = 88
