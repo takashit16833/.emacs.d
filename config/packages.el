@@ -9,12 +9,12 @@
 (require 'package)
 
 
-;; GNU ELPA / NonGNU ELPA はEmacs標準で登録されているため、
-;; 追加で必要な MELPA だけを登録する。
-(add-to-list
- 'package-archives
- '("melpa" . "https://melpa.org/packages/")
- t)
+;; GNU ELPA / NonGNU ELPA はTUNA mirrorを使用する。
+;; MELPAは公式archiveを使用する。
+(setopt package-archives
+        '(("gnu" . "https://mirrors.tuna.tsinghua.edu.cn/elpa/gnu/")
+          ("nongnu" . "https://mirrors.tuna.tsinghua.edu.cn/elpa/nongnu/")
+          ("melpa" . "https://melpa.org/packages/")))
 
 
 ;;; packages.el ends here
