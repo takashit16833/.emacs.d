@@ -118,15 +118,39 @@
                #'nerd-icons-corfu-formatter))
 
 
-;; CAPF周りを補助するためのパッケージ
+;; LSP候補と現在のバッファ内の単語を同じ補完一覧へ統合する。
+(defvar-local my/lsp-completion-capf nil
+  "LSPとdabbrevを統合した現在バッファ用のCAPF。")
+
+(defun my/lsp-completion-setup ()
+  "LSP補完と現在バッファのdabbrev補完をCorfuへまとめる。"
+  ;; lsp-completion-modeの再設定時に古い統合CAPFを残さない。
+  (when my/lsp-completion-capf
+    (setq-local completion-at-point-functions
+                (delq my/lsp-completion-capf
+                      completion-at-point-functions))
+    (setq my/lsp-completion-capf nil))
+
+  (when lsp-completion-mode
+    (require 'dabbrev)
+    ;; LSP候補と現在バッファ内の単語を同じ候補一覧へまとめる。
+    ;; busterで入力変更ごとにCAPFを再実行し、古いLSP候補を使い回さない。
+    (setq my/lsp-completion-capf
+          (cape-capf-buster
+           (cape-capf-super #'lsp-completion-at-point
+                            #'dabbrev-capf)))
+    (setq-local completion-at-point-functions
+                (cons my/lsp-completion-capf
+                      (delq #'lsp-completion-at-point
+                            completion-at-point-functions)))))
+
+
+;; CAPF周りを補助するためのパッケージ。
 (use-package cape
   :ensure t
   :after lsp-mode
-  :config
-  ;; 入力が変わったらLSP補完候補を取り直す。
-  (advice-add #'lsp-completion-at-point
-              :around
-              #'cape-wrap-buster))
+  :hook
+  (lsp-completion-mode . my/lsp-completion-setup))
 
 
 ;;; completion.el ends here
