@@ -48,9 +48,20 @@
         tab-line-close-button-show nil
         tab-line-tab-name-function #'my/tab-line-tab-name
         tab-line-tab-name-format-function #'my/tab-line-tab-name-format
+	
+        ;; タブの状態に応じてfaceを変更する。
+        tab-line-tab-face-functions
+        '(tab-line-tab-face-modified
+          my/tab-line-tab-face-vc-modified
+          tab-line-tab-face-special)
+
+        ;; Git状態の変更もtab-lineのキャッシュ判定に含める。
+        tab-line-cache-key-function #'my/tab-line-cache-key
+	
         ;; 除外条件を使って tab-line に表示するバッファを絞る。
         tab-line-tabs-window-buffers-filter-function
         #'tab-line-tabs-non-excluded
+	
         ;; *Messages* などの *...* バッファ、
         ;; Magit 系バッファ、Dired バッファを除外する。
         tab-line-exclude-buffers

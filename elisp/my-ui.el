@@ -6,7 +6,10 @@
 ;;; Code:
 
 (require 'seq)
+(require 'vc-hooks)
 
+
+;;; nerd font -------------------------------------------------------
 
 (defvar-local my/file-icon-cache nil
   "現在のバッファのファイルアイコンをキャッシュする。")
@@ -26,9 +29,60 @@
         icon))))
 
 
+;;; mood-line -------------------------------------------------------
+
 (defun my/mood-line-segment-file-icon ()
   "現在のファイルに対応するアイコンを返す。"
   (my/file-icon))
+
+
+;;; tab-line --------------------------------------------------------
+
+(defface my/tab-line-tab-vc-modified
+  '((t ()))
+  "Git差分があるtab-lineのタブに使うface。"
+  :group 'tab-line-faces)
+
+
+(defun my/tab-line--git-modified-p (buffer)
+  "BUFFER のファイルに保存済みのGit差分があるか返す。"
+  (with-current-buffer buffer
+    (and buffer-file-name
+         ;; 未保存の場合は `tab-line-tab-modified' を優先する。
+         (not (buffer-modified-p))
+         ;; 描画中にGitを実行せず、VCが保持している状態だけを見る。
+         (eq (vc-file-getprop buffer-file-name 'vc-backend) 'Git)
+         (memq (vc-file-getprop buffer-file-name 'vc-state)
+               '(edited added removed missing conflict)))))
+
+
+(defun my/tab-line-tab-face-vc-modified
+    (tab _tabs face buffer-p _selected-p)
+  "TAB に保存済みのGit差分があれば専用faceを追加する。"
+  (let ((buffer (if buffer-p
+                    tab
+                  (cdr (assq 'buffer tab)))))
+    (if (and (buffer-live-p buffer)
+             (my/tab-line--git-modified-p buffer))
+        `(:inherit (my/tab-line-tab-vc-modified ,face))
+      face)))
+
+
+(defun my/tab-line-cache-key (tabs)
+  "TABS のVC状態を含むtab-lineキャッシュキーを返す。"
+  (append
+   (tab-line-cache-key-default tabs)
+   (list
+    (mapcar
+     (lambda (tab)
+       (let ((buffer (if (bufferp tab)
+                         tab
+                       (cdr (assq 'buffer tab)))))
+         (when (buffer-live-p buffer)
+           (with-current-buffer buffer
+             (when buffer-file-name
+               (vc-file-getprop buffer-file-name 'vc-state))))))
+     tabs))))
 
 
 (defun my/tab-bar-tab-name-padding (name _tab _i)
@@ -99,6 +153,8 @@ CURRENT-BUFFERS にないbufferは除外する。"
     (set-window-parameter window 'tab-line-buffers ordered-buffers)
     ordered-buffers))
 
+
+;;; corfu -----------------------------------------------------------
 
 (defun my/corfu-offset-tty-popup (original frame x y width height)
   "TTYのCorfu候補を右へ1文字、下へ1行ずらす。"
