@@ -41,6 +41,7 @@ RUN apt-get update \
        nodejs \
        npm \
        php-cli \
+       php-xml \
        pkg-config \
        ripgrep \
        rsync \
