@@ -27,6 +27,11 @@
 (set-display-table-slot standard-display-table 'vertical-border ?│)
 
 
+;; 編集用バッファで行番号を表示する。
+(add-hook 'prog-mode-hook #'display-line-numbers-mode)
+(add-hook 'text-mode-hook #'display-line-numbers-mode)
+
+
 ;; TTY child frame の枠を角丸にする。
 ;; 枠色はウィンドウ境界線と同じ `vertical-border' face を使う。
 (set-display-table-slot standard-display-table
