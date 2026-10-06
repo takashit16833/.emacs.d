@@ -15,6 +15,7 @@ install_php_tree_sitter() {
   require_command emacs
   require_command git
   require_command cc
+  require_command c++
 
   EMACS_TREE_SITTER_DIR="$tree_sitter_dir" \
     emacs --batch -Q \
