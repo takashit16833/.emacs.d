@@ -7,6 +7,7 @@ ARG CABAL_VERSION=3.12.1.0
 ARG HLS_VERSION=2.15.0.0
 ARG FOURMOLU_VERSION=0.20.1.0
 ARG INTELEPHENSE_VERSION=1.18.5
+ARG TYPESCRIPT_LANGUAGE_SERVER_VERSION=5.3.0
 ARG PHP_CODESNIFFER_VERSION=4.0.4
 ARG PHPCS_SHA256=4b010cd21d8bc8a17e2504792e3c77ef8259126f24caf7eafe7eddef1fa871e9
 ARG PHPCBF_SHA256=0b3b8c5571543e94452f6edec0d7e924b287a64c13b73d8dcf3d25f0ee004948
@@ -101,6 +102,14 @@ RUN emacs --batch -Q \
     && emacs --batch -Q \
       --eval "(dolist (lang '(html css javascript jsdoc php phpdoc)) (unless (treesit-language-available-p lang) (kill-emacs 1)))"
 
+# typescript-ts-mode / tsx-ts-modeが使用するTree-sitter grammarをインストールする。
+RUN emacs --batch -Q \
+      --eval "(require 'typescript-ts-mode)" \
+      --eval "(dolist (lang '(typescript tsx)) (treesit-install-language-grammar lang \"/usr/local/lib\"))" \
+    && ldconfig \
+    && emacs --batch -Q \
+      --eval "(dolist (lang '(typescript tsx)) (unless (treesit-language-available-p lang) (kill-emacs 1)))"
+
 # Lua Language Serverをインストールする。
 RUN set -eux; \
     case "$(dpkg --print-architecture)" in \
@@ -122,6 +131,12 @@ RUN set -eux; \
 # PHP Language ServerとしてIntelephenseをインストールする。
 RUN npm install --global --no-audit --no-fund "intelephense@${INTELEPHENSE_VERSION}" \
     && command -v intelephense \
+    && npm cache clean --force
+
+# Debian trixieのNode.js 20で動作するTypeScript Language Serverをインストールする。
+RUN npm install --global --no-audit --no-fund \
+      "typescript-language-server@${TYPESCRIPT_LANGUAGE_SERVER_VERSION}" \
+    && typescript-language-server --version \
     && npm cache clean --force
 
 # Apheleiaが使用するPHPCBFと、確認用のPHPCSをインストールする。
@@ -178,9 +193,16 @@ RUN set -eux; \
 # LSPの動作確認に使う小さなプロジェクトを配置する。
 COPY workspace /workspace
 
+# 実プロジェクトと同様にTypeScriptとPrettierはプロジェクトローカルへ入れる。
+RUN cd /workspace/typescript-lsp-test \
+    && npm install --no-audit --no-fund \
+    && ./node_modules/.bin/tsc --version \
+    && ./node_modules/.bin/prettier --version
+
 RUN git -C /workspace/lua-lsp-test init -q \
     && git -C /workspace/haskell-lsp-test init -q \
-    && git -C /workspace/php-lsp-test init -q
+    && git -C /workspace/php-lsp-test init -q \
+    && git -C /workspace/typescript-lsp-test init -q
 
 COPY entrypoint.sh /usr/local/bin/emacs-debian-entrypoint
 

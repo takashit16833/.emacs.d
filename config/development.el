@@ -70,6 +70,8 @@
   ((lua-ts-mode . lsp-deferred)
    (haskell-ts-mode . lsp-deferred)
    (php-ts-mode . lsp-deferred)
+   (typescript-ts-mode . lsp-deferred)
+   (tsx-ts-mode . lsp-deferred)
    (lsp-mode . lsp-enable-which-key-integration))
 
   :init
@@ -114,6 +116,11 @@
         ("d" . my/flymake-show-diagnostic)))
 
 
+;; TypeScriptはプロジェクトにインストールされたTypeScriptを優先する。
+(with-eval-after-load 'lsp-javascript
+  (setopt lsp-clients-typescript-prefer-use-project-ts-server t))
+
+
 ;; Haskell Language Serverを使用する。
 (use-package lsp-haskell
   :ensure t
@@ -156,7 +163,9 @@
   ((lua-ts-mode . apheleia-mode)
    (haskell-ts-mode . apheleia-mode)
    (haskell-cabal-mode . apheleia-mode)
-   (php-ts-mode . apheleia-mode))
+   (php-ts-mode . apheleia-mode)
+   (typescript-ts-mode . apheleia-mode)
+   (tsx-ts-mode . apheleia-mode))
 
   :config
   ;; LuaはStyLuaで整形する。

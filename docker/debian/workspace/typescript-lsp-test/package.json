@@ -1,0 +1,9 @@
+{
+  "name": "typescript-lsp-test",
+  "private": true,
+  "version": "0.0.0",
+  "devDependencies": {
+    "prettier": "3.9.9",
+    "typescript": "6.0.3"
+  }
+}
