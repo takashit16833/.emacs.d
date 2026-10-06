@@ -102,10 +102,6 @@
   (bufferlo-mode 1))
 
 
-;; Tabを切り替える。
-(keymap-global-set "M-t" #'tab-bar-switch-to-tab)
-
-
 ;; 次のウィンドウへ移動する。
 (keymap-global-set "M-o" #'other-window)
 
