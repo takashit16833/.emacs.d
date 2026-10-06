@@ -111,6 +111,7 @@ RUN curl --proto '=https' --tlsv1.2 -sSf https://get-ghcup.haskell.org \
     && ghcup --url-source="${GHCUP_METADATA_URL}" install ghc "${GHC_VERSION}" \
     && ghcup set ghc "${GHC_VERSION}" \
     && ghcup --url-source="${GHCUP_METADATA_URL}" install cabal "${CABAL_VERSION}" \
+    && cabal update \
     && ghcup --url-source="${GHCUP_METADATA_URL}" install hls "${HLS_VERSION}" \
     && ghc --version \
     && cabal --version \
