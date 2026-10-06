@@ -38,6 +38,12 @@
 
 ;;; tab-line --------------------------------------------------------
 
+(defvar-local my/tab-line-git-modified-cache 'unknown
+  "Magitから取得した現在のGit差分状態。
+`modified' は差分あり、`clean' は差分なし、
+`unknown' はVCの状態を参照する。")
+
+
 (defface my/tab-line-tab-vc-modified
   '((t ()))
   "Git差分があるtab-lineのタブに使うface。"
@@ -50,10 +56,41 @@
     (and buffer-file-name
          ;; 未保存の場合は `tab-line-tab-modified' を優先する。
          (not (buffer-modified-p))
-         ;; 描画中にGitを実行せず、VCが保持している状態だけを見る。
-         (eq (vc-file-getprop buffer-file-name 'vc-backend) 'Git)
-         (memq (vc-file-getprop buffer-file-name 'vc-state)
-               '(edited added removed missing conflict)))))
+         (pcase my/tab-line-git-modified-cache
+           ('modified t)
+           ('clean nil)
+           ;; Magitから状態を取得していない場合は、
+           ;; 描画中にGitを実行せずVCが保持している状態だけを見る。
+           (_
+            (and (eq (vc-file-getprop buffer-file-name 'vc-backend) 'Git)
+                 (memq (vc-file-getprop buffer-file-name 'vc-state)
+                       '(edited added removed missing conflict))))))))
+
+
+(defun my/tab-line-update-git-modified-cache (root modified-files)
+  "ROOT 以下のbufferへ MODIFIED-FILES のGit差分状態を反映する。"
+  (let ((modified-paths (make-hash-table :test #'equal)))
+    (dolist (file modified-files)
+      (puthash (expand-file-name file root) t modified-paths))
+    (dolist (buffer (buffer-list))
+      (with-current-buffer buffer
+        (when (and buffer-file-name
+                   (file-in-directory-p buffer-file-name root))
+          (setq my/tab-line-git-modified-cache
+                (if (gethash (expand-file-name buffer-file-name)
+                             modified-paths)
+                    'modified
+                  'clean)))))
+    (tab-line-force-update t)))
+
+
+(defun my/tab-line--invalidate-git-modified-cache ()
+  "現在のbufferのMagit由来Git差分キャッシュを無効化する。"
+  (setq my/tab-line-git-modified-cache 'unknown))
+
+
+(add-hook 'after-save-hook #'my/tab-line--invalidate-git-modified-cache)
+(add-hook 'after-revert-hook #'my/tab-line--invalidate-git-modified-cache)
 
 
 (defun my/tab-line-tab-face-vc-modified
@@ -81,7 +118,8 @@
          (when (buffer-live-p buffer)
            (with-current-buffer buffer
              (when buffer-file-name
-               (vc-file-getprop buffer-file-name 'vc-state))))))
+               (cons my/tab-line-git-modified-cache
+                     (vc-file-getprop buffer-file-name 'vc-state)))))))
      tabs))))
 
 

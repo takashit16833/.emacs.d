@@ -5,6 +5,25 @@
 ;;; Code:
 
 (require 'my-tab-context)
+(require 'my-ui)
+
+(declare-function magit-file-status "magit-git" (&rest args))
+(declare-function magit-toplevel "magit-git" (&optional directory))
+
+
+(defun my/magit-refresh-tab-line-git-status ()
+  "Magitの更新後にtab-lineのGit差分状態を更新する。"
+  (let ((root (magit-toplevel))
+        modified-files)
+    (when root
+      ;; リポジトリ全体を1回だけ確認し、開いているbufferへ結果を配る。
+      ;; 未追跡ファイルは従来どおりGit差分色の対象外にする。
+      (dolist (status (magit-file-status "--untracked-files=no"))
+        (push (car status) modified-files)
+        ;; rename/copyは元のパスも返るため、両方を対象にする。
+        (when (cadr status)
+          (push (cadr status) modified-files)))
+      (my/tab-line-update-git-modified-cache root modified-files))))
 
 
 ;; 編集中のファイルにGitとの差分を表示する。
@@ -39,7 +58,9 @@
   ;; ここではMagit自体を読み込まない。
   (with-eval-after-load 'magit
     (add-hook 'magit-post-refresh-hook
-              #'diff-hl-magit-post-refresh)))
+              #'diff-hl-magit-post-refresh)
+    (add-hook 'magit-post-refresh-hook
+              #'my/magit-refresh-tab-line-git-status)))
 
 
 ;; Emacs内で状態確認・差分確認・コミットなどを行う。

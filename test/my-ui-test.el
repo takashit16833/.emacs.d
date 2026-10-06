@@ -39,4 +39,22 @@
     '(a c))))
 
 
+(ert-deftest my/tab-line--git-modified-p-uses-magit-modified-cache ()
+  "Magitの差分ありキャッシュをVC状態より優先すること。"
+  (with-temp-buffer
+    (setq buffer-file-name "/tmp/example.el"
+          my/tab-line-git-modified-cache 'modified)
+    (set-buffer-modified-p nil)
+    (should (my/tab-line--git-modified-p (current-buffer)))))
+
+
+(ert-deftest my/tab-line--git-modified-p-uses-magit-clean-cache ()
+  "Magitの差分なしキャッシュをVC状態より優先すること。"
+  (with-temp-buffer
+    (setq buffer-file-name "/tmp/example.el"
+          my/tab-line-git-modified-cache 'clean)
+    (set-buffer-modified-p nil)
+    (should-not (my/tab-line--git-modified-p (current-buffer)))))
+
+
 ;;; my-ui-test.el ends here
