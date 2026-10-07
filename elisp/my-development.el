@@ -6,6 +6,9 @@
 ;;; Code:
 
 
+(require 'cl-lib)
+
+
 (defun my/flymake-diagnostic-type-label (diagnostic)
   "DIAGNOSTICの種類を色付きの表示用文字列にする。"
   (pcase (flymake-diagnostic-type diagnostic)
