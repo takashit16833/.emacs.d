@@ -121,24 +121,8 @@
   (dabbrev-case-replace nil))
 
 
-;; LSP補完はlsp-mode自身のCAPFをそのまま使用する。
-;;
-;; lsp-completion-at-pointはqualified completion（例: Text.unp -> unpack）を
-;; lsp-capf / lsp-passthroughで処理するため、Capeで合成・ラップしない。
-;; dabbrevはLSP候補がない場合に試す後段のCAPFとして置く。
-(defun my/lsp-completion-setup ()
-  "LSP補完を先頭にし、dabbrevを後段のCAPFとして追加する。"
-  (when lsp-completion-mode
-    (require 'dabbrev)
-    (setq-local completion-at-point-functions
-                (append
-                 (list #'lsp-completion-at-point)
-                 (delq #'dabbrev-capf
-                       (delq #'lsp-completion-at-point
-                             completion-at-point-functions))
-                 (list #'dabbrev-capf)))))
-
-(add-hook 'lsp-completion-mode-hook #'my/lsp-completion-setup)
+;; LSP補完はlsp-modeが登録するCAPFをそのまま使用する。
+;; 候補の表示はCorfuに任せ、LSP用のCAPF合成やdabbrev統合は行わない。
 
 
 ;;; completion.el ends here
