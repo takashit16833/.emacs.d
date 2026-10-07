@@ -9,6 +9,7 @@
 
 (declare-function magit-file-status "magit-git" (&rest args))
 (declare-function magit-toplevel "magit-git" (&optional directory))
+(declare-function magit-diff-visit-file "magit-diff" (&optional other-window))
 (declare-function diff-hl-magit-post-refresh "diff-hl" ())
 
 
@@ -25,6 +26,14 @@
         (when (cadr status)
           (push (cadr status) modified-files)))
       (my/tab-line-update-git-modified-cache root modified-files))))
+
+
+(defun my/magit-diff-visit-file ()
+  "分割済みなら別ウィンドウ、1ウィンドウなら現在のウィンドウで開く。"
+  (interactive)
+  (magit-diff-visit-file
+   (not (one-window-p 'nomini))))
+
 
 
 (defun my/diff-hl-magit-post-refresh ()
@@ -86,7 +95,16 @@
 (use-package magit
   :ensure t
   :commands magit-status
-  :bind ("C-x g" . my/magit-status))
+  :bind ("C-x g" . my/magit-status)
+  :custom
+  ;; Magit Statusは新しく分割せず、現在のウィンドウに表示する。
+  (magit-display-buffer-function
+   #'magit-display-buffer-same-window-except-diff-v1)
+  :config
+  ;; ファイルや差分へ移動するとき、既存の別ウィンドウがあれば再利用する。
+  (with-eval-after-load 'magit-diff
+    (keymap-set magit-file-section-map "RET" #'my/magit-diff-visit-file)
+    (keymap-set magit-hunk-section-map "RET" #'my/magit-diff-visit-file)))
 
 
 ;; Magitの差分をdeltaで色付けする。
