@@ -165,12 +165,11 @@
               :after
               #'my/lsp-completion-fix-haskell-resolve-data)
 
-  ;; HLSは `Text.' のようなqualified completionで候補を返すが、
-  ;; lsp-modeはtrigger前のcacheを再利用し、さらに空prefixを推測できない場合がある。
-  ;; Haskellバッファに限定して、その2点だけ補正する。
-  (advice-add #'lsp-completion--guess-prefix
-              :filter-return
-              #'my/haskell-lsp-completion-fix-empty-prefix)
+  ;; HLSのqualified completionではtrigger直後を空prefixとして扱い、
+  ;; 同じCorfu session内の入力変更でもlsp-modeのCAPFを再評価する。
+  (advice-add #'lsp-completion-at-point
+              :around
+              #'my/haskell-lsp-completion-around)
   (add-hook 'lsp-completion-mode-hook
             #'my/haskell-lsp-completion-setup)
 
