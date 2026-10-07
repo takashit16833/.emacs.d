@@ -39,6 +39,8 @@
 
 (defun my/haskell-ts-enable-indentation ()
   "haskell-ts-modeでhaskell-modeのインデント機能を使用する。"
+  ;; haskell-indentationはhaskell-modeが定義するhaskell-literateを参照する。
+  (require 'haskell-mode)
   (require 'haskell-indentation)
   (setq-local indent-line-function #'haskell-indentation-indent-line))
 
