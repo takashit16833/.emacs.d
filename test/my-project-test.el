@@ -241,6 +241,8 @@
 (ert-deftest my/project-open-database-opens-selected-connection ()
   "選択した接続をプロジェクトルートからClutchで開くこと。"
   (let ((root (file-name-as-directory "/tmp/my-project-test"))
+        ;; テストではClutch本体を読み込まず、require済みとして扱う。
+        (features (cons 'clutch features))
         (clutch-tramp-context-policy 'ask)
         opened-directory
         opened-policy
@@ -277,7 +279,8 @@
               ((symbol-function 'clutch-query-console)
                (lambda (target)
                  (setq opened-directory default-directory
-                       opened-policy clutch-tramp-context-policy
+                       opened-policy
+                       (symbol-value 'clutch-tramp-context-policy)
                        opened-target target))))
       (my/project-open-database))
     (should (equal opened-directory root))

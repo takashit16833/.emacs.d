@@ -103,6 +103,10 @@
            (params
             (copy-sequence
              (cdr (assoc name connections)))))
+      ;; Clutchが定義する変数を動的束縛する前に本体を読み込む。
+      ;; `defcustom' を束縛中に評価しないため、autoloadには任せない。
+      (require 'clutch)
+
       ;; Clutchには保存済み接続ではなくad-hoc接続として渡す。
       ;; これによりグローバルなclutch-connection-alistを使用しない。
       (let ((default-directory root)
