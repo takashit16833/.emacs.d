@@ -145,8 +145,9 @@
                  (lsp--capability-for-method "textDocument/completion"))
                 (triggers
                  (lsp:completion-options-trigger-characters? options)))
-      (member (char-to-string last-command-event)
-              (append triggers nil)))))
+      (seq-contains-p triggers
+                      (char-to-string last-command-event)
+                      #'string=))))
 
 (defun my/lsp-completion-reset-on-trigger ()
   "Language Serverの補完トリガー入力時に補完セッションを作り直す。"
