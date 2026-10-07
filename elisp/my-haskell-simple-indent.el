@@ -29,18 +29,23 @@
         (string-match-p "\\`[ \t]*data[ \t]+[[:word:]_']+[ \t]*\\'" text))))
 
 (defun my-haskell-simple-indent--target-column ()
-  "現在行のインデント先の列を返す。"
+  "現在行のインデント先の列を返す。
+直前が空行なら、直近の空でない行を基準にする。"
   (save-excursion
     (beginning-of-line)
-    (if (bobp)
-        0
-      (forward-line -1)
-      (+ (current-indentation)
-         (if (my-haskell-simple-indent--increase-p
-              (buffer-substring-no-properties
-               (line-beginning-position) (line-end-position)))
-             my-haskell-simple-indent-offset
-           0)))))
+    (let (previous-line)
+      (while (and (not previous-line)
+                  (zerop (forward-line -1)))
+        (unless (looking-at-p "[ \t]*$")
+          (setq previous-line (point))))
+      (if (not previous-line)
+          0
+        (+ (current-indentation)
+           (if (my-haskell-simple-indent--increase-p
+                (buffer-substring-no-properties
+                 (line-beginning-position) (line-end-position)))
+               my-haskell-simple-indent-offset
+             0))))))
 
 (defun my-haskell-simple-indent-line ()
   "空の現在行を入力中の Haskell コードとして軽量にインデントする。"

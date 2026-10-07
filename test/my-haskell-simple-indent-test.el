@@ -66,6 +66,29 @@
     (my-haskell-simple-indent-line)
     (should (= (current-indentation) 6))))
 
+(ert-deftest my/haskell-simple-indent-skips-blank-line ()
+  "空行を挟んでも直近のコード行と同じ深さを維持すること。"
+  (with-temp-buffer
+    (setq-local my-haskell-simple-indent-offset 2)
+    (insert "    Just queryVector -> do\n"
+            "      topChunks <- searchChunks queryVector\n"
+            "\n")
+    (my-haskell-simple-indent-line)
+    (should (= (current-indentation) 6))
+    (should (= (current-column) 6))))
+
+(ert-deftest my/haskell-simple-indent-tab-skips-blank-line ()
+  "空行の次でもTAB一発で直近のコード行の深さへ移動すること。"
+  (with-temp-buffer
+    (setq-local my-haskell-simple-indent-offset 2)
+    (my-haskell-simple-indent-setup)
+    (insert "    Just queryVector -> do\n"
+            "      topChunks <- searchChunks queryVector\n"
+            "\n")
+    (indent-for-tab-command)
+    (should (= (current-indentation) 6))
+    (should (= (current-column) 6))))
+
 (ert-deftest my/haskell-simple-indent-preserves-existing-code ()
   "既存コードのインデントは軽量規則で推測して変更しないこと。"
   (with-temp-buffer
