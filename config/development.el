@@ -63,12 +63,21 @@
 
 
 ;; HaskellではTree-sitter版のmajor modeを使用する。
+(autoload 'my-haskell-simple-indent-setup "my-haskell-simple-indent")
+
 (use-package haskell-ts-mode
   :vc (:url "https://github.com/dschrempf/haskell-ts-mode")
   :commands haskell-ts-mode
+  :hook
+  (haskell-ts-mode . my-haskell-simple-indent-setup)
   :init
   (add-to-list 'major-mode-remap-alist
                '(haskell-mode . haskell-ts-mode)))
+
+;; .editorconfig の indent_size を軽量インデントの幅へ反映する。
+(with-eval-after-load 'editorconfig
+  (add-to-list 'editorconfig-indentation-alist
+               '(haskell-ts-mode my-haskell-simple-indent-offset)))
 
 
 ;;; PHP -------------------------------------------------------------
