@@ -121,106 +121,24 @@
   (dabbrev-case-replace nil))
 
 
-;; LSP補完をCorfuから利用し、候補がない場合だけdabbrevへフォールバックする。
+;; LSP補完はlsp-mode自身のCAPFをそのまま使用する。
 ;;
-;; lsp-modeはqualified completion（例: Text.unp -> unpack）のために
-;; lsp-capf / lsp-passthroughという専用の補完カテゴリを使用する。
-;; cape-capf-superでLSPとdabbrevを統合するとカテゴリがcape-superへ変わり、
-;; この専用処理が失われるため、LSPはsuper CAPFへ入れない。
-(defvar-local my/lsp-completion-capf nil
-  "現在バッファで使用するLSP補完用CAPF。")
-
-(defvar-local my/lsp-completion-trigger-characters nil
-  "現在のLanguage Serverが宣言した補完トリガー文字。")
-
-(declare-function corfu-quit "corfu" ())
-(declare-function lsp--capability-for-method "lsp-mode" (method))
-(declare-function lsp-completion--clear-cache "lsp-completion"
-                  (&optional keep-last-result))
-(declare-function lsp:completion-options-trigger-characters?
-                  "lsp-protocol" (completion-options))
-
-(defun my/lsp-completion-update-trigger-characters ()
-  "Language Serverが宣言した補完トリガー文字を記録する。"
-  (setq my/lsp-completion-trigger-characters
-        (when-let* ((options
-                     (lsp--capability-for-method "textDocument/completion"))
-                    (triggers
-                     (lsp:completion-options-trigger-characters? options)))
-          (append triggers nil))))
-
-(defun my/lsp-completion-trigger-character-p ()
-  "直前に挿入した文字がLSP補完トリガーならnon-nilを返す。"
-  (and (bound-and-true-p lsp-completion-mode)
-       (> (point) (point-min))
-       (seq-contains-p my/lsp-completion-trigger-characters
-                       (char-to-string (char-before))
-                       #'string=)))
-
-(defun my/lsp-completion-reset-on-trigger ()
-  "LSP補完トリガー入力時に新しい補完セッションを開始する。"
-  (when (my/lsp-completion-trigger-character-p)
-    ;; Teの候補を表示中にText.まで入力した場合などは、
-    ;; それまでの文脈を使っているCorfuセッションを終了する。
-    (when (and (bound-and-true-p corfu-mode)
-               (bound-and-true-p completion-in-region-mode))
-      (corfu-quit))
-
-    ;; lsp-modeは完了済み候補を同じセッションで再利用するため、
-    ;; Language Server自身が宣言したtrigger characterでは破棄する。
-    (lsp-completion--clear-cache)
-
-    ;; trigger characterは補完開始イベントなので、corfu-autoの
-    ;; 遅延処理には任せず、その場で新しいLSP文脈の補完を開始する。
-    (completion-at-point)))
-
+;; lsp-completion-at-pointはqualified completion（例: Text.unp -> unpack）を
+;; lsp-capf / lsp-passthroughで処理するため、Capeで合成・ラップしない。
+;; dabbrevはLSP候補がない場合に試す後段のCAPFとして置く。
 (defun my/lsp-completion-setup ()
-  "CorfuでLSP補完を使用し、候補がない場合はdabbrevへフォールバックする。"
-  ;; lsp-completion-modeの再設定時に古いCAPFとhookを残さない。
-  (when my/lsp-completion-capf
-    (setq-local completion-at-point-functions
-                (delq my/lsp-completion-capf
-                      completion-at-point-functions))
-    (setq my/lsp-completion-capf nil))
-
-  (remove-hook 'post-self-insert-hook
-               #'my/lsp-completion-reset-on-trigger t)
-
+  "LSP補完を先頭にし、dabbrevを後段のCAPFとして追加する。"
   (when lsp-completion-mode
     (require 'dabbrev)
-    (my/lsp-completion-update-trigger-characters)
-
-    ;; Corfu単体で補完を開始する場合も、Language Serverが宣言した文字では
-    ;; prefix長に関係なく即時起動する。
-    (setq-local corfu-auto-trigger
-                (apply #'concat my/lsp-completion-trigger-characters))
-
-    ;; busterで入力変更ごとにLSP CAPFを作り直す。
-    ;; nonexclusiveにすることで、LSP候補がない場合だけ後段のdabbrevを試す。
-    ;; cape-capf-superは使わず、lsp-capfカテゴリをそのまま保持する。
-    (setq my/lsp-completion-capf
-          (cape-capf-buster
-           (cape-capf-nonexclusive #'lsp-completion-at-point)))
-
     (setq-local completion-at-point-functions
-                (cons my/lsp-completion-capf
-                      (cons #'dabbrev-capf
-                            (delq #'dabbrev-capf
-                                  (delq #'lsp-completion-at-point
-                                        completion-at-point-functions)))))
+                (append
+                 (list #'lsp-completion-at-point)
+                 (delq #'dabbrev-capf
+                       (delq #'lsp-completion-at-point
+                             completion-at-point-functions))
+                 (list #'dabbrev-capf)))))
 
-    ;; Language Serverが宣言したtrigger character（HLSなら"."など）では
-    ;; 古い補完セッションを終了し、その場で新しい文脈の補完を開始する。
-    (add-hook 'post-self-insert-hook
-              #'my/lsp-completion-reset-on-trigger nil t)))
-
-
-;; CAPF周りを補助するためのパッケージ。
-(use-package cape
-  :ensure t
-  :after lsp-mode
-  :hook
-  (lsp-completion-mode . my/lsp-completion-setup))
+(add-hook 'lsp-completion-mode-hook #'my/lsp-completion-setup)
 
 
 ;;; completion.el ends here
