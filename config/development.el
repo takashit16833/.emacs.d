@@ -146,6 +146,8 @@
 	("<f12>" . lsp-find-definition)
 	("S-<f12>" . lsp-find-references)
 	("S-s-m" . my/lsp-problems))
+  (:map my/lsp-problems-mode-map
+	("S-s-m" . my/lsp-problems))
 
   :config
   ;; HLSのcompletionItem/resolveでfalseがnullへ変換されるのを防ぐ。
