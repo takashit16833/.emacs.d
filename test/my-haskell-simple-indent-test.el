@@ -36,27 +36,19 @@
                   "putStrLn value"))
     (should-not (my-haskell-simple-indent--increase-p text))))
 
-(ert-deftest my/haskell-simple-indent-user-do-example ()
-  "case の分岐末尾が do のとき期待する6列目へ移動すること。"
-  (with-temp-buffer
-    (setq-local my-haskell-simple-indent-offset 2)
-    (insert "  case queryEmbedding of\n"
-            "    Nothing ->\n"
-            "      putStrLn \"Failed to decode query embedding.\"\n"
-            "    Just queryVector -> do\n")
-    (my-haskell-simple-indent-line)
-    (should (= (current-indentation) 6))
-    (should (= (current-column) 6))))
+(ert-deftest my/haskell-simple-indent-next-column-case-do ()
+  "case 分岐の do は1段深くすること。"
+  (setq-local my-haskell-simple-indent-offset 2)
+  (should (= (my-haskell-simple-indent--next-column
+              "    Just queryVector -> do" 4)
+             6)))
 
-(ert-deftest my/haskell-simple-indent-tab-corrects-current-indent ()
-  "空行上のTABは indent-relative ではなく Haskell 用の位置へ移動すること。"
-  (with-temp-buffer
-    (setq-local my-haskell-simple-indent-offset 2)
-    (my-haskell-simple-indent-setup)
-    (insert "    Just queryVector -> do\n    ")
-    (indent-for-tab-command)
-    (should (= (current-indentation) 6))
-    (should (= (current-column) 6))))
+(ert-deftest my/haskell-simple-indent-next-column-lambda-do ()
+  "lambda の -> do は lambda 本体と do 本体の2段を開くこと。"
+  (setq-local my-haskell-simple-indent-offset 2)
+  (should (= (my-haskell-simple-indent--next-column
+              "        ( \\(chunk, score) -> do" 8)
+             12)))
 
 (ert-deftest my/haskell-simple-indent-inherits-after-ordinary-line ()
   "通常行の次は直前行と同じ深さを維持すること。"
@@ -77,40 +69,6 @@
     (should (= (current-indentation) 6))
     (should (= (current-column) 6))))
 
-(ert-deftest my/haskell-simple-indent-tab-skips-blank-line ()
-  "空行の次でもTAB一発で直近のコード行の深さへ移動すること。"
-  (with-temp-buffer
-    (setq-local my-haskell-simple-indent-offset 2)
-    (my-haskell-simple-indent-setup)
-    (insert "    Just queryVector -> do\n"
-            "      topChunks <- searchChunks queryVector\n"
-            "\n")
-    (indent-for-tab-command)
-    (should (= (current-indentation) 6))
-    (should (= (current-column) 6))))
-
-(ert-deftest my/haskell-simple-indent-lambda-do-opens-two-levels ()
-  "lambda の -> do の次行は2段深くすること。"
-  (with-temp-buffer
-    (setq-local my-haskell-simple-indent-offset 2)
-    (insert "      mapM_\n"
-            "        ( \\(chunk, score) -> do\n")
-    (my-haskell-simple-indent-line)
-    (should (= (current-indentation) 12))
-    (should (= (current-column) 12))))
-
-(ert-deftest my/haskell-simple-indent-tab-advances-from-target ()
-  "自動判定が同じ深さを返す空行ではTABで1段進めること。"
-  (with-temp-buffer
-    (setq-local my-haskell-simple-indent-offset 2)
-    (my-haskell-simple-indent-setup)
-    (insert "      mapM_\n"
-            "      ")
-    (let ((this-command 'indent-for-tab-command))
-      (indent-for-tab-command))
-    (should (= (current-indentation) 8))
-    (should (= (current-column) 8))))
-
 (ert-deftest my/haskell-simple-indent-preserves-existing-code ()
   "既存コードのインデントは軽量規則で推測して変更しないこと。"
   (with-temp-buffer
@@ -120,11 +78,48 @@
     (my-haskell-simple-indent-line)
     (should (= (current-indentation) 4))))
 
-(ert-deftest my/haskell-simple-indent-setup-prevents-previous-line-reindent ()
-  "RET時には直前行を再インデントしない設定にすること。"
+(ert-deftest my/haskell-simple-indent-setup-binds-entry-commands ()
+  "setup は RET と TAB を軽量インデント用コマンドへ接続すること。"
   (with-temp-buffer
     (my-haskell-simple-indent-setup)
-    (should (eq indent-line-function #'my-haskell-simple-indent-line))
-    (should electric-indent-inhibit)))
+    (should (eq (key-binding (kbd "RET"))
+                #'my-haskell-simple-indent-newline))
+    (should (eq (key-binding (kbd "TAB"))
+                #'my-haskell-simple-indent-tab))
+    (should (eq (key-binding (kbd "<tab>"))
+                #'my-haskell-simple-indent-tab))))
+
+(ert-deftest my/haskell-simple-indent-ret-lambda-do-workflow ()
+  "lambda の -> do 末尾で RET 一発で12列目へ移動すること。"
+  (with-temp-buffer
+    (setq-local my-haskell-simple-indent-offset 2)
+    (my-haskell-simple-indent-setup)
+    (insert "      mapM_\n"
+            "        ( \\(chunk, score) -> do")
+    (call-interactively (key-binding (kbd "RET")))
+    (should (= (current-indentation) 12))
+    (should (= (current-column) 12))))
+
+(ert-deftest my/haskell-simple-indent-ret-then-tab-workflow ()
+  "曖昧な単独行では RET は深さを維持し、TAB で1段進めること。"
+  (with-temp-buffer
+    (setq-local my-haskell-simple-indent-offset 2)
+    (my-haskell-simple-indent-setup)
+    (insert "      mapM_")
+    (call-interactively (key-binding (kbd "RET")))
+    (should (= (current-indentation) 6))
+    (call-interactively (key-binding (kbd "TAB")))
+    (should (= (current-indentation) 8))
+    (should (= (current-column) 8))))
+
+(ert-deftest my/haskell-simple-indent-ret-after-blank-line-workflow ()
+  "空行を挟んでも RET で直近のコード行の深さを維持すること。"
+  (with-temp-buffer
+    (setq-local my-haskell-simple-indent-offset 2)
+    (my-haskell-simple-indent-setup)
+    (insert "      topChunks <- searchChunks queryVector\n")
+    (call-interactively (key-binding (kbd "RET")))
+    (should (= (current-indentation) 6))
+    (should (= (current-column) 6))))
 
 ;;; my-haskell-simple-indent-test.el ends here
