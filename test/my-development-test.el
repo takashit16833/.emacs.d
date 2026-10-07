@@ -16,6 +16,7 @@
 (ert-deftest my/haskell-lsp-completion-trigger-p-detects-server-trigger ()
   "HLSが宣言した補完トリガーを検出すること。"
   (with-temp-buffer
+    (setq-local lsp-completion-mode t)
     (insert "Text.")
     (cl-letf (((symbol-function 'derived-mode-p)
                (lambda (&rest _modes) t))
@@ -32,72 +33,111 @@
       (should (equal (my/haskell-lsp-completion-trigger-p) ".")))))
 
 
-(ert-deftest my/haskell-lsp-completion-trigger-p-ignores-other-modes ()
-  "Haskell以外ではLSP補完トリガーを扱わないこと。"
-  (cl-letf (((symbol-function 'derived-mode-p)
-             (lambda (&rest _modes) nil)))
-    (should-not (my/haskell-lsp-completion-trigger-p))))
+(ert-deftest my/haskell-lsp-completion-trigger-p-ignores-disabled-lsp ()
+  "lsp-completion-modeが無効ならtriggerを扱わないこと。"
+  (with-temp-buffer
+    (setq-local lsp-completion-mode nil)
+    (cl-letf (((symbol-function 'derived-mode-p)
+               (lambda (&rest _modes) t)))
+      (should-not (my/haskell-lsp-completion-trigger-p)))))
 
 
-(ert-deftest my/haskell-lsp-completion-fix-empty-prefix-keeps-known-start ()
-  "lsp-modeが推測済みのprefix開始位置は変更しないこと。"
-  (cl-letf (((symbol-function 'my/haskell-lsp-completion-trigger-p)
-             (lambda () t)))
-    (should (= (my/haskell-lsp-completion-fix-empty-prefix 42)
-               42))))
-
-
-(ert-deftest my/haskell-lsp-completion-fix-empty-prefix-uses-point-after-trigger ()
-  "trigger直後でprefix開始位置がnilなら現在位置を使うこと。"
+(ert-deftest my/haskell-lsp-completion--call-uses-empty-symbol-bounds-after-trigger ()
+  "trigger直後ではlsp-modeへ空のsymbol boundsを渡すこと。"
   (with-temp-buffer
     (insert "Text.")
     (cl-letf (((symbol-function 'my/haskell-lsp-completion-trigger-p)
-               (lambda () t)))
-      (should (= (my/haskell-lsp-completion-fix-empty-prefix nil)
-                 (point))))))
+               (lambda () t))
+              ((symbol-function 'bounds-of-thing-at-point)
+               (lambda (_thing)
+                 '(1 . 2))))
+      (let ((result
+             (my/haskell-lsp-completion--call
+              (lambda ()
+                (bounds-of-thing-at-point 'symbol))
+              nil)))
+        (should (equal result (cons (point) (point))))))))
 
 
-(ert-deftest my/haskell-lsp-completion-fix-empty-prefix-keeps-nil-without-trigger ()
-  "trigger直後でなければnilのprefix開始位置を変更しないこと。"
+(ert-deftest my/haskell-lsp-completion--call-keeps-normal-bounds-without-trigger ()
+  "trigger直後でなければ通常のsymbol boundsを変更しないこと。"
   (cl-letf (((symbol-function 'my/haskell-lsp-completion-trigger-p)
-             (lambda () nil)))
-    (should-not (my/haskell-lsp-completion-fix-empty-prefix nil))))
+             (lambda () nil))
+            ((symbol-function 'bounds-of-thing-at-point)
+             (lambda (_thing)
+               '(1 . 2))))
+    (should
+     (equal
+      (my/haskell-lsp-completion--call
+       (lambda ()
+         (bounds-of-thing-at-point 'symbol))
+       nil)
+      '(1 . 2)))))
 
 
-(ert-deftest my/haskell-lsp-completion-reset-on-trigger-resets-session-and-cache ()
-  "trigger入力時は進行中の補完とlsp-modeのcacheを破棄すること。"
+(ert-deftest my/haskell-lsp-completion-around-uses-buster-in-haskell ()
+  "HaskellのLSP CAPFはCape busterで包むこと。"
+  (with-temp-buffer
+    (setq-local lsp-completion-mode t)
+    (let (buster-called)
+      (cl-letf (((symbol-function 'derived-mode-p)
+                 (lambda (&rest _modes) t))
+                ((symbol-function 'cape-wrap-buster)
+                 (lambda (capf &optional _valid)
+                   (setq buster-called t)
+                   (funcall capf)))
+                ((symbol-function 'my/haskell-lsp-completion--call)
+                 (lambda (function args)
+                   (apply function args))))
+        (should
+         (eq (my/haskell-lsp-completion-around
+              (lambda () 'result))
+             'result))
+        (should buster-called)))))
+
+
+(ert-deftest my/haskell-lsp-completion-around-skips-buster-outside-haskell ()
+  "Haskell以外ではCape busterを適用しないこと。"
+  (with-temp-buffer
+    (setq-local lsp-completion-mode t)
+    (let (buster-called)
+      (cl-letf (((symbol-function 'derived-mode-p)
+                 (lambda (&rest _modes) nil))
+                ((symbol-function 'cape-wrap-buster)
+                 (lambda (capf &optional _valid)
+                   (setq buster-called t)
+                   (funcall capf))))
+        (should
+         (eq (my/haskell-lsp-completion-around
+              (lambda () 'result))
+             'result))
+        (should-not buster-called)))))
+
+
+(ert-deftest my/haskell-lsp-completion-reset-on-trigger-closes-session ()
+  "trigger入力時は進行中の補完セッションを終了すること。"
   (let ((completion-in-region-mode t)
-        completion-arg
-        cache-cleared)
+        completion-arg)
     (cl-letf (((symbol-function 'my/haskell-lsp-completion-trigger-p)
                (lambda () t))
               ((symbol-function 'completion-in-region-mode)
                (lambda (arg)
-                 (setq completion-arg arg)))
-              ((symbol-function 'lsp-completion--clear-cache)
-               (lambda (&optional _keep-last-result)
-                 (setq cache-cleared t))))
+                 (setq completion-arg arg))))
       (my/haskell-lsp-completion-reset-on-trigger))
-    (should (= completion-arg -1))
-    (should cache-cleared)))
+    (should (= completion-arg -1))))
 
 
 (ert-deftest my/haskell-lsp-completion-reset-on-trigger-does-nothing-otherwise ()
-  "trigger以外の入力では補完セッションとcacheを変更しないこと。"
+  "trigger以外の入力では補完セッションを変更しないこと。"
   (let ((completion-in-region-mode t)
-        completion-called
-        cache-cleared)
+        completion-called)
     (cl-letf (((symbol-function 'my/haskell-lsp-completion-trigger-p)
                (lambda () nil))
               ((symbol-function 'completion-in-region-mode)
                (lambda (_arg)
-                 (setq completion-called t)))
-              ((symbol-function 'lsp-completion--clear-cache)
-               (lambda (&optional _keep-last-result)
-                 (setq cache-cleared t))))
+                 (setq completion-called t))))
       (my/haskell-lsp-completion-reset-on-trigger))
-    (should-not completion-called)
-    (should-not cache-cleared)))
+    (should-not completion-called)))
 
 
 (ert-deftest my/haskell-lsp-completion-setup-manages-local-hook ()
