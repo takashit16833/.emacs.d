@@ -23,6 +23,9 @@
 ;; byte compilerへ関数定義だけを宣言する。
 (declare-function clutch-query-console "clutch" (target))
 
+;; ClutchのTRAMP接続元推論を一時的に制御する。
+(defvar clutch-tramp-context-policy)
+
 (defvar-local my/project-commands nil
   "現在のプロジェクトで実行できるコマンド一覧。")
 
@@ -102,7 +105,11 @@
              (cdr (assoc name connections)))))
       ;; Clutchには保存済み接続ではなくad-hoc接続として渡す。
       ;; これによりグローバルなclutch-connection-alistを使用しない。
-      (let ((default-directory root))
+      (let ((default-directory root)
+            ;; 現在のTRAMPバッファから接続経路を推測しない。
+            ;; 明示された:ssh-hostや:tramp-default-directoryは
+            ;; Clutchがそのまま接続経路として使用する。
+            (clutch-tramp-context-policy nil))
         (clutch-query-console
          (list :name name
                :params params))))))
@@ -176,7 +183,13 @@
            (stringp (plist-get params :database)))
           (or
            (not (plist-member params :password))
-           (stringp (plist-get params :password)))))))
+           (stringp (plist-get params :password)))
+          (or
+           (not (plist-member params :ssh-host))
+           (stringp (plist-get params :ssh-host)))
+          (or
+           (not (plist-member params :tramp-default-directory))
+           (stringp (plist-get params :tramp-default-directory)))))))
     connections)))
 
 

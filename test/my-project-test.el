@@ -183,7 +183,8 @@
        :port 5432
        :user "rag_lab"
        :database "rag_lab"
-       :password "rag_lab")))))
+       :password "rag_lab"
+       :tramp-default-directory "/docker:rag-lab-dev:/")))))
 
 
 (ert-deftest my/project-database-connections-safe-p-backend-required ()
@@ -216,13 +217,33 @@
        :password 1234)))))
 
 
+(ert-deftest my/project-database-connections-safe-p-ssh-host-must-be-string ()
+  "`:ssh-host' が文字列でない接続は安全と判定しないこと。"
+  (should-not
+   (my/project-database-connections-safe-p
+    '(("database"
+       :backend pg
+       :ssh-host 1234)))))
+
+
+(ert-deftest my/project-database-connections-safe-p-tramp-directory-must-be-string ()
+  "`:tramp-default-directory' が文字列でない接続は安全と判定しないこと。"
+  (should-not
+   (my/project-database-connections-safe-p
+    '(("database"
+       :backend pg
+       :tramp-default-directory 1234)))))
+
+
 ;;; my/project-open-database ----------------------------------------------
 
 
 (ert-deftest my/project-open-database-opens-selected-connection ()
   "選択した接続をプロジェクトルートからClutchで開くこと。"
   (let ((root (file-name-as-directory "/tmp/my-project-test"))
+        (clutch-tramp-context-policy 'ask)
         opened-directory
+        opened-policy
         opened-target)
     (cl-letf (((symbol-function 'project-current)
                (lambda (&rest _args)
@@ -240,10 +261,11 @@
                     :database "primary")
                    ("secondary"
                     :backend pg
-                    :host "127.0.0.1"
-                    :port 5433
+                    :host "db"
+                    :port 5432
                     :user "user"
-                    :database "secondary"))))
+                    :database "secondary"
+                    :tramp-default-directory "/docker:secondary-dev:/"))))
               ((symbol-function 'completing-read)
                (lambda (prompt collection &rest _args)
                  (should (equal prompt "Database: "))
@@ -255,18 +277,22 @@
               ((symbol-function 'clutch-query-console)
                (lambda (target)
                  (setq opened-directory default-directory
+                       opened-policy clutch-tramp-context-policy
                        opened-target target))))
       (my/project-open-database))
     (should (equal opened-directory root))
+    (should-not opened-policy)
+    (should (eq clutch-tramp-context-policy 'ask))
     (should
      (equal
       opened-target
       '(:name "secondary"
         :params (:backend pg
-                 :host "127.0.0.1"
-                 :port 5433
+                 :host "db"
+                 :port 5432
                  :user "user"
-                 :database "secondary"))))))
+                 :database "secondary"
+                 :tramp-default-directory "/docker:secondary-dev:/"))))))
 
 
 (ert-deftest my/project-open-database-no-connections ()
