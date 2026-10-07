@@ -20,6 +20,7 @@
 /tree-sitter
 /recentf.eld
 /.lsp-session-v1
+/clutch
 
 # Package quickstart cache
 /package-quickstart.el

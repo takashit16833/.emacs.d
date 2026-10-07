@@ -17,13 +17,15 @@
   :bind
   (("s-p" . my/project-find-file)
    :map project-prefix-map
-   ("t" . my/project-run-command))
+   ("t" . my/project-run-command)
+   ("b" . my/project-open-database))
 
   :custom
   (project-switch-commands
    '((project-find-file "Find file" ?p)
      (project-find-regexp "Find regexp" ?f)
      (my/project-run-command "Run command" ?t)
+     (my/project-open-database "Database" ?b)
      (my/vterm-toggle "Vterm" ?j)
      (magit-project-status "Magit" ?m)
      (dirvish "Dirvish" ?d)
