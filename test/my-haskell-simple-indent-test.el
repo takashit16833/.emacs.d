@@ -79,9 +79,11 @@
     (should (= (current-indentation) 4))))
 
 (ert-deftest my/haskell-simple-indent-setup-binds-entry-commands ()
-  "setup は RET と TAB を軽量インデント用コマンドへ接続すること。"
+  "setup はスペースインデントと RET/TAB 用コマンドを設定すること。"
   (with-temp-buffer
+    (setq-local indent-tabs-mode t)
     (my-haskell-simple-indent-setup)
+    (should-not indent-tabs-mode)
     (should (eq (key-binding (kbd "RET"))
                 #'my-haskell-simple-indent-newline))
     (should (eq (key-binding (kbd "TAB"))
@@ -99,6 +101,36 @@
     (call-interactively (key-binding (kbd "RET")))
     (should (= (current-indentation) 12))
     (should (= (current-column) 12))))
+
+(ert-deftest my/haskell-simple-indent-ret-lambda-do-with-electric-pair ()
+  "閉じ括弧が point の後ろに残っていても RET で12列目へ移動すること。"
+  (with-temp-buffer
+    (setq-local my-haskell-simple-indent-offset 2)
+    (setq-local indent-tabs-mode t)
+    (my-haskell-simple-indent-setup)
+    (insert "      mapM_\n"
+            "        ( \\(chunk, score) -> do)")
+    (backward-char 1)
+    (call-interactively (key-binding (kbd "RET")))
+    (should (= (current-indentation) 12))
+    (should (= (current-column) 12))
+    (should (eq (char-after) ?\)))
+    (should-not (string-match-p "\t" (buffer-string)))))
+
+(ert-deftest my/haskell-simple-indent-tab-before-electric-pair-closer ()
+  "閉じ括弧の直前でも TAB で推奨列へ移動すること。"
+  (with-temp-buffer
+    (setq-local my-haskell-simple-indent-offset 2)
+    (my-haskell-simple-indent-setup)
+    (insert "      mapM_\n"
+            "        ( \\(chunk, score) -> do\n"
+            ")")
+    (beginning-of-line)
+    (call-interactively (key-binding (kbd "TAB")))
+    (should (= (current-indentation) 12))
+    (should (= (current-column) 12))
+    (should (eq (char-after) ?\)))
+    (should-not (string-match-p "\t" (buffer-string)))))
 
 (ert-deftest my/haskell-simple-indent-ret-then-tab-workflow ()
   "曖昧な単独行では RET は深さを維持し、TAB で1段進めること。"

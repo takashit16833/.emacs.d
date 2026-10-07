@@ -55,17 +55,18 @@
           (line-beginning-position) (line-end-position))
          (current-indentation))))))
 
-(defun my-haskell-simple-indent--blank-line-p ()
-  "現在行が空白だけなら non-nil を返す。"
-  (save-excursion
-    (beginning-of-line)
-    (looking-at-p "[ \t]*$")))
+(defun my-haskell-simple-indent--at-indentation-p ()
+  "point が現在行の先頭インデント領域にあれば non-nil を返す。"
+  (<= (point)
+      (save-excursion
+        (back-to-indentation)
+        (point))))
 
 (defun my-haskell-simple-indent-line ()
-  "空の現在行を推奨列へインデントする。"
+  "point が先頭インデント領域にある現在行を推奨列へ移動する。"
   (interactive)
-  ;; 既存コードは推測で動かさず、入力中の空行だけを扱う。
-  (when (my-haskell-simple-indent--blank-line-p)
+  ;; point より後ろに electric-pair の閉じ括弧があっても扱う。
+  (when (my-haskell-simple-indent--at-indentation-p)
     (indent-line-to (my-haskell-simple-indent--target-column))
     (back-to-indentation)))
 
@@ -76,9 +77,9 @@
   (my-haskell-simple-indent-line))
 
 (defun my-haskell-simple-indent-tab ()
-  "空行では推奨列、またはその次の1段へ移動する。"
+  "先頭インデント領域では推奨列、またはその次の1段へ移動する。"
   (interactive)
-  (if (not (my-haskell-simple-indent--blank-line-p))
+  (if (not (my-haskell-simple-indent--at-indentation-p))
       (indent-for-tab-command)
     (let* ((target (my-haskell-simple-indent--target-column))
            (current (current-indentation))
@@ -90,6 +91,8 @@
 
 (defun my-haskell-simple-indent-setup ()
   "`haskell-ts-mode' で軽量インデントを使用する。"
+  ;; Haskell のレイアウト用インデントには実タブを使わない。
+  (setq-local indent-tabs-mode nil)
   (setq-local indent-line-function #'my-haskell-simple-indent-line)
   (keymap-local-set "RET" #'my-haskell-simple-indent-newline)
   (keymap-local-set "TAB" #'my-haskell-simple-indent-tab)
