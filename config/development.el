@@ -66,6 +66,8 @@
 (use-package haskell-ts-mode
   :vc (:url "https://github.com/dschrempf/haskell-ts-mode")
   :commands haskell-ts-mode
+  :hook
+  (haskell-ts-mode . my/haskell-ts-enable-indentation)
   :init
   (add-to-list 'major-mode-remap-alist
                '(haskell-mode . haskell-ts-mode)))
