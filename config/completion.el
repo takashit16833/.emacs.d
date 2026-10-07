@@ -130,6 +130,9 @@
 (defvar-local my/lsp-completion-capf nil
   "現在バッファで使用するLSP補完用CAPF。")
 
+(defvar-local my/lsp-completion-trigger-characters nil
+  "現在のLanguage Serverが宣言した補完トリガー文字。")
+
 (declare-function corfu-quit "corfu" ())
 (declare-function lsp--capability-for-method "lsp-mode" (method))
 (declare-function lsp-completion--clear-cache "lsp-completion"
@@ -137,30 +140,39 @@
 (declare-function lsp:completion-options-trigger-characters?
                   "lsp-protocol" (completion-options))
 
+(defun my/lsp-completion-update-trigger-characters ()
+  "Language Serverが宣言した補完トリガー文字を記録する。"
+  (setq my/lsp-completion-trigger-characters
+        (when-let* ((options
+                     (lsp--capability-for-method "textDocument/completion"))
+                    (triggers
+                     (lsp:completion-options-trigger-characters? options)))
+          (append triggers nil))))
+
 (defun my/lsp-completion-trigger-character-p ()
-  "直前の入力がLanguage Serverの補完トリガーならnon-nilを返す。"
-  (when (and (bound-and-true-p lsp-completion-mode)
-             (characterp last-command-event))
-    (when-let* ((options
-                 (lsp--capability-for-method "textDocument/completion"))
-                (triggers
-                 (lsp:completion-options-trigger-characters? options)))
-      (seq-contains-p triggers
-                      (char-to-string last-command-event)
-                      #'string=))))
+  "直前に挿入した文字がLSP補完トリガーならnon-nilを返す。"
+  (and (bound-and-true-p lsp-completion-mode)
+       (> (point) (point-min))
+       (seq-contains-p my/lsp-completion-trigger-characters
+                       (char-to-string (char-before))
+                       #'string=)))
 
 (defun my/lsp-completion-reset-on-trigger ()
-  "Language Serverの補完トリガー入力時に補完セッションを作り直す。"
+  "LSP補完トリガー入力時に新しい補完セッションを開始する。"
   (when (my/lsp-completion-trigger-character-p)
     ;; Teの候補を表示中にText.まで入力した場合などは、
-    ;; 古いCorfuセッションを閉じて次の自動補完でCAPFを作り直す。
+    ;; それまでの文脈を使っているCorfuセッションを終了する。
     (when (and (bound-and-true-p corfu-mode)
                (bound-and-true-p completion-in-region-mode))
       (corfu-quit))
 
-    ;; lsp-modeは完了済みの候補一覧を同じ補完セッションで再利用する。
-    ;; trigger characterでは文脈が変わるため、そのときだけ破棄する。
-    (lsp-completion--clear-cache)))
+    ;; lsp-modeは完了済み候補を同じセッションで再利用するため、
+    ;; Language Server自身が宣言したtrigger characterでは破棄する。
+    (lsp-completion--clear-cache)
+
+    ;; trigger characterは補完開始イベントなので、corfu-autoの
+    ;; 遅延処理には任せず、その場で新しいLSP文脈の補完を開始する。
+    (completion-at-point)))
 
 (defun my/lsp-completion-setup ()
   "CorfuでLSP補完を使用し、候補がない場合はdabbrevへフォールバックする。"
@@ -176,6 +188,12 @@
 
   (when lsp-completion-mode
     (require 'dabbrev)
+    (my/lsp-completion-update-trigger-characters)
+
+    ;; Corfu単体で補完を開始する場合も、Language Serverが宣言した文字では
+    ;; prefix長に関係なく即時起動する。
+    (setq-local corfu-auto-trigger
+                (apply #'concat my/lsp-completion-trigger-characters))
 
     ;; busterで入力変更ごとにLSP CAPFを作り直す。
     ;; nonexclusiveにすることで、LSP候補がない場合だけ後段のdabbrevを試す。
