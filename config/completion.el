@@ -121,6 +121,13 @@
   (dabbrev-case-replace nil))
 
 
+;; CAPFを組み合わせずに、必要な箇所だけ補助するwrapperを利用する。
+;; 現在はHLS qualified completionの入力変更検出にbusterを使用する。
+(use-package cape
+  :ensure t
+  :defer t)
+
+
 ;; LSP補完はlsp-modeが登録するCAPFをそのまま使用する。
 ;; 候補の表示はCorfuに任せ、LSP用のCAPF合成やdabbrev統合は行わない。
 
