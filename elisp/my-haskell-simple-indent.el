@@ -28,6 +28,19 @@
         (string-match-p "\\(?:=\\|->\\|>>=\\|>=>\\|=<<\\)[ \t]*\\'" text)
         (string-match-p "\\`[ \t]*data[ \t]+[[:word:]_']+[ \t]*\\'" text))))
 
+(defun my-haskell-simple-indent--increase-levels (text)
+  "TEXT の次行で増やすインデント段数を返す。"
+  (cond
+   ;; lambda と do の2段を同じ行で開いた場合。
+   ((string-match-p
+     "\\\\.*->[ \t]*\\(?:m?do\\)[ \t]*\\'"
+     text)
+    2)
+   ((my-haskell-simple-indent--increase-p text)
+    1)
+   (t
+    0)))
+
 (defun my-haskell-simple-indent--target-column ()
   "現在行のインデント先の列を返す。
 直前が空行なら、直近の空でない行を基準にする。"
@@ -40,12 +53,11 @@
           (setq previous-line (point))))
       (if (not previous-line)
           0
-        (+ (current-indentation)
-           (if (my-haskell-simple-indent--increase-p
-                (buffer-substring-no-properties
-                 (line-beginning-position) (line-end-position)))
-               my-haskell-simple-indent-offset
-             0))))))
+        (let ((text (buffer-substring-no-properties
+                     (line-beginning-position) (line-end-position))))
+          (+ (current-indentation)
+             (* (my-haskell-simple-indent--increase-levels text)
+                my-haskell-simple-indent-offset)))))))
 
 (defun my-haskell-simple-indent-line ()
   "空の現在行を入力中の Haskell コードとして軽量にインデントする。"
@@ -54,8 +66,15 @@
   (when (save-excursion
           (back-to-indentation)
           (eolp))
-    (indent-line-to (my-haskell-simple-indent--target-column))
-    (back-to-indentation)))
+    (let* ((target (my-haskell-simple-indent--target-column))
+           (current (current-indentation))
+           (column
+            (if (and (eq this-command 'indent-for-tab-command)
+                     (>= current target))
+                (+ current my-haskell-simple-indent-offset)
+              target)))
+      (indent-line-to column)
+      (back-to-indentation))))
 
 (defun my-haskell-simple-indent-setup ()
   "`haskell-ts-mode' で軽量インデントを使用する。"

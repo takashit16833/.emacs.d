@@ -89,6 +89,28 @@
     (should (= (current-indentation) 6))
     (should (= (current-column) 6))))
 
+(ert-deftest my/haskell-simple-indent-lambda-do-opens-two-levels ()
+  "lambda の -> do の次行は2段深くすること。"
+  (with-temp-buffer
+    (setq-local my-haskell-simple-indent-offset 2)
+    (insert "      mapM_\n"
+            "        ( \\(chunk, score) -> do\n")
+    (my-haskell-simple-indent-line)
+    (should (= (current-indentation) 12))
+    (should (= (current-column) 12))))
+
+(ert-deftest my/haskell-simple-indent-tab-advances-from-target ()
+  "自動判定が同じ深さを返す空行ではTABで1段進めること。"
+  (with-temp-buffer
+    (setq-local my-haskell-simple-indent-offset 2)
+    (my-haskell-simple-indent-setup)
+    (insert "      mapM_\n"
+            "      ")
+    (let ((this-command 'indent-for-tab-command))
+      (indent-for-tab-command))
+    (should (= (current-indentation) 8))
+    (should (= (current-column) 8))))
+
 (ert-deftest my/haskell-simple-indent-preserves-existing-code ()
   "既存コードのインデントは軽量規則で推測して変更しないこと。"
   (with-temp-buffer
