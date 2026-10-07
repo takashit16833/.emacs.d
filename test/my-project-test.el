@@ -241,9 +241,9 @@
 (ert-deftest my/project-open-database-opens-selected-connection ()
   "選択した接続をプロジェクトルートからClutchで開くこと。"
   (let ((root (file-name-as-directory "/tmp/my-project-test"))
-        ;; テストではClutch本体を読み込まず、require済みとして扱う。
-        (features (cons 'clutch features))
+        (original-require (symbol-function 'require))
         (clutch-tramp-context-policy 'ask)
+        required-policy
         opened-directory
         opened-policy
         opened-target)
@@ -276,6 +276,17 @@
                    (mapcar #'car collection)
                    '("primary" "secondary")))
                  "secondary"))
+              ((symbol-function 'require)
+               (lambda (feature &optional filename noerror)
+                 (if (eq feature 'clutch)
+                     (progn
+                       (setq required-policy
+                             (symbol-value 'clutch-tramp-context-policy))
+                       feature)
+                   (funcall original-require
+                            feature
+                            filename
+                            noerror))))
               ((symbol-function 'clutch-query-console)
                (lambda (target)
                  (setq opened-directory default-directory
@@ -283,6 +294,8 @@
                        (symbol-value 'clutch-tramp-context-policy)
                        opened-target target))))
       (my/project-open-database))
+    ;; Clutchの読み込みはTRAMPポリシーを束縛する前に行う。
+    (should (eq required-policy 'ask))
     (should (equal opened-directory root))
     (should-not opened-policy)
     (should (eq clutch-tramp-context-policy 'ask))
