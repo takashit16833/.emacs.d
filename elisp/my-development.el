@@ -39,18 +39,18 @@
 
 ;; HLS qualified completion workaround -------------------------------------
 
+(declare-function cape-wrap-buster "cape" (capf &optional valid))
 (declare-function lsp--capability-for-method "lsp-mode" (method))
 (declare-function lsp:completion-options-trigger-characters?
                   "lsp-protocol" (completion-options))
 (declare-function lsp-completion--looking-back-trigger-characterp
                   "lsp-completion" (trigger-characters))
-(declare-function lsp-completion--clear-cache
-                  "lsp-completion" (&optional keep-last-result))
 
 
 (defun my/haskell-lsp-completion-trigger-p ()
   "Point直前がHLSの補完トリガーならnon-nilを返す。"
   (and (derived-mode-p 'haskell-ts-mode)
+       (bound-and-true-p lsp-completion-mode)
        (when-let* ((options
                     (lsp--capability-for-method "textDocument/completion"))
                    (triggers
@@ -58,34 +58,49 @@
          (lsp-completion--looking-back-trigger-characterp triggers))))
 
 
-(defun my/haskell-lsp-completion-fix-empty-prefix (start)
-  "HLSの補完トリガー直後でSTARTがnilならpointを返す。
+(defun my/haskell-lsp-completion--call (function args)
+  "FUNCTIONをARGSで呼び、HLS trigger直後だけ空prefixとして扱う。"
+  (if (my/haskell-lsp-completion-trigger-p)
+      (let ((original-bounds
+             (symbol-function 'bounds-of-thing-at-point)))
+        ;; lsp-modeはCAPFのbounds開始位置を候補のprefix推測にも使う。
+        ;; `Text.' 直後はsymbol boundsが `Text' の先頭を指すため、
+        ;; HLSが返す `all' や `pack' と `Text.' が比較され全候補が落ちる。
+        ;; trigger直後だけsymbol boundsを空範囲にし、HLSの空prefix補完として扱う。
+        (cl-letf (((symbol-function 'bounds-of-thing-at-point)
+                   (lambda (thing)
+                     (if (eq thing 'symbol)
+                         (cons (point) (point))
+                       (funcall original-bounds thing)))))
+          (apply function args)))
+    (apply function args)))
 
-lsp-modeは補完候補からprefix開始位置を推測できない場合、
-CAPFのbounds開始位置へフォールバックする。HLSの `Text.' 補完では
-候補が `all' や `pack' のように返るため、そのfallbackでは
-`Text.' が検索文字列になり全候補が除外される。
 
-HLSが宣言した補完トリガー直後に限り、空prefixとして現在位置を使う。"
-  (or start
-      (when (my/haskell-lsp-completion-trigger-p)
-        (point))))
+(defun my/haskell-lsp-completion-around (function &rest args)
+  "HaskellのLSP CAPFを入力変更ごとに再評価できるtableへ包む。"
+  (if (and (derived-mode-p 'haskell-ts-mode)
+           (bound-and-true-p lsp-completion-mode))
+      ;; lsp-modeのCAPFは一度計算したresultを同じcompletion sessionで
+      ;; 再利用する。Capeのbusterで入力変更時だけCAPFを作り直す。
+      ;; lsp-mode自身のcompletion cacheは残るため、通常はHLSへ再問い合わせ
+      ;; せず、取得済み候補を新しいprefixで絞り込む。
+      (cape-wrap-buster
+       (lambda ()
+         (my/haskell-lsp-completion--call function args)))
+    (apply function args)))
 
 
 (defun my/haskell-lsp-completion-reset-on-trigger ()
-  "HLSの補完トリガー入力時に古い補完セッションとcacheを破棄する。"
-  (when (my/haskell-lsp-completion-trigger-p)
-    ;; `Text' で始まった補完セッションを `Text.' まで継続すると、
-    ;; lsp-modeはtrigger前の候補を再利用するため一度終了する。
-    (when (bound-and-true-p completion-in-region-mode)
-      (completion-in-region-mode -1))
-
-    ;; bounds開始位置がtrigger前後で同じ場合でも再問い合わせさせる。
-    (lsp-completion--clear-cache)))
+  "HLSの補完トリガー入力時に古い補完セッションを終了する。"
+  (when (and (my/haskell-lsp-completion-trigger-p)
+             (bound-and-true-p completion-in-region-mode))
+    ;; `Text' で始まったセッションはboundsがtrigger前を指しているため、
+    ;; `Text.' では一度終了し、空prefixの新しいセッションを開始させる。
+    (completion-in-region-mode -1)))
 
 
 (defun my/haskell-lsp-completion-setup ()
-  "HLSのqualified completion workaroundを現在バッファへ設定する。"
+  "HLS qualified completion用hookを現在バッファへ設定する。"
   (if (and (derived-mode-p 'haskell-ts-mode)
            (bound-and-true-p lsp-completion-mode))
       (add-hook 'post-self-insert-hook
