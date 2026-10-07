@@ -160,6 +160,7 @@
        (let ((params (cdr connection)))
          (and
           (plistp params)
+          (plist-member params :backend)
           (symbolp (plist-get params :backend))
           (or
            (not (plist-member params :host))

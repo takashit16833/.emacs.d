@@ -5,6 +5,7 @@
 
 ;;; Code:
 
+(require 'cl-lib)
 (require 'ert)
 (require 'my-project)
 (require 'seq)
@@ -166,6 +167,122 @@
      (equal
       (funcall annotation-function "second")
       "\tsecond description"))))
+
+
+
+;;; my/project-database-connections-safe-p -------------------------------
+
+
+(ert-deftest my/project-database-connections-safe-p-valid ()
+  "正しい形式のデータベース接続を安全と判定すること。"
+  (should
+   (my/project-database-connections-safe-p
+    '(("rag-lab"
+       :backend pg
+       :host "127.0.0.1"
+       :port 5432
+       :user "rag_lab"
+       :database "rag_lab"
+       :password "rag_lab")))))
+
+
+(ert-deftest my/project-database-connections-safe-p-backend-required ()
+  "`:backend' が存在しない接続は安全と判定しないこと。"
+  (should-not
+   (my/project-database-connections-safe-p
+    '(("database"
+       :host "127.0.0.1"
+       :port 5432)))))
+
+
+(ert-deftest my/project-database-connections-safe-p-port-must-be-integer ()
+  "`:port' が整数でない接続は安全と判定しないこと。"
+  (should-not
+   (my/project-database-connections-safe-p
+    '(("database"
+       :backend pg
+       :port "5432")))))
+
+
+(ert-deftest my/project-database-connections-safe-p-validates-all-connections ()
+  "複数の接続定義に不正な接続が含まれていれば安全と判定しないこと。"
+  (should-not
+   (my/project-database-connections-safe-p
+    '(("valid"
+       :backend pg
+       :port 5432)
+      ("invalid"
+       :backend pg
+       :password 1234)))))
+
+
+;;; my/project-open-database ----------------------------------------------
+
+
+(ert-deftest my/project-open-database-opens-selected-connection ()
+  "選択した接続をプロジェクトルートからClutchで開くこと。"
+  (let ((root (file-name-as-directory "/tmp/my-project-test"))
+        opened-directory
+        opened-target)
+    (cl-letf (((symbol-function 'project-current)
+               (lambda (&rest _args)
+                 'project))
+              ((symbol-function 'project-root)
+               (lambda (_project)
+                 root))
+              ((symbol-function 'my/project-database--get-connections)
+               (lambda (_root)
+                 '(("primary"
+                    :backend pg
+                    :host "127.0.0.1"
+                    :port 5432
+                    :user "user"
+                    :database "primary")
+                   ("secondary"
+                    :backend pg
+                    :host "127.0.0.1"
+                    :port 5433
+                    :user "user"
+                    :database "secondary"))))
+              ((symbol-function 'completing-read)
+               (lambda (prompt collection &rest _args)
+                 (should (equal prompt "Database: "))
+                 (should
+                  (equal
+                   (mapcar #'car collection)
+                   '("primary" "secondary")))
+                 "secondary"))
+              ((symbol-function 'clutch-query-console)
+               (lambda (target)
+                 (setq opened-directory default-directory
+                       opened-target target))))
+      (my/project-open-database))
+    (should (equal opened-directory root))
+    (should
+     (equal
+      opened-target
+      '(:name "secondary"
+        :params (:backend pg
+                 :host "127.0.0.1"
+                 :port 5433
+                 :user "user"
+                 :database "secondary"))))))
+
+
+(ert-deftest my/project-open-database-no-connections ()
+  "データベース接続定義がなければエラーにすること。"
+  (cl-letf (((symbol-function 'project-current)
+             (lambda (&rest _args)
+               'project))
+            ((symbol-function 'project-root)
+             (lambda (_project)
+               "/tmp/my-project-test/"))
+            ((symbol-function 'my/project-database--get-connections)
+             (lambda (_root)
+               nil)))
+    (should-error
+     (my/project-open-database)
+     :type 'user-error)))
 
 
 ;;; my-project-test.el ends here
