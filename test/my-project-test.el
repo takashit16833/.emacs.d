@@ -10,6 +10,9 @@
 (require 'my-project)
 (require 'seq)
 
+;; Clutch本体を読み込まないテストでも動的束縛として扱う。
+(defvar clutch-tramp-context-policy)
+
 ;;; my/project-commands-safe-p ----------------------------------------------
 
 
