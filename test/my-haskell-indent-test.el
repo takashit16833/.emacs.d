@@ -29,7 +29,11 @@
   "CONFIGを持つ一時プロジェクトでBODYを評価する。"
   (declare (indent 1))
   `(let* ((directory (make-temp-file "haskell-indent-project-" t))
-          (default-directory (file-name-as-directory directory)))
+          (default-directory (file-name-as-directory directory))
+          ;; ここでは整形結果の正しさを検証する。プロセス起動時間の違いで
+          ;; 代替処理へ切り替わらないよう、テスト中だけ待機時間を長くする。
+          ;; 時間切れの検証は専用テストの40ms設定で別に行う。
+          (my-haskell-indent-timeout 2.0))
      (unwind-protect
          (progn
            (with-temp-file (expand-file-name "fourmolu.yaml" directory)

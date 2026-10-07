@@ -71,13 +71,6 @@
                '(haskell-mode . haskell-ts-mode)))
 
 
-;; 入力中はFourmoluからインデント位置を取得する。実装は初回だけ読み込む。
-(use-package my-haskell-indent
-  :ensure nil
-  :hook
-  (haskell-ts-mode . my-haskell-indent-mode))
-
-
 ;;; PHP -------------------------------------------------------------
 
 ;; PHPではEmacs標準のTree-sitter modeを使用する。
