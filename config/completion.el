@@ -125,7 +125,7 @@
 ;; 現在はHLS qualified completionの入力変更検出にbusterを使用する。
 (use-package cape
   :ensure t
-  :defer t)
+  :commands cape-wrap-buster)
 
 
 ;; LSP補完はlsp-modeが登録するCAPFをそのまま使用する。
