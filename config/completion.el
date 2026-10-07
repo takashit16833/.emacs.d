@@ -210,7 +210,7 @@
                                         completion-at-point-functions)))))
 
     ;; Language Serverが宣言したtrigger character（HLSなら"."など）では
-    ;; 古い補完セッションを終了し、次のcorfu-autoで新しい文脈を問い合わせる。
+    ;; 古い補完セッションを終了し、その場で新しい文脈の補完を開始する。
     (add-hook 'post-self-insert-hook
               #'my/lsp-completion-reset-on-trigger nil t)))
 
