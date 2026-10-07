@@ -35,6 +35,7 @@
 
 (defvar my-haskell-indent--deadline nil)
 (defvar my-haskell-indent--failure nil)
+(defvar my-haskell-indent--token-cache nil)
 (defvar-local my-haskell-indent--offset-cache nil)
 (defvar-local my-haskell-indent--saved nil)
 (defvar-local my-haskell-indent-last-result nil
@@ -122,6 +123,16 @@
         (or width my-haskell-indent-fallback-offset)))))
 
 (defun my-haskell-indent--tokens (source)
+  "SOURCEの語句を返し、1回の操作中は解析結果を再利用する。"
+  (if my-haskell-indent--token-cache
+      (let ((cached (gethash source my-haskell-indent--token-cache 'missing)))
+        (if (eq cached 'missing)
+            (puthash source (my-haskell-indent--parse-tokens source)
+                     my-haskell-indent--token-cache)
+          cached))
+    (my-haskell-indent--parse-tokens source)))
+
+(defun my-haskell-indent--parse-tokens (source)
   "SOURCEの終端語句を（文字列 開始位置 親の種類）として返す。
 コメントや文字列の内部は語句に分割しない。位置は0から数える。"
   (when (and (treesit-available-p) (treesit-language-available-p 'haskell))
@@ -146,9 +157,16 @@
                          (member type '("comment" "haddock" "string" "char"
                                         "quasiquote" "pragma" "cpp")))
                      (when (< (treesit-node-start node) (treesit-node-end node))
-                       (push (list (treesit-node-text node t)
-                                   (1- (treesit-node-start node)) parents anchors)
-                             result))
+                       (let* ((text (treesit-node-text node t))
+                              ;; quasiquoteノードが引用の直前の空白を含む場合がある。
+                              ;; 引用内の文字列はそのまま比較し、直前の空白だけ除く。
+                              (leading (if (string-match "\\`[ \t\n\r]+" text)
+                                           (match-end 0) 0)))
+                         (unless (= leading (length text))
+                           (push (list (substring text leading)
+                                       (+ leading (1- (treesit-node-start node)))
+                                       parents anchors)
+                                 result))))
                    (dotimes (i count)
                      (walk (treesit-node-child node i) parents anchors))))))
           (walk root nil nil))
@@ -350,7 +368,9 @@
     (save-restriction
       (widen)
       (back-to-indentation)
-      (let* ((started (float-time))
+      (let* ((my-haskell-indent--token-cache
+              (or my-haskell-indent--token-cache (make-hash-table :test #'equal)))
+             (started (float-time))
              (my-haskell-indent--deadline (+ started my-haskell-indent-timeout))
              (my-haskell-indent--failure nil)
              (previous (my-haskell-indent--previous))
@@ -378,30 +398,55 @@
                                  (or my-haskell-indent--failure 'unmapped))))
         column))))
 
+(defun my-haskell-indent--shift-block (begin end amount tokens)
+  "BEGINからENDをAMOUNT列動かし、TOKENS内の引用の本文を保つ。"
+  (let ((literals (cl-remove-if-not
+                   (lambda (token)
+                     (member (car (caddr token)) '("string" "char" "quasiquote")))
+                   tokens))
+        changes)
+    (save-excursion
+      (goto-char begin)
+      (while (< (point) end)
+        (unless (cl-find-if
+                 (lambda (token)
+                   (and (< (cadr token) (1- (point)))
+                        (< (1- (point)) (+ (cadr token) (length (car token))))))
+                 literals)
+          (push (cons (point) (max 0 (+ (current-indentation) amount))) changes))
+        (forward-line 1))
+      (dolist (change changes)
+        (goto-char (car change)) (indent-line-to (cdr change))))))
+
 (defun my-haskell-indent-line ()
   "現在行をインデントする。本文とブロック内の相対位置を保つ。"
   (interactive)
-  (let* ((in-text (> (current-column) (current-indentation)))
-         (position (copy-marker (point)))
-         (column (my-haskell-indent-column))
-         (token (save-excursion
-                  (save-restriction
-                    (widen) (back-to-indentation)
-                    (cl-find (1- (point))
-                             (my-haskell-indent--tokens
-                              (buffer-substring-no-properties (point-min) (point-max)))
-                             :key #'cadr))))
-         (block (and (eq (plist-get my-haskell-indent-last-result :backend) 'fourmolu)
-                     (cl-find (cadr token) (nth 3 token) :key #'car))))
-    (unwind-protect
-        (progn
-          (if (and block (/= column (current-indentation)))
-              (atomic-change-group
-                (indent-rigidly (line-beginning-position) (cdr block)
-                                (- column (current-indentation))))
-            (indent-line-to column))
-          (if in-text (goto-char position) (back-to-indentation)))
-      (set-marker position nil))))
+  (save-restriction
+    (widen)
+    (let* ((my-haskell-indent--token-cache
+            (or my-haskell-indent--token-cache (make-hash-table :test #'equal)))
+           (in-text (> (current-column) (current-indentation)))
+           (position (copy-marker (point)))
+           (column (my-haskell-indent-column))
+           (tokens (save-restriction
+                     (widen)
+                     (my-haskell-indent--tokens
+                      (buffer-substring-no-properties (point-min) (point-max)))))
+           (token (save-excursion
+                    (back-to-indentation)
+                    (cl-find (1- (point)) tokens :key #'cadr)))
+           (block (and (eq (plist-get my-haskell-indent-last-result :backend) 'fourmolu)
+                       (cl-find (cadr token) (nth 3 token) :key #'car))))
+      (unwind-protect
+          (progn
+            (if (and block (/= column (current-indentation)))
+		(atomic-change-group
+                  (my-haskell-indent--shift-block
+                   (line-beginning-position) (cdr block)
+                   (- column (current-indentation)) tokens))
+              (indent-line-to column))
+            (if in-text (goto-char position) (back-to-indentation)))
+	(set-marker position nil)))))
 
 (defun my-haskell-indent-newline (&optional count)
   "前の行を変更せず、COUNT行改行して新しい行だけをインデントする。"
@@ -414,27 +459,31 @@
   "BEGINからENDの範囲を、構文を保てる場合だけインデントする。
 Fourmoluの語句列が同じ場合に全行の列を計算し、計算後にまとめて適用する。"
   (interactive "r")
-  (let* ((my-haskell-indent--deadline (+ (float-time) my-haskell-indent-timeout))
-         (source (buffer-substring-no-properties (point-min) (point-max)))
-         (output (my-haskell-indent--format source))
-         (map (and output (my-haskell-indent--column-map source output)))
-         changes)
-    (unless output (user-error "Fourmoluで解析できないため範囲のインデントを変更できません"))
-    (save-excursion
-      (goto-char begin)
-      (beginning-of-line)
-      (while (< (point) end)
-        (back-to-indentation)
-        (unless (or (eolp) (my-haskell-indent--protected-p))
-          (let ((column (cdr (assq (1- (point)) map))))
-            (unless column
-              (user-error "整形で語句が変わるため、保存時の整形を使用してください"))
-            (push (cons (line-beginning-position) column) changes)))
-        (forward-line 1))
-      (atomic-change-group
-        ;; 下から適用すれば、先行行の文字位置がずれない。
-        (dolist (change changes)
-          (goto-char (car change)) (indent-line-to (cdr change)))))))
+  (save-restriction
+    (widen)
+    (let* ((my-haskell-indent--token-cache
+            (or my-haskell-indent--token-cache (make-hash-table :test #'equal)))
+           (my-haskell-indent--deadline (+ (float-time) my-haskell-indent-timeout))
+           (source (buffer-substring-no-properties (point-min) (point-max)))
+           (output (my-haskell-indent--format source))
+           (map (and output (my-haskell-indent--column-map source output)))
+           changes)
+      (unless output (user-error "Fourmoluで解析できないため範囲のインデントを変更できません"))
+      (save-excursion
+	(goto-char begin)
+	(beginning-of-line)
+	(while (< (point) end)
+          (back-to-indentation)
+          (unless (or (eolp) (my-haskell-indent--protected-p))
+            (let ((column (cdr (assq (1- (point)) map))))
+              (unless column
+		(user-error "整形で語句が変わるため、保存時の整形を使用してください"))
+              (push (cons (line-beginning-position) column) changes)))
+          (forward-line 1))
+	(atomic-change-group
+          ;; 下から適用すれば、先行行の文字位置がずれない。
+          (dolist (change changes)
+            (goto-char (car change)) (indent-line-to (cdr change))))))))
 
 (defun my-haskell-indent-report ()
   "最後に使った処理・列・所要時間を表示する。"

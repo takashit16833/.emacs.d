@@ -247,5 +247,65 @@
                                          (cl-set-difference (process-list) processes))))
       (delete-file script))))
 
+(ert-deftest my-haskell-indent-block-keeps-literal-content ()
+  "ブロックを移動しても、複数行の引用内の空白は変更しない。"
+  (my-haskell-indent-test--require-tools)
+  (my-haskell-indent-test--project "indentation: 2\n"
+    (my-haskell-indent-test--buffer
+        "{-# LANGUAGE QuasiQuotes #-}\nmain = do\n    @POINT@print [r|hello\n    literal text\n    |]\n    pure ()\n"
+      (my-haskell-indent-line)
+      (should (eq (plist-get my-haskell-indent-last-result :backend) 'fourmolu))
+      (should (equal (buffer-string)
+                     "{-# LANGUAGE QuasiQuotes #-}\nmain = do\n  print [r|hello\n    literal text\n    |]\n  pure ()\n")))))
+
+(ert-deftest my-haskell-indent-region-when-narrowed ()
+  "表示範囲を制限していても元バッファ上の位置で対応付ける。"
+  (my-haskell-indent-test--require-tools)
+  (my-haskell-indent-test--project "indentation: 2\n"
+    (my-haskell-indent-test--buffer "other = 1\nmain = do\n    @POINT@print 1\n    pure ()\n"
+      (let ((begin (line-beginning-position)) (end (point-max)))
+        (narrow-to-region begin end)
+        (my-haskell-indent-region begin end)
+        (should (equal (buffer-string) "  print 1\n  pure ()\n"))
+        (should (= (point-min) begin))))))
+
+(ert-deftest my-haskell-indent-keyboard-input ()
+  "実際のキー入力経路でも入力と改行を繰り返せる。"
+  (my-haskell-indent-test--require-tools)
+  (my-haskell-indent-test--project "indentation: 2\n"
+    (save-window-excursion
+      (my-haskell-indent-test--buffer "main = do@POINT@"
+        (switch-to-buffer (current-buffer))
+        (execute-kbd-macro (kbd "RET"))
+        (execute-kbd-macro "print 1")
+        (execute-kbd-macro (kbd "RET"))
+        (execute-kbd-macro "pure ()")
+        (execute-kbd-macro (kbd "TAB"))
+        (should (equal (buffer-string) "main = do\n  print 1\n  pure ()"))))))
+
+(ert-deftest my-haskell-indent-recalculates-after-edit ()
+  "解析の再利用が、次の操作で変更した内容を隠さない。"
+  (my-haskell-indent-test--require-tools)
+  (my-haskell-indent-test--project "indentation: 2\n"
+    (my-haskell-indent-test--buffer "main = do\n@POINT@"
+      (should (= (my-haskell-indent-column) 2))
+      (erase-buffer)
+      (insert "main = 1\n")
+      (should (= (my-haskell-indent-column) 0))
+      (should (eq (plist-get my-haskell-indent-last-result :backend) 'fourmolu)))))
+
+(ert-deftest my-haskell-indent-line-when-narrowed ()
+  "制限された表示範囲でTABを押してもブロック内を正しく移動できる。"
+  (my-haskell-indent-test--require-tools)
+  (my-haskell-indent-test--project "indentation: 2\n"
+    (my-haskell-indent-test--buffer "main = do\n    @POINT@print 1\n    pure ()\n"
+      (let ((begin (line-beginning-position)) (end (line-end-position)))
+        (narrow-to-region begin end)
+        (my-haskell-indent-line)
+        (should (buffer-narrowed-p))
+        (should (equal (buffer-string) "  print 1"))
+        (widen)
+        (should (equal (buffer-string) "main = do\n  print 1\n  pure ()\n"))))))
+
 (provide 'my-haskell-indent-test)
 ;;; my-haskell-indent-test.el ends here
