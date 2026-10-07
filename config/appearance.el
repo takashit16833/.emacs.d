@@ -30,7 +30,7 @@
 ;; 編集用バッファで行番号を表示する。
 (add-hook 'prog-mode-hook #'display-line-numbers-mode)
 (add-hook 'text-mode-hook #'display-line-numbers-mode)
-
+(setq-default display-line-numbers-width 3)
 
 ;; TTY child frame の枠を角丸にする。
 ;; 枠色はウィンドウ境界線と同じ `vertical-border' face を使う。
@@ -66,7 +66,7 @@
        :rev :newest)
   :no-require t
   :init
-  (setq retro-hacker-blue-transparent-background t)
+  (setq retro-hacker-blue-transparent-background nil)
   :config
   (load-theme 'retro-hacker-blue t)
   (retro-hacker-blue-apply-background))
