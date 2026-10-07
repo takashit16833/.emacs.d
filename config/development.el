@@ -66,11 +66,16 @@
 (use-package haskell-ts-mode
   :vc (:url "https://github.com/dschrempf/haskell-ts-mode")
   :commands haskell-ts-mode
-  :hook
-  (haskell-ts-mode . my/haskell-ts-enable-indentation)
   :init
   (add-to-list 'major-mode-remap-alist
                '(haskell-mode . haskell-ts-mode)))
+
+
+;; 入力中はFourmoluからインデント位置を取得する。実装は初回だけ読み込む。
+(use-package my-haskell-indent
+  :ensure nil
+  :hook
+  (haskell-ts-mode . my-haskell-indent-mode))
 
 
 ;;; PHP -------------------------------------------------------------

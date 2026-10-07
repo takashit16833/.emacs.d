@@ -37,14 +37,6 @@
       (lsp-put data :itemNeedsType :json-false))))
 
 
-(defun my/haskell-ts-enable-indentation ()
-  "haskell-ts-modeでhaskell-modeのインデント機能を使用する。"
-  ;; haskell-indentationはhaskell-modeが定義するhaskell-literateを参照する。
-  (require 'haskell-mode)
-  (require 'haskell-indentation)
-  (haskell-indentation-mode 1))
-
-
 (defun my/diff-hl-enable-after-lsp-open ()
   "TRAMP先ではLSP接続完了後にdiff-hlを有効にする。"
   (when (and buffer-file-name
