@@ -122,6 +122,9 @@
   ;; 候補の表示はCorfuに任せるため、company-modeは使用しない。
   (lsp-completion-provider :none)
 
+  ;; 入力中断時に前回の候補を再利用すると、別の入力にも古い候補が残る。
+  (lsp-completion-use-last-result nil)
+
   ;; 診断にはEmacs標準のFlymakeを使用する。
   (lsp-diagnostics-provider :flymake)
 
@@ -197,6 +200,10 @@
   ;; HLS内蔵版ではなくPATH上のFourmoluを使用する。
   ;; Apheleiaと同じ実行ファイルを使うことで整形結果の差を防ぐ。
   (lsp-haskell-plugin-fourmolu-config-external t)
+
+  ;; Stan有効時に補完応答が遅くなることを確認したため無効化する。
+  ;; HLS本体ではStanは既定で無効（lsp-haskellでは有効）。
+  (lsp-haskell-plugin-stan-global-on nil)
 
   :config
   ;; ファイル末尾の空行でnotes hoverが存在しない行を参照し、
