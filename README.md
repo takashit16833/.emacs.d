@@ -49,3 +49,24 @@ bash scripts/debian-test.sh shell -lc \
 ```
 
 詳細は Workbench の `Notes/Emacs/Debian-動作確認.md` を参照。
+
+## ERT テスト
+
+テスト用のコマンドは `.dir-locals.el` の `my/project-commands` に登録している。
+
+- **All tests**: `emacs -Q` で実行する、外部パッケージ不要の単体テスト。
+- **HLS resolve integration**: インストール済みの `lsp-mode` を読み込み、
+  実際の補完処理とJSONの復号・符号化を確認する結合テスト。
+  HLS本体は起動せず、サーバーの機能確認と通信のみテスト内で置き換える。
+
+結合テストを端末から実行する場合は、リポジトリ直下で次を実行する。
+
+```sh
+emacs -Q --batch -L elisp \
+  --eval '(package-initialize)' \
+  -l test/my-development-lsp-integration.el \
+  --eval '(ert-run-tests-batch-and-exit "my/lsp-integration-")'
+```
+
+単体テストだけでは確認できない、`lsp-mode` の実際のJSONデータ表現と
+`completionItem/resolve` の送信直前までを検証する。

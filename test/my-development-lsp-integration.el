@@ -2,7 +2,7 @@
 
 ;;; Commentary:
 ;; lsp-modeのJSON復号・補完処理・JSON符号化を実際に通す結合テスト。
-;; HLSサーバーへの通信だけを差し替えるため、HLS本体は不要。
+;; サーバーの機能確認と通信だけを差し替えるため、HLS本体は不要。
 ;;
 ;; リポジトリ直下で実行:
 ;; emacs -Q --batch -L elisp --eval '(package-initialize)' \
@@ -39,7 +39,7 @@
                           'lsp-completion--fix-resolve-data))
         sent-method
         sent-json)
-    ;; 起動設定と同じadviceを取り付ける。実際のlsp-modeの関数は模擬しない。
+    ;; 起動設定と同じadviceを取り付け、補完処理とJSON変換は実物を通す。
     (unless was-advised
       (advice-add 'lsp-completion--fix-resolve-data :after
                   #'my/lsp-completion-fix-haskell-resolve-data))
