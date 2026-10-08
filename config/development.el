@@ -80,6 +80,12 @@
                '(haskell-ts-mode my-haskell-simple-indent-offset)))
 
 
+;; HLSのqualified completionでCAPFの入力変化を追跡する。
+(use-package cape
+  :ensure t
+  :commands cape-wrap-buster)
+
+
 ;;; PHP -------------------------------------------------------------
 
 ;; PHPではEmacs標準のTree-sitter modeを使用する。
@@ -112,6 +118,8 @@
    (python-ts-mode . lsp-deferred)
    (typescript-ts-mode . lsp-deferred)
    (tsx-ts-mode . lsp-deferred)
+   ;; HaskellだけLSP CAPFをqualified completion対応版へ差し替える。
+   (lsp-completion-mode . my/haskell-lsp-completion-setup)
    ;; TRAMP先ではLSP接続後にdiff-hlを有効にする。
    (lsp-after-open . my/diff-hl-enable-after-lsp-open)
    (lsp-mode . lsp-enable-which-key-integration))
@@ -164,14 +172,6 @@
   (advice-add #'lsp-completion--fix-resolve-data
               :after
               #'my/lsp-completion-fix-haskell-resolve-data)
-
-  ;; HLSのqualified completionではtrigger直後を空prefixとして扱い、
-  ;; 同じCorfu session内の入力変更でもlsp-modeのCAPFを再評価する。
-  (advice-add #'lsp-completion-at-point
-              :around
-              #'my/haskell-lsp-completion-around)
-  (add-hook 'lsp-completion-mode-hook
-            #'my/haskell-lsp-completion-setup)
 
   ;; ProblemsバッファをLSP診断の更新に追従させる。
   (add-hook 'lsp-diagnostics-updated-hook

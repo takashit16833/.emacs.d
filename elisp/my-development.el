@@ -44,10 +44,9 @@
 
 (declare-function cape-wrap-buster "cape" (capf &optional valid))
 (declare-function lsp--capability-for-method "lsp-mode" (method))
+(declare-function lsp-completion-at-point "lsp-completion" ())
 (declare-function lsp:completion-options-trigger-characters?
                   "lsp-protocol" (completion-options))
-(declare-function lsp-completion--looking-back-trigger-characterp
-                  "lsp-completion" (trigger-characters))
 
 
 (defun my/haskell-lsp-completion-trigger-p ()
@@ -58,39 +57,44 @@
                     (lsp--capability-for-method "textDocument/completion"))
                    (triggers
                     (lsp:completion-options-trigger-characters? options)))
-         (lsp-completion--looking-back-trigger-characterp triggers))))
+         (cl-some
+          (lambda (trigger)
+            (let ((length (length trigger)))
+              (when (<= length
+                        (- (point) (line-beginning-position)))
+                (and
+                 (string=
+                  trigger
+                  (buffer-substring-no-properties
+                   (- (point) length)
+                   (point)))
+                 trigger))))
+          (append triggers nil)))))
 
 
-(defun my/haskell-lsp-completion--call (function args)
-  "FUNCTIONをARGSで呼び、HLS trigger直後だけ空prefixとして扱う。"
+(defun my/haskell-lsp-completion--call-capf ()
+  "HLS trigger直後だけ空prefixとしてLSP CAPFを呼ぶ。"
   (if (my/haskell-lsp-completion-trigger-p)
       (let ((original-bounds
              (symbol-function 'bounds-of-thing-at-point)))
         ;; lsp-modeはCAPFのbounds開始位置を候補のprefix推測にも使う。
         ;; `Text.' 直後はsymbol boundsが `Text' の先頭を指すため、
         ;; HLSが返す `all' や `pack' と `Text.' が比較され全候補が落ちる。
-        ;; trigger直後だけsymbol boundsを空範囲にし、HLSの空prefix補完として扱う。
+        ;; trigger直後だけsymbol boundsを空範囲にする。
         (cl-letf (((symbol-function 'bounds-of-thing-at-point)
                    (lambda (thing)
                      (if (eq thing 'symbol)
                          (cons (point) (point))
                        (funcall original-bounds thing)))))
-          (apply function args)))
-    (apply function args)))
+          (lsp-completion-at-point)))
+    (lsp-completion-at-point)))
 
 
-(defun my/haskell-lsp-completion-around (function &rest args)
-  "HaskellのLSP CAPFを入力変更ごとに再評価できるtableへ包む。"
-  (if (and (derived-mode-p 'haskell-ts-mode)
-           (bound-and-true-p lsp-completion-mode))
-      ;; lsp-modeのCAPFは一度計算したresultを同じcompletion sessionで
-      ;; 再利用する。Capeのbusterで入力変更時だけCAPFを作り直す。
-      ;; lsp-mode自身のcompletion cacheは残るため、通常はHLSへ再問い合わせ
-      ;; せず、取得済み候補を新しいprefixで絞り込む。
-      (cape-wrap-buster
-       (lambda ()
-         (my/haskell-lsp-completion--call function args)))
-    (apply function args)))
+(defun my/haskell-lsp-completion-at-point ()
+  "HLSのLSP CAPFを入力変更ごとに再評価できるtableへ包む。"
+  ;; lsp-modeのCAPFは同じcompletion session内で最初のresultを再利用する。
+  ;; Capeのbusterで入力変更を検出し、同じtableを新しいprefixで再評価する。
+  (cape-wrap-buster #'my/haskell-lsp-completion--call-capf))
 
 
 (defun my/haskell-lsp-completion-reset-on-trigger ()
@@ -103,13 +107,21 @@
 
 
 (defun my/haskell-lsp-completion-setup ()
-  "HLS qualified completion用hookを現在バッファへ設定する。"
-  (if (and (derived-mode-p 'haskell-ts-mode)
-           (bound-and-true-p lsp-completion-mode))
-      (add-hook 'post-self-insert-hook
-                #'my/haskell-lsp-completion-reset-on-trigger nil t)
-    (remove-hook 'post-self-insert-hook
-                 #'my/haskell-lsp-completion-reset-on-trigger t)))
+  "Haskellでは標準LSP CAPFをqualified completion対応版へ差し替える。"
+  ;; minor modeの再設定時にも重複を残さない。
+  (remove-hook 'completion-at-point-functions
+               #'my/haskell-lsp-completion-at-point t)
+  (remove-hook 'post-self-insert-hook
+               #'my/haskell-lsp-completion-reset-on-trigger t)
+
+  (when (and (derived-mode-p 'haskell-ts-mode)
+             (bound-and-true-p lsp-completion-mode))
+    (remove-hook 'completion-at-point-functions
+                 #'lsp-completion-at-point t)
+    (add-hook 'completion-at-point-functions
+              #'my/haskell-lsp-completion-at-point nil t)
+    (add-hook 'post-self-insert-hook
+              #'my/haskell-lsp-completion-reset-on-trigger nil t)))
 
 
 (defun my/diff-hl-enable-after-lsp-open ()

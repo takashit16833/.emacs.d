@@ -24,12 +24,7 @@
                (lambda (_method) 'completion-options))
               ((symbol-function
                 'lsp:completion-options-trigger-characters?)
-               (lambda (_options) ["."]))
-              ((symbol-function
-                'lsp-completion--looking-back-trigger-characterp)
-               (lambda (triggers)
-                 (when (equal triggers ["."])
-                   "."))))
+               (lambda (_options) ["."])))
       (should (equal (my/haskell-lsp-completion-trigger-p) ".")))))
 
 
@@ -42,7 +37,7 @@
       (should-not (my/haskell-lsp-completion-trigger-p)))))
 
 
-(ert-deftest my/haskell-lsp-completion--call-uses-empty-symbol-bounds-after-trigger ()
+(ert-deftest my/haskell-lsp-completion--call-capf-uses-empty-bounds-after-trigger ()
   "trigger直後ではlsp-modeへ空のsymbol boundsを渡すこと。"
   (with-temp-buffer
     (insert "Text.")
@@ -50,68 +45,43 @@
                (lambda () t))
               ((symbol-function 'bounds-of-thing-at-point)
                (lambda (_thing)
-                 '(1 . 2))))
-      (let ((result
-             (my/haskell-lsp-completion--call
-              (lambda ()
-                (bounds-of-thing-at-point 'symbol))
-              nil)))
-        (should (equal result (cons (point) (point))))))))
+                 '(1 . 2)))
+              ((symbol-function 'lsp-completion-at-point)
+               (lambda ()
+                 (bounds-of-thing-at-point 'symbol))))
+      (should
+       (equal (my/haskell-lsp-completion--call-capf)
+              (cons (point) (point)))))))
 
 
-(ert-deftest my/haskell-lsp-completion--call-keeps-normal-bounds-without-trigger ()
+(ert-deftest my/haskell-lsp-completion--call-capf-keeps-normal-bounds ()
   "trigger直後でなければ通常のsymbol boundsを変更しないこと。"
   (cl-letf (((symbol-function 'my/haskell-lsp-completion-trigger-p)
              (lambda () nil))
+            ((symbol-function 'lsp-completion-at-point)
+             (lambda ()
+               (bounds-of-thing-at-point 'symbol)))
             ((symbol-function 'bounds-of-thing-at-point)
              (lambda (_thing)
                '(1 . 2))))
     (should
-     (equal
-      (my/haskell-lsp-completion--call
-       (lambda ()
-         (bounds-of-thing-at-point 'symbol))
-       nil)
-      '(1 . 2)))))
+     (equal (my/haskell-lsp-completion--call-capf)
+            '(1 . 2)))))
 
 
-(ert-deftest my/haskell-lsp-completion-around-uses-buster-in-haskell ()
-  "HaskellのLSP CAPFはCape busterで包むこと。"
-  (with-temp-buffer
-    (setq-local lsp-completion-mode t)
-    (let (buster-called)
-      (cl-letf (((symbol-function 'derived-mode-p)
-                 (lambda (&rest _modes) t))
-                ((symbol-function 'cape-wrap-buster)
-                 (lambda (capf &optional _valid)
-                   (setq buster-called t)
-                   (funcall capf)))
-                ((symbol-function 'my/haskell-lsp-completion--call)
-                 (lambda (function args)
-                   (apply function args))))
-        (should
-         (eq (my/haskell-lsp-completion-around
-              (lambda () 'result))
-             'result))
-        (should buster-called)))))
-
-
-(ert-deftest my/haskell-lsp-completion-around-skips-buster-outside-haskell ()
-  "Haskell以外ではCape busterを適用しないこと。"
-  (with-temp-buffer
-    (setq-local lsp-completion-mode t)
-    (let (buster-called)
-      (cl-letf (((symbol-function 'derived-mode-p)
-                 (lambda (&rest _modes) nil))
-                ((symbol-function 'cape-wrap-buster)
-                 (lambda (capf &optional _valid)
-                   (setq buster-called t)
-                   (funcall capf))))
-        (should
-         (eq (my/haskell-lsp-completion-around
-              (lambda () 'result))
-             'result))
-        (should-not buster-called)))))
+(ert-deftest my/haskell-lsp-completion-at-point-uses-buster ()
+  "Haskell用CAPFはCape busterで入力変更を検出すること。"
+  (let (buster-capf)
+    (cl-letf (((symbol-function 'cape-wrap-buster)
+               (lambda (capf &optional _valid)
+                 (setq buster-capf capf)
+                 'wrapped-capf)))
+      (should
+       (eq (my/haskell-lsp-completion-at-point)
+           'wrapped-capf))
+      (should
+       (eq buster-capf
+           #'my/haskell-lsp-completion--call-capf)))))
 
 
 (ert-deftest my/haskell-lsp-completion-reset-on-trigger-closes-session ()
@@ -140,19 +110,44 @@
     (should-not completion-called)))
 
 
-(ert-deftest my/haskell-lsp-completion-setup-manages-local-hook ()
-  "lsp-completion-modeに合わせてbuffer-local hookを追加・削除すること。"
+(ert-deftest my/haskell-lsp-completion-setup-replaces-only-haskell-capf ()
+  "Haskellでは標準LSP CAPFだけを専用CAPFへ差し替えること。"
   (with-temp-buffer
+    (setq-local lsp-completion-mode t)
+    (setq-local completion-at-point-functions
+                '(lsp-completion-at-point
+                  tags-completion-at-point-function))
     (cl-letf (((symbol-function 'derived-mode-p)
                (lambda (&rest _modes) t)))
-      (setq-local lsp-completion-mode t)
       (my/haskell-lsp-completion-setup)
       (should
+       (eq (car completion-at-point-functions)
+           #'my/haskell-lsp-completion-at-point))
+      (should-not
+       (memq #'lsp-completion-at-point
+             completion-at-point-functions))
+      (should
+       (memq #'tags-completion-at-point-function
+             completion-at-point-functions))
+      (should
        (memq #'my/haskell-lsp-completion-reset-on-trigger
-             post-self-insert-hook))
+             post-self-insert-hook)))))
 
-      (setq-local lsp-completion-mode nil)
+
+(ert-deftest my/haskell-lsp-completion-setup-leaves-other-modes-alone ()
+  "Haskell以外では標準LSP CAPFを変更しないこと。"
+  (with-temp-buffer
+    (setq-local lsp-completion-mode t)
+    (setq-local completion-at-point-functions
+                '(lsp-completion-at-point
+                  tags-completion-at-point-function))
+    (cl-letf (((symbol-function 'derived-mode-p)
+               (lambda (&rest _modes) nil)))
       (my/haskell-lsp-completion-setup)
+      (should
+       (equal completion-at-point-functions
+              '(lsp-completion-at-point
+                tags-completion-at-point-function)))
       (should-not
        (memq #'my/haskell-lsp-completion-reset-on-trigger
              post-self-insert-hook)))))
