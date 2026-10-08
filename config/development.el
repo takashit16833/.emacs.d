@@ -167,6 +167,10 @@
 	("S-s-m" . my/lsp-problems))
 
   :config
+  ;; Docker/TRAMPではLSPだけdirect asyncで起動し、
+  ;; Content-Lengthを生のバイト列のまま扱えるようにする。
+  (my/lsp-enable-docker-direct-async)
+
   ;; HLSのcompletionItem/resolveでfalseがnullへ変換されるのを防ぐ。
   ;; lsp-mode本体にもrust-analyzer向けの同種の補正がある。
   (advice-add #'lsp-completion--fix-resolve-data

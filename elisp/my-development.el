@@ -124,6 +124,57 @@
               #'my/haskell-lsp-completion-reset-on-trigger nil t)))
 
 
+;;; Docker/TRAMP LSP transport ---------------------------------------------
+
+
+(defvar connection-local-default-application)
+(defvar tramp-methods)
+
+
+(defun my/lsp-docker-direct-async-methods (methods)
+  "METHODSをコピーし、DockerのLSP用login argsからTTY割り当てを外す。"
+  (let ((copy (copy-tree methods)))
+    (when-let* ((method (assoc "docker" copy))
+                (login-args (assq 'tramp-login-args (cdr method))))
+      (setcar
+       (cdr login-args)
+       (mapcar
+        (lambda (args)
+          (if (equal args '("-it"))
+              '("-i")
+            args))
+        (cadr login-args))))
+    copy))
+
+
+(defun my/lsp-start-workspace-with-docker-direct-async
+    (original session client root &optional initialization-options)
+  "Docker上のLSP workspaceだけdirect asyncで起動する。"
+  (if (equal (file-remote-p root 'method) "docker")
+      (let ((default-directory root)
+            (connection-local-default-application 'my-lsp)
+            (tramp-methods
+             (my/lsp-docker-direct-async-methods tramp-methods)))
+        (funcall original session client root initialization-options))
+    (funcall original session client root initialization-options)))
+
+
+(defun my/lsp-enable-docker-direct-async ()
+  "Docker/TRAMP上のLSPをバイト透過なdirect async経路で起動する。"
+  (connection-local-set-profile-variables
+   'my/lsp-docker-direct-async
+   '((tramp-direct-async-process . t)))
+  (connection-local-set-profiles
+   '(:application my-lsp :protocol "docker")
+   'my/lsp-docker-direct-async)
+  (unless (advice-member-p
+           #'my/lsp-start-workspace-with-docker-direct-async
+           #'lsp--start-workspace)
+    (advice-add #'lsp--start-workspace
+                :around
+                #'my/lsp-start-workspace-with-docker-direct-async)))
+
+
 (defun my/diff-hl-enable-after-lsp-open ()
   "TRAMP先ではLSP接続完了後にdiff-hlを有効にする。"
   (when (and buffer-file-name
