@@ -30,7 +30,8 @@
  ;; If there is more than one, they won't work right.
  '(package-selected-packages
    '(avy browsing-history bufferlo cape clutch embark embark-consult
-	 pgsql retro-hacker-blue-theme tab-router undo-fu))
+	 pgsql retro-hacker-blue-theme retro-one-dark-theme tab-router
+	 undo-fu))
  '(package-vc-selected-packages
    '((retro-hacker-blue-theme :url
 			      "https://github.com/takashit16833/emacs-retro-hacker-blue-theme.git"))))

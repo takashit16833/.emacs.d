@@ -72,15 +72,26 @@
 
 
 ;; 最強のカラーテーマ
-(use-package retro-hacker-blue-theme
-  :vc (:url "https://github.com/takashit16833/emacs-retro-hacker-blue-theme.git"
+;; (use-package retro-hacker-blue-theme
+;;   :vc (:url "https://github.com/takashit16833/emacs-retro-hacker-blue-theme.git"
+;;        :rev :newest)
+;;   :no-require t
+;;   :init
+;;   (setq retro-hacker-blue-transparent-background nil)
+;;   :config
+;;   (load-theme 'retro-hacker-blue t)
+;;   (retro-hacker-blue-apply-background))
+
+
+(use-package retro-one-dark-theme
+  :vc (:url "https://github.com/takashit16833/emacs-retro-one-dark-theme.git"
        :rev :newest)
   :no-require t
   :init
-  (setq retro-hacker-blue-transparent-background nil)
+  (setq retro-one-dark-transparent-background nil)
   :config
-  (load-theme 'retro-hacker-blue t)
-  (retro-hacker-blue-apply-background))
+  (load-theme 'retro-one-dark t)
+  (retro-one-dark-apply-background))
 
 
 ;; 軽量なモードラインを使用する。
