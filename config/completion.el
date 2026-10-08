@@ -46,7 +46,8 @@
   (("s-f" . consult-line)
    ("S-s-f" . consult-ripgrep)
    ("s-r" . consult-recent-file)
-   ("s-y" . consult-yank-pop)))
+   ("s-y" . consult-yank-pop)
+   ("M-g i" . consult-imenu)))
 
 
 ;; 補完候補やカーソル位置の対象に対して、その場で操作する。
