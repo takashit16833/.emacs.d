@@ -185,29 +185,35 @@
 
 (ert-deftest my/lsp-start-workspace-with-docker-direct-async-scopes-settings ()
   "DockerのLSP起動中だけdirect async用設定を適用すること。"
-  (let ((tramp-methods
+  (let ((methods
          '(("docker"
             (tramp-login-args
              (("exec") ("-it") ("%h") ("%l"))))))
-        (connection-local-default-application 'tramp)
         observed-application
         observed-args)
-    (cl-letf (((symbol-function 'file-remote-p)
-               (lambda (_file &optional identification)
-                 (when (eq identification 'method)
-                   "docker"))))
-      (should
-       (eq
-        (my/lsp-start-workspace-with-docker-direct-async
-         (lambda (_session _client _root &optional _initialization-options)
-           (setq observed-application connection-local-default-application
-                 observed-args
-                 (cadr
-                  (assq 'tramp-login-args
-                        (cdr (assoc "docker" tramp-methods)))))
-           'started)
-         nil nil "/docker:test:/workspace" nil)
-        'started)))
+    ;; 実装側はTRAMPのspecial variableを動的束縛するため、
+    ;; lexical-binding下のテストでも同じ条件を明示的に作る。
+    (cl-progv '(tramp-methods connection-local-default-application)
+        (list methods 'tramp)
+      (cl-letf (((symbol-function 'file-remote-p)
+                 (lambda (_file &optional identification)
+                   (when (eq identification 'method)
+                     "docker"))))
+        (should
+         (eq
+          (my/lsp-start-workspace-with-docker-direct-async
+           (lambda (_session _client _root &optional _initialization-options)
+             (setq observed-application
+                   (symbol-value 'connection-local-default-application)
+                   observed-args
+                   (cadr
+                    (assq 'tramp-login-args
+                          (cdr
+                           (assoc "docker"
+                                  (symbol-value 'tramp-methods))))))
+             'started)
+           nil nil "/docker:test:/workspace" nil)
+          'started))))
     (should (eq observed-application 'my-lsp))
     (should
      (equal observed-args
@@ -216,29 +222,33 @@
      (equal
       (cadr
        (assq 'tramp-login-args
-             (cdr (assoc "docker" tramp-methods))))
+             (cdr (assoc "docker" methods))))
       '(("exec") ("-it") ("%h") ("%l"))))))
 
 
 (ert-deftest my/lsp-start-workspace-with-docker-direct-async-leaves-local-alone ()
   "Docker以外のLSP起動ではTRAMP設定を変更しないこと。"
-  (let ((tramp-methods
+  (let ((methods
          '(("docker"
             (tramp-login-args
              (("exec") ("-it") ("%h") ("%l"))))))
-        (connection-local-default-application 'tramp)
         observed-application
         observed-args)
-    (cl-letf (((symbol-function 'file-remote-p)
-               (lambda (&rest _args) nil)))
-      (my/lsp-start-workspace-with-docker-direct-async
-       (lambda (_session _client _root &optional _initialization-options)
-         (setq observed-application connection-local-default-application
-               observed-args
-               (cadr
-                (assq 'tramp-login-args
-                      (cdr (assoc "docker" tramp-methods))))))
-       nil nil "/tmp/project" nil))
+    (cl-progv '(tramp-methods connection-local-default-application)
+        (list methods 'tramp)
+      (cl-letf (((symbol-function 'file-remote-p)
+                 (lambda (&rest _args) nil)))
+        (my/lsp-start-workspace-with-docker-direct-async
+         (lambda (_session _client _root &optional _initialization-options)
+           (setq observed-application
+                 (symbol-value 'connection-local-default-application)
+                 observed-args
+                 (cadr
+                  (assq 'tramp-login-args
+                        (cdr
+                         (assoc "docker"
+                                (symbol-value 'tramp-methods)))))))
+         nil nil "/tmp/project" nil)))
     (should (eq observed-application 'tramp))
     (should
      (equal observed-args
