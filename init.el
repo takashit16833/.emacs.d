@@ -34,7 +34,8 @@
 	 undo-fu))
  '(package-vc-selected-packages
    '((retro-hacker-blue-theme :url
-			      "https://github.com/takashit16833/emacs-retro-hacker-blue-theme.git"))))
+			      "https://github.com/takashit16833/emacs-retro-hacker-blue-theme.git")))
+ '(safe-local-variable-directories '("/Users/suzukitakashi/rag-lab/")))
 (custom-set-faces
  ;; custom-set-faces was added by Custom.
  ;; If you edit it by hand, you could mess it up, so be careful.

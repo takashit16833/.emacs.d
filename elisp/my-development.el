@@ -43,6 +43,16 @@
       (lsp-put value :itemNeedsType :json-false))))
 
 
+;; Pythonプロジェクトの仮想環境をEmacsから利用できるようにする。
+(defun my/python-setup-venv ()
+  (unless (file-remote-p default-directory)
+    (let ((root (locate-dominating-file default-directory ".venv")))
+      (when root
+        (let ((bin (expand-file-name ".venv/bin" root)))
+          (when (file-directory-p bin)
+            (setq-local exec-path (cons bin exec-path))))))))
+
+
 ;; HLS qualified completion workaround -------------------------------------
 
 (declare-function cape-wrap-buster "cape" (capf &optional valid))

@@ -180,6 +180,10 @@
   (setopt lsp-clients-typescript-prefer-use-project-ts-server t))
 
 
+;; LSP起動前に、そのプロジェクトの仮想環境を認識させる。
+(add-hook 'python-ts-mode-hook #'my/python-setup-venv)
+
+
 ;; Python Language ServerとしてPyrightを使用する。
 (use-package lsp-pyright
   :ensure t
