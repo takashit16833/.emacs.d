@@ -23,14 +23,25 @@
 (set-display-table-slot standard-display-table 'wrap ?\s)
 
 
-;; ウィンドウの境界線を細い縦棒にする。
+;; 行番号がある場合はウィンドウの境界線を隠す。
 (set-display-table-slot standard-display-table 'vertical-border ?│)
+
+(defun my/update-vertical-border ()
+  (let ((table (copy-sequence
+                (or buffer-display-table standard-display-table))))
+    (set-display-table-slot
+     table 'vertical-border
+     (if display-line-numbers-mode ?\s ?│))
+    (setq-local buffer-display-table table)))
+
+(add-hook 'display-line-numbers-mode-hook #'my/update-vertical-border)
 
 
 ;; 編集用バッファで行番号を表示する。
 (add-hook 'prog-mode-hook #'display-line-numbers-mode)
 (add-hook 'text-mode-hook #'display-line-numbers-mode)
 (setq-default display-line-numbers-width 3)
+
 
 ;; TTY child frame の枠を角丸にする。
 ;; 枠色はウィンドウ境界線と同じ `vertical-border' face を使う。
