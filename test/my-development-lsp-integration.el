@@ -49,7 +49,8 @@
                   ((symbol-function 'lsp-request)
                    (lambda (method params &rest _args)
                      (setq sent-method method
-                           sent-json (lsp--json-serialize params)))))
+                           sent-json (lsp--json-serialize params))
+                     nil)))
           (lsp-completion--resolve item))
       (unless was-advised
         (advice-remove 'lsp-completion--fix-resolve-data
