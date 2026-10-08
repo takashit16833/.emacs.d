@@ -72,10 +72,11 @@
         tab-line-tabs-window-buffers-filter-function
         #'tab-line-tabs-non-excluded
 	
-        ;; *Messages* などの *...* バッファ、
-        ;; Magit 系バッファ、Dired バッファを除外する。
+        ;; *...* バッファ（ClutchのSQL入力用は除く）、
+        ;; Magit / Dired バッファではtab-lineを表示しない。
         tab-line-exclude-buffers
-        '(or "^\\*.*\\*$"
+        '(or (and "^\\*.*\\*$"
+                  (not (derived-mode . clutch-mode)))
              (derived-mode . magit-mode)
              (derived-mode . dired-mode))
         tab-line-tabs-function
