@@ -32,12 +32,15 @@
 
 (defun my/lsp-completion-fix-haskell-resolve-data (item)
   "HLSへ返す補完候補ITEMのfalse値をJSON falseとして保持する。"
-  (let ((data (lsp:completion-item-data? item)))
-    ;; HLSのitemNeedsTypeはBoolだが、Emacs LispのnilをそのままJSON化すると
-    ;; nullになるため、completionItem/resolveでHLSのデコードに失敗する。
-    (when (and (lsp-member? data :itemNeedsType)
-               (null (lsp-get data :itemNeedsType)))
-      (lsp-put data :itemNeedsType :json-false))))
+  (when-let* ((data (lsp:completion-item-data? item))
+              (value (lsp-get data :resolveValue)))
+    ;; ghcideのitemNeedsTypeはresolveValue内のBool。
+    ;; nilのまま送信するとJSON nullになり、HLSがresolveに失敗する。
+    (when (and (equal (lsp-get data :resolvePlugin)
+                      "ghcide-completions")
+               (lsp-member? value :itemNeedsType)
+               (null (lsp-get value :itemNeedsType)))
+      (lsp-put value :itemNeedsType :json-false))))
 
 
 ;; HLS qualified completion workaround -------------------------------------

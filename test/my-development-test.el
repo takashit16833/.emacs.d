@@ -13,6 +13,72 @@
 ;;; HLS completion workaround -----------------------------------------------
 
 
+;; HLS resolve payload: plist / hash-table のどちらでも同じ構造を再現する。
+(require 'lsp-protocol)
+
+
+(defun my-test/lsp-data (&rest properties)
+  "PROPERTIESから現在のlsp-modeの表現に合うLSPデータを作る。"
+  (if lsp-use-plists
+      properties
+    (let ((table (make-hash-table :test 'equal)))
+      (while properties
+        (puthash (substring (symbol-name (pop properties)) 1)
+                 (pop properties)
+                 table))
+      table)))
+
+
+(defun my-test/hls-completion-item (value &optional plugin)
+  "VALUEを含むPLUGINの補完候補を作る。"
+  (lsp-make-completion-item
+   :label "embedText"
+   :data (my-test/lsp-data
+          :resolvePlugin (or plugin "ghcide-completions")
+          :resolveURI "file:///workspace/app/Main.hs"
+          :resolveValue value)))
+
+
+(ert-deftest my/lsp-completion-fix-haskell-resolve-data-converts-nested-false ()
+  "ghcideのresolveValue内のnilはJSON falseに戻すこと。"
+  (let* ((value (my-test/lsp-data :itemNeedsType nil))
+         (item (my-test/hls-completion-item value)))
+    (my/lsp-completion-fix-haskell-resolve-data item)
+    (should (eq (lsp-get value :itemNeedsType) :json-false))))
+
+
+(ert-deftest my/lsp-completion-fix-haskell-resolve-data-preserves-true ()
+  "真のitemNeedsTypeはそのままにすること。"
+  (let* ((value (my-test/lsp-data :itemNeedsType t))
+         (item (my-test/hls-completion-item value)))
+    (my/lsp-completion-fix-haskell-resolve-data item)
+    (should (eq (lsp-get value :itemNeedsType) t))))
+
+
+(ert-deftest my/lsp-completion-fix-haskell-resolve-data-ignores-other-plugin ()
+  "ghcide以外のデータを変更しないこと。"
+  (let* ((value (my-test/lsp-data :itemNeedsType nil))
+         (item (my-test/hls-completion-item value "other-plugin")))
+    (my/lsp-completion-fix-haskell-resolve-data item)
+    (should (lsp-member? value :itemNeedsType))
+    (should-not (lsp-get value :itemNeedsType))))
+
+
+(ert-deftest my/lsp-completion-fix-haskell-resolve-data-ignores-missing-field ()
+  "itemNeedsTypeがなければ新しい項目を作らないこと。"
+  (let* ((value (my-test/lsp-data :itemFile "file:///workspace/app/Main.hs"))
+         (item (my-test/hls-completion-item value)))
+    (my/lsp-completion-fix-haskell-resolve-data item)
+    (should-not (lsp-member? value :itemNeedsType))))
+
+
+(ert-deftest my/lsp-completion-fix-haskell-resolve-data-ignores-missing-data ()
+  "補完候補にdataがなければ何もしないこと。"
+  (should-not
+   (my/lsp-completion-fix-haskell-resolve-data
+    (lsp-make-completion-item :label "embedText"))))
+
+
 (ert-deftest my/haskell-lsp-completion-trigger-p-detects-server-trigger ()
   "HLSが宣言した補完トリガーを検出すること。"
   (with-temp-buffer
