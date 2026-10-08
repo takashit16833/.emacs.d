@@ -125,10 +125,35 @@
 
 
 ;;; Docker/TRAMP LSP transport ---------------------------------------------
+;;
+;; lsp-modeのstdio接続はLSPのContent-Lengthをバイト数として扱うため、
+;; 'make-process'へ :coding 'no-conversion を指定している。
+;;
+;; しかしEmacs 31.1の通常のDocker/TRAMP経路では、LSPプロセスが
+;; /bin/sh -i 経由かつ utf-8-unix で作られ、受信データがlsp-modeへ
+;; 渡る前に文字列として復号される。実際にHLSの診断で
+;; Content-Length=3570に対してJSON parserへ3546 bytesしか渡らず、
+;; JSON末尾が途中で切れて 'json-end-of-file' になることを確認した。
+;;
+;; TRAMPのdirect asyncを使うと 'docker exec' からLanguage Serverを
+;; 直接起動でき、lsp-modeが要求した no-conversion が維持される。
+;; ただしEmacs 31.1のDocker methodは通常接続用に "-it" を固定で持ち、
+;; 非TTYのdirect asyncではDockerが起動を拒否する。そのためLSPの起動中だけ
+;; 'tramp-methods' のコピー上で "-it" を "-i" に変更する。
+;;
+;; Docker/TRAMP全体へdirect asyncを有効化するとMagit、compile、Apheleia等へ
+;; 影響し得るため、専用connection-local application 'my-lsp' と
+;; 'lsp--start-workspace' adviceでLSP起動時だけに限定している。
+;;
+;; 'lsp--start-workspace' はlsp-modeの内部APIなので、lsp-modeまたはTRAMP側で
+;; 通常経路がバイト透過になった場合は、このworkaround自体を削除できないか
+;; 再確認すること。
 
 
 (defvar connection-local-default-application)
 (defvar tramp-methods)
+
+(declare-function diff-hl-mode "diff-hl" (&optional arg))
 
 
 (defun my/lsp-docker-direct-async-methods (methods)
