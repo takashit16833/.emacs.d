@@ -59,10 +59,14 @@
 
 (ert-deftest my/tab-line-exclude-condition-exempts-jq-playground ()
   "*jq-playground* だけを特殊バッファの除外対象から外す。"
+  ;; 開いたままのPlaygroundが存在しても、テスト中に編集・終了しない。
+  (let* ((existing (get-buffer "*jq-playground*"))
+         (buffer (or existing (generate-new-buffer "*jq-playground*"))))
+    (unwind-protect
+        (should-not (buffer-match-p my/tab-line-exclude-condition buffer))
+      (unless existing
+        (kill-buffer buffer))))
   (with-temp-buffer
-    (rename-buffer "*jq-playground*" t)
-    (should-not (buffer-match-p my/tab-line-exclude-condition
-                                (current-buffer)))
     (rename-buffer "*other-special*" t)
     (should (buffer-match-p my/tab-line-exclude-condition
                             (current-buffer)))
