@@ -72,14 +72,9 @@
         tab-line-tabs-window-buffers-filter-function
         #'tab-line-tabs-non-excluded
 	
-        ;; *...* バッファ（ClutchとHaskell REPLは除く）、
+        ;; *...* バッファを除外し、Clutch・Haskell REPL・jq Playgroundは表示する。
         ;; Magit / Dired バッファではtab-lineを表示しない。
-        tab-line-exclude-buffers
-        '(or (and "^\\*.*\\*$"
-                  (not (or (derived-mode . clutch-mode)
-			   (derived-mode . haskell-ts-inferior-mode))))
-             (derived-mode . magit-mode)
-             (derived-mode . dired-mode))
+        tab-line-exclude-buffers my/tab-line-exclude-condition
         tab-line-tabs-function
         'my/tab-line-tabs-bufferlo-buffers)
   (global-tab-line-mode 1))
