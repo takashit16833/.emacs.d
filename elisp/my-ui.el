@@ -38,6 +38,18 @@
 
 ;;; tab-line --------------------------------------------------------
 
+(defconst my/tab-line-exclude-condition
+  '(or (and "^\\*.*\\*$"
+            (not (or "^\\*jq-playground\\*$"
+                     (derived-mode . clutch-mode)
+                     (derived-mode . haskell-ts-inferior-mode))))
+       (derived-mode . magit-mode)
+       (derived-mode . dired-mode))
+  "tab-lineで非表示にするバッファの条件。
+基本的に *...* の特殊バッファを除外するが、Clutch、Haskell REPL、
+jq Playgroundは通常のバッファと同様に表示する。")
+
+
 (defvar-local my/tab-line-git-modified-cache 'unknown
   "Magitから取得した現在のGit差分状態。
 `modified' は差分あり、`clean' は差分なし、
