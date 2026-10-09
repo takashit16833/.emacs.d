@@ -355,4 +355,54 @@
         (kill-buffer name)))))
 
 
+(ert-deftest my/jq-playground-imports-selected-region ()
+  "選択範囲をそのまま取り込み、元のバッファには触れない。"
+  (let ((name "*jq-playground*"))
+    (when (get-buffer name)
+      (kill-buffer name))
+    (unwind-protect
+        (save-window-excursion
+          (with-temp-buffer
+            (insert "before not-json after")
+            (let ((original (buffer-string)))
+              (goto-char (+ (point-min) (length "before ")))
+              (set-mark (+ (point) (length "not-json")))
+              (setq mark-active t)
+              (let ((transient-mark-mode t))
+                (should (use-region-p))
+                (my/jq-playground))
+              (should (equal (buffer-name) name))
+              ;; JSONとしての妥当性は検証せず、選択文字列をそのまま使う。
+              (should (equal (buffer-string) "not-json"))
+              (should (eq (key-binding (kbd "C-c C-j"))
+                          #'jq-interactively))
+              (should (equal original "before not-json after")))))
+      (when (get-buffer name)
+        (kill-buffer name)))))
+
+
+(ert-deftest my/jq-playground-selected-region-replaces-existing-content ()
+  "既存のPlaygroundへ取り込むときは内容を置き換える。"
+  (let ((name "*jq-playground*"))
+    (when (get-buffer name)
+      (kill-buffer name))
+    (unwind-protect
+        (save-window-excursion
+          (my/jq-playground)
+          (erase-buffer)
+          (insert "{\"old\":true}")
+          (with-temp-buffer
+            (insert "ignore {\"new\":1} ignore")
+            (goto-char (+ (point-min) (length "ignore ")))
+            (set-mark (+ (point) (length "{\"new\":1}")))
+            (setq mark-active t)
+            (let ((transient-mark-mode t))
+              (should (use-region-p))
+              (my/jq-playground))
+            (should (equal (buffer-name) name))
+            (should (equal (buffer-string) "{\"new\":1}"))))
+      (when (get-buffer name)
+        (kill-buffer name)))))
+
+
 ;;; my-development-test.el ends here
