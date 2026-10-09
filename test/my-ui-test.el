@@ -57,4 +57,35 @@
     (should-not (my/tab-line--git-modified-p (current-buffer)))))
 
 
+(ert-deftest my/tab-line-exclude-condition-exempts-jq-playground ()
+  "*jq-playground* だけを特殊バッファの除外対象から外す。"
+  (with-temp-buffer
+    (rename-buffer "*jq-playground*" t)
+    (should-not (buffer-match-p my/tab-line-exclude-condition
+                                (current-buffer)))
+    (rename-buffer "*other-special*" t)
+    (should (buffer-match-p my/tab-line-exclude-condition
+                            (current-buffer)))
+    (rename-buffer "ordinary-json-buffer" t)
+    (should-not (buffer-match-p my/tab-line-exclude-condition
+                                (current-buffer)))))
+
+
+(ert-deftest my/tab-line-exclude-condition-preserves-mode-exceptions ()
+  "ClutchとHaskell REPLの例外、MagitとDiredの除外を維持する。"
+  (dolist (mode '(clutch-mode haskell-ts-inferior-mode))
+    (with-temp-buffer
+      (rename-buffer "*other-special*" t)
+      (setq major-mode mode)
+      (should-not (buffer-match-p my/tab-line-exclude-condition
+                                  (current-buffer)))))
+  (dolist (mode '(magit-mode dired-mode))
+    (with-temp-buffer
+      (rename-buffer "ordinary-buffer" t)
+      (setq major-mode mode)
+      (should (buffer-match-p my/tab-line-exclude-condition
+                              (current-buffer))))))
+
+
+
 ;;; my-ui-test.el ends here
