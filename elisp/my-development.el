@@ -7,7 +7,8 @@
 
 
 (require 'cl-lib)
-
+(require 'comint)
+(require 'subr-x)
 
 (defun my/flymake-diagnostic-type-label (diagnostic)
   "DIAGNOSTICの種類を色付きの表示用文字列にする。"
@@ -53,34 +54,139 @@
             (setq-local exec-path (cons bin exec-path))))))))
 
 
-;; GHCiの補完候補をEmacsのcompletion-at-pointへ渡す。
+;; GHCiへの問い合わせ中の入力と、取得済み候補を保持する。
+(defvar-local my/haskell-ghci-pending nil)
+(defvar-local my/haskell-ghci-output-buffer nil)
+(defvar-local my/haskell-ghci-cache nil)
+
+;; GHCiの :complete repl の出力を解析する。
+(defun my/haskell-ghci-parse-output (buffer)
+  (with-current-buffer buffer
+    (save-excursion
+      (goto-char (point-min))
+      (let (prefix candidates)
+        (while (not (eobp))
+          (let ((line
+                 (string-trim-right
+                  (buffer-substring-no-properties
+                   (line-beginning-position)
+                   (line-end-position)))))
+            (cond
+             ;; 4 4 ":m +" の行から接頭部分を取得。
+             ((string-match
+               "\\`[0-9]+ [0-9]+ \\(\".*\"\\)\\'" line)
+              (setq prefix
+                    (car (read-from-string
+                          (match-string 1 line)))))
+
+             ;; "Rag.Search" などの候補を取得。
+             ((string-match "\\`\".*\"\\'" line)
+              (push (car (read-from-string line))
+                    candidates))))
+          (forward-line 1))
+        (when prefix
+          (cons prefix (nreverse candidates)))))))
+
+;; 取得済みの候補をEmacs標準の補完機構へ渡す。
 (defun my/haskell-ghci-completion-at-point ()
-  "GHCiの :complete repl を使って入力を補完する。"
-  (when (and (get-buffer-process (current-buffer))
-	     (comint-after-pmark-p))
-    (let* ((input-start (comint-line-beginning-position))
-	   (end (point))
-	   (input (buffer-substring-no-properties
-		   input-start end))
-	   (results
-	    (comint-redirect-results-list
-	     (format ":complete repl %S" input)
-	     "^\\(?:[0-9]+ [0-9]+ \\)?\"\\(.*\\)\"\\r?$"
-	     1))
-	   ;; 先頭行は補完対象外の接頭部分。
-	   (unused (car results))
-	   (candidates (cdr results))
-	   (start (and unused
-		       (+ input-start (length unused)))))
-      (when (and start candidates (<= start end))
-	(list start end candidates)))))
+  (when my/haskell-ghci-cache
+    (let ((input (nth 0 my/haskell-ghci-cache))
+          (start (nth 1 my/haskell-ghci-cache))
+          (candidates (nth 2 my/haskell-ghci-cache)))
+      (when (and (comint-after-pmark-p)
+                 (<= start (point))
+                 (string-prefix-p
+                  input
+                  (buffer-substring-no-properties
+                   (comint-line-beginning-position)
+                   (point))))
+        (list start (point) candidates
+              :exclusive 'yes)))))
 
+;; GHCiから応答が返ったあとに補完を表示する。
+(defun my/haskell-ghci-show-completions (buffer input)
+  (when (and (buffer-live-p buffer)
+             (eq (window-buffer (selected-window)) buffer))
+    (with-current-buffer buffer
+      ;; 応答待ちの間に入力が変わった場合は表示しない。
+      (when (and (comint-after-pmark-p)
+                 (string-prefix-p
+                  input
+                  (buffer-substring-no-properties
+                   (comint-line-beginning-position)
+                   (point))))
+        (completion-at-point)))))
 
+;; GHCiからの補完応答が完了したときに呼ばれる。
+(defun my/haskell-ghci-completion-finished ()
+  (when my/haskell-ghci-pending
+    (let* ((input my/haskell-ghci-pending)
+           (parsed (my/haskell-ghci-parse-output
+                    my/haskell-ghci-output-buffer))
+           (prefix (car parsed))
+           (candidates (cdr parsed))
+           (buffer (current-buffer)))
+      (setq my/haskell-ghci-pending nil)
+
+      (when (and prefix candidates
+                 (string-prefix-p prefix input))
+        (setq my/haskell-ghci-cache
+              (list input
+                    (+ (comint-line-beginning-position)
+                       (length prefix))
+                    candidates))
+
+        ;; プロセスの出力処理が終わってから補完を開く。
+        (run-at-time
+         0 nil
+         #'my/haskell-ghci-show-completions
+         buffer input)))))
+
+;; GHCiへ補完を問い合わせる。応答は待たない。
+(defun my/haskell-ghci-complete ()
+  (interactive)
+  (let ((process (get-buffer-process (current-buffer))))
+    (cond
+     ((not (and process
+                (process-live-p process)
+                (comint-after-pmark-p)))
+      (completion-at-point))
+
+     (my/haskell-ghci-pending
+      (message "GHCiの補完応答を待っています"))
+
+     (t
+      (let ((input (buffer-substring-no-properties
+                    (comint-line-beginning-position)
+                    (point))))
+        (setq my/haskell-ghci-pending input
+              my/haskell-ghci-cache nil
+              my/haskell-ghci-output-buffer
+              (format " *GHCi Completion: %s*"
+                      (buffer-name)))
+
+        ;; 一時バッファへ出力を転送し、すぐに制御を返す。
+        (comint-redirect-send-command-to-process
+         (format ":complete repl %S" input)
+         my/haskell-ghci-output-buffer
+         process nil t))))))
+
+;; Haskell REPLだけで補完機能を有効にする。
 (defun my/haskell-ghci-completion-setup ()
-  "Haskell REPLの補完候補にGHCiを追加する。"
+  "Haskell REPLの補完機能を有効にする。"
   (add-hook 'completion-at-point-functions
             #'my/haskell-ghci-completion-at-point
-            nil t))
+            nil t)
+  (add-hook 'comint-redirect-hook
+            #'my/haskell-ghci-completion-finished
+            nil t)
+
+  ;; 候補は明示的に選択するまで確定しない。
+  (setq-local corfu-auto nil
+              corfu-preselect 'prompt
+              corfu-preview-current nil)
+
+  (corfu-mode 1))
 
 
 ;; HLS qualified completion workaround -------------------------------------

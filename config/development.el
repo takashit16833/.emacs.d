@@ -54,10 +54,10 @@
 
 ;;; Haskell ---------------------------------------------------------
 
-;; Haskell REPLではTABでGHCiの候補を補完する。
+;; Haskell REPLではTABでGHCiの補完を実行する。
 (with-eval-after-load 'haskell-ts-repl
   (keymap-set haskell-ts-inferior-mode-map
-              "TAB" #'completion-at-point)
+              "TAB" #'my/haskell-ghci-complete)
   (add-hook 'haskell-ts-inferior-mode-hook
             #'my/haskell-ghci-completion-setup))
 
