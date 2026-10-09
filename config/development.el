@@ -54,10 +54,13 @@
 
 ;;; Haskell ---------------------------------------------------------
 
-;; Haskell REPLではTABでGHCiの補完を実行する。
+;; Haskell REPLのキーマップはhaskell-ts-repl読込後に定義されるため、
+;; 読み込みが完了してからTABの割り当てを追加する。
 (with-eval-after-load 'haskell-ts-repl
+  ;; REPL内のTABだけをGHCi補完コマンドへ割り当てる。
   (keymap-set haskell-ts-inferior-mode-map
               "TAB" #'my/haskell-ghci-complete)
+  ;; REPLバッファが作られるたびに、補完フックとCorfuを準備する。
   (add-hook 'haskell-ts-inferior-mode-hook
             #'my/haskell-ghci-completion-setup))
 
