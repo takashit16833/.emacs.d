@@ -81,6 +81,9 @@
     (add-hook 'magit-post-refresh-hook
               #'my/magit-refresh-tab-line-git-status)))
 
+;; diredに差分を表示する。
+(add-hook 'dired-mode-hook #'diff-hl-dired-mode-unless-remote)
+
 
 ;; Emacs内で状態確認・差分確認・コミットなどを行う。
 (use-package magit
