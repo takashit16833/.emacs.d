@@ -78,6 +78,10 @@
 (global-set-key (kbd "S-M-<down>") #'my/duplicate-lines-down)
 
 
+;; pageup / down でカーソル位置を維持する。
+(setq scroll-preserve-screen-position t)
+
+
 ;; クリップボードへコピーする。
 (use-package selected
   :ensure t
