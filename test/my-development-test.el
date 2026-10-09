@@ -327,4 +327,32 @@
             '(("exec") ("-it") ("%h") ("%l"))))))
 
 
+
+;;; jq Playground ---------------------------------------------------
+
+(ert-deftest my/jq-playground-creates-and-reuses-json-buffer ()
+  "Playgroundの再起動でJSONを消さず、通常のキーマップも変更しない。"
+  (let ((name "*jq-playground*"))
+    (when (get-buffer name)
+      (kill-buffer name))
+    (unwind-protect
+        (save-window-excursion
+          (my/jq-playground)
+          (should (equal (buffer-name) name))
+          (should (derived-mode-p 'js-json-mode))
+          (should (equal (buffer-string) "[]\n"))
+          (should (eq (key-binding (kbd "C-c C-j"))
+                      #'jq-interactively))
+          (should-not (eq (current-local-map) js-json-mode-map))
+          (erase-buffer)
+          (insert "{\"message\":\"hello\"}\n")
+          (let ((buffer (current-buffer)))
+            (my/jq-playground)
+            (should (eq (current-buffer) buffer))
+            (should (equal (buffer-string)
+                           "{\"message\":\"hello\"}\n"))))
+      (when (get-buffer name)
+        (kill-buffer name)))))
+
+
 ;;; my-development-test.el ends here
