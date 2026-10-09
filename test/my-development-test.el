@@ -364,7 +364,8 @@
         (save-window-excursion
           (with-temp-buffer
             (insert "before not-json after")
-            (let ((original (buffer-string)))
+            (let ((source (current-buffer))
+                  (original (buffer-string)))
               (goto-char (+ (point-min) (length "before ")))
               (set-mark (+ (point) (length "not-json")))
               (setq mark-active t)
@@ -376,7 +377,8 @@
               (should (equal (buffer-string) "not-json"))
               (should (eq (key-binding (kbd "C-c C-j"))
                           #'jq-interactively))
-              (should (equal original "before not-json after")))))
+              (with-current-buffer source
+                (should (equal (buffer-string) original))))))
       (when (get-buffer name)
         (kill-buffer name)))))
 
