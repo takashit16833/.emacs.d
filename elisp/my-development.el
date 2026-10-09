@@ -416,6 +416,27 @@
     (diff-hl-mode 1)))
 
 
+
+;;; jq Playground ---------------------------------------------------
+
+(defun my/jq-playground ()
+  "jqの式を試すためのJSONバッファを開く。
+JSONを編集したらC-c C-jで \`jq-interactively' を起動する。"
+  (interactive)
+  (let* ((name "*jq-playground*")
+         (existing (get-buffer name))
+         (buffer (get-buffer-create name)))
+    (with-current-buffer buffer
+      (unless existing
+        (js-json-mode)
+        (insert "[]\n")
+        ;; 通常のJSONバッファへ影響しないよう、専用のキーマップを使う。
+        (let ((map (copy-keymap (current-local-map))))
+          (keymap-set map "C-c C-j" #'jq-interactively)
+          (use-local-map map))))
+    (switch-to-buffer buffer)))
+
+
 (provide 'my-development)
 
 ;;; my-development.el ends here
