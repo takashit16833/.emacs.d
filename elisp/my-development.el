@@ -115,7 +115,13 @@
                   (buffer-substring-no-properties
                    (comint-line-beginning-position)
                    (point))))
-        (completion-at-point)))))
+        (completion-at-point)
+
+        ;; タイマーからの実行ではpost-command-hookが走らないため、
+        ;; Corfuの候補をここで表示する。
+        (when (and (bound-and-true-p corfu-mode)
+                   (bound-and-true-p completion-in-region-mode))
+          (corfu--exhibit))))))
 
 ;; GHCiからの補完応答が完了したときに呼ばれる。
 (defun my/haskell-ghci-completion-finished ()
