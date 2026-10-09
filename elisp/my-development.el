@@ -212,6 +212,11 @@
               (format " *GHCi Completion: %s*"
                       (buffer-name)))
 
+	;; 前回の補完結果が混ざらないよう、一時バッファを空にする。
+	(with-current-buffer
+	    (get-buffer-create my/haskell-ghci-output-buffer)
+	  (erase-buffer))
+	
         ;; 例: inputが":m +R"なら :complete repl ":m +R" を送信する。
         ;; %Sは引用符やエスケープを含めて文字列を印字する。
         ;; 応答待ちはしない。nilは元のREPLへの出力反映なし、
