@@ -77,14 +77,14 @@
        :rev :newest)
   :no-require t
   :init
-  (setq retro-hacker-blue-transparent-background t))
+  (setq retro-hacker-blue-transparent-background nil))
 
 (use-package retro-one-dark-theme
   :vc (:url "https://github.com/takashit16833/emacs-retro-one-dark-theme.git"
        :rev :newest)
   :no-require t
   :init
-  (setq retro-one-dark-transparent-background t))
+  (setq retro-one-dark-transparent-background nil))
 
 ;; WezTerm と共有した前回の選択を起動時に復元する。
 (require 'my-theme)

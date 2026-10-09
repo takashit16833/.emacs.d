@@ -32,10 +32,8 @@
          (buffer (get-buffer buffer-name))
          (window (and buffer (get-buffer-window buffer))))
     (if window
-        (if (one-window-p t)
-            (with-selected-window window
-              (previous-buffer))
-          (delete-window window))
+        (with-selected-window window
+	  (previous-buffer))
       (let ((default-directory directory)
             (vterm-buffer-name buffer-name))
         (vterm)))))
