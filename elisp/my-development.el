@@ -53,6 +53,36 @@
             (setq-local exec-path (cons bin exec-path))))))))
 
 
+;; GHCiの補完候補をEmacsのcompletion-at-pointへ渡す。
+(defun my/haskell-ghci-completion-at-point ()
+  "GHCiの :complete repl を使って入力を補完する。"
+  (when (and (get-buffer-process (current-buffer))
+	     (comint-after-pmark-p))
+    (let* ((input-start (comint-line-beginning-position))
+	   (end (point))
+	   (input (buffer-substring-no-properties
+		   input-start end))
+	   (results
+	    (comint-redirect-results-list
+	     (format ":complete repl %S" input)
+	     "^\\(?:[0-9]+ [0-9]+ \\)?\"\\(.*\\)\"\\r?$"
+	     1))
+	   ;; 先頭行は補完対象外の接頭部分。
+	   (unused (car results))
+	   (candidates (cdr results))
+	   (start (and unused
+		       (+ input-start (length unused)))))
+      (when (and start candidates (<= start end))
+	(list start end candidates)))))
+
+
+(defun my/haskell-ghci-completion-setup ()
+  "Haskell REPLの補完候補にGHCiを追加する。"
+  (add-hook 'completion-at-point-functions
+            #'my/haskell-ghci-completion-at-point
+            nil t))
+
+
 ;; HLS qualified completion workaround -------------------------------------
 
 (declare-function cape-wrap-buster "cape" (capf &optional valid))

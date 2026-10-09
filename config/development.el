@@ -54,6 +54,14 @@
 
 ;;; Haskell ---------------------------------------------------------
 
+;; Haskell REPLではTABでGHCiの候補を補完する。
+(with-eval-after-load 'haskell-ts-repl
+  (keymap-set haskell-ts-inferior-mode-map
+              "TAB" #'completion-at-point)
+  (add-hook 'haskell-ts-inferior-mode-hook
+            #'my/haskell-ghci-completion-setup))
+
+
 ;; Cabalファイルを色分けする。
 (use-package haskell-mode
   :ensure t
