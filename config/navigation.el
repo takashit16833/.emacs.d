@@ -72,11 +72,12 @@
         tab-line-tabs-window-buffers-filter-function
         #'tab-line-tabs-non-excluded
 	
-        ;; *...* バッファ（ClutchのSQL入力用は除く）、
+        ;; *...* バッファ（ClutchとHaskell REPLは除く）、
         ;; Magit / Dired バッファではtab-lineを表示しない。
         tab-line-exclude-buffers
         '(or (and "^\\*.*\\*$"
-                  (not (derived-mode . clutch-mode)))
+                  (not (or (derived-mode . clutch-mode)
+			   (derived-mode . haskell-ts-inferior-mode))))
              (derived-mode . magit-mode)
              (derived-mode . dired-mode))
         tab-line-tabs-function
