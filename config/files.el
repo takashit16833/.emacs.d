@@ -87,6 +87,9 @@
         ;; ディレクトリをその場でツリー展開する。
         ("TAB" . dirvish-subtree-toggle)
 
+        ;; 空ファイルを作成する（次の行への移動は C-n または下矢印）。
+        ("n" . dired-create-empty-file)
+
         ;; Dirvishの機能一覧を開く。
         ("?" . dirvish-dispatch)))
 
