@@ -90,6 +90,14 @@
   (selected-global-mode 1))
 
 
+;; Clutchの結果コピーだけOSのクリップボードにも反映する。
+(add-hook 'clutch-result-mode-hook
+          (lambda ()
+            (setq-local interprogram-cut-function
+                        (lambda (text)
+                          (gui-set-selection 'CLIPBOARD text)))))
+
+
 ;; 行スワップ
 (use-package move-text
   :ensure t
