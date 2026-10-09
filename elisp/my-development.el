@@ -54,6 +54,8 @@
             (setq-local exec-path (cons bin exec-path))))))))
 
 
+;;; Haskell REPLで補完機能を有効にする ------------------------------
+
 ;; GHCiへの問い合わせ中の入力と、取得済み候補を保持する。
 (defvar-local my/haskell-ghci-pending nil)
 (defvar-local my/haskell-ghci-output-buffer nil)
