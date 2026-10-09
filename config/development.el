@@ -316,6 +316,19 @@
   (add-to-list 'tramp-remote-path "/root/.ghcup/bin"))
 
 
+
+;;; JSON / jq -------------------------------------------------------
+
+;; jqスクリプトの編集と、JSONに対するjqの対話的実行。
+(use-package jq-mode
+  :ensure t
+  :commands (jq-mode jq-interactively)
+  :mode ("\\.jq\\'" . jq-mode)
+  :custom
+  ;; Emacs標準のJSONモードで結果を色分けする。
+  (jq-interactive-font-lock-mode #'js-json-mode))
+
+
 ;;; Database --------------------------------------------------------
 
 ;; PostgreSQLへEmacs Lispから直接接続する。
