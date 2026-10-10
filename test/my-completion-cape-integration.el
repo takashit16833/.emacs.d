@@ -24,6 +24,7 @@
                   (lambda ()
                     (list (- (point) 4) (point) '("userName")
                           :category 'lsp-capf
+                          :company-kind (lambda (_) 'function)
                           :annotation-function (lambda (_) " LSP")
                           :exit-function
                           (lambda (candidate status)
