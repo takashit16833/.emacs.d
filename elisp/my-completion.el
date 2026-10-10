@@ -17,9 +17,9 @@
   (when (and (> (point) (point-min))
              (memq (char-syntax (char-before)) '(?w ?_)))
     (when-let* ((capf (dabbrev-capf)))
-      ;; 単語補完のkindを明示し、CorfuにTextアイコンを表示させる。
-      ;; Capeで統合した場合も候補ごとにこのkindが引き継がれる。
-      (append capf (list :company-kind (lambda (_) 'text))))))
+      ;; バッファ由来の候補をLSPのtext候補と区別して表示する。
+      ;; nerd-icons-corfu側でdabbrevにFile Textアイコンを割り当てる。
+      (append capf (list :company-kind (lambda (_) 'dabbrev))))))
 
 (defun my/dabbrev-completion-setup ()
   "既存のCAPFを優先し、dabbrevをバッファの末尾へ追加する。"
