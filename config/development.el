@@ -94,7 +94,11 @@
 ;; HLSのqualified completionでCAPFの入力変化を追跡する。
 (use-package cape
   :ensure t
-  :commands cape-wrap-buster)
+  :commands
+  (cape-wrap-buster
+   cape-wrap-super
+   cape-wrap-passthrough
+   cape-wrap-properties))
 
 
 ;;; PHP -------------------------------------------------------------
