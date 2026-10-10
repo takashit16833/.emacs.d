@@ -39,7 +39,7 @@
         ;; 統合後も、LSP由来とdabbrev由来の候補を区別する。
         (let ((kind (plist-get props :company-kind)))
           (should (eq (funcall kind "userName") 'function))
-          (should (eq (funcall kind "userProfile") 'dabbrev)))
+          (should (eq (funcall kind "userProfile") 'text)))
         ;; 本体と同じexit-functionを透過していること。
         (funcall (plist-get props :exit-function) "userName" 'finished)
         (should (equal completed '("userName" finished)))))))
