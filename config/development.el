@@ -151,6 +151,14 @@
                 #'my/eglot-haskell-completion-command)))
 
 
+;; ElDocの説明をchild frameで表示する。
+(use-package eldoc-box
+  :ensure t
+  :commands (eldoc-box-help-at-point
+             eldoc-box-hover-mode
+             eldoc-box-hover-at-point-mode))
+
+
 ;;; Formatting ------------------------------------------------------
 
 

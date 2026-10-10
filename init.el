@@ -31,7 +31,7 @@
  ;; If there is more than one, they won't work right.
  '(package-selected-packages
    '(avy browsing-history bufferlo cape clutch embark embark-consult
-	 pgsql retro-hacker-blue-theme one-dark-blue-theme tab-router
+	 one-dark-blue-theme pgsql retro-hacker-blue-theme tab-router
 	 undo-fu))
  '(package-vc-selected-packages
    '((retro-hacker-blue-theme :url
