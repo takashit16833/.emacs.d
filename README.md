@@ -138,7 +138,7 @@ Emacsの `M-:` で、利用する文法を確認する。
 
 Emacsパッケージとは別に、Language Serverやフォーマッタの実行ファイルが必要。実際に使用する言語のものだけ用意する。
 
-この移行ブランチでは、EmacsからLanguage Serverを起動する設定はまだ追加していない。Eglotの導入時に設定する。
+Emacs 31.1標準のEglotを使用する。Lua・Haskell・PHP・Python・TypeScript・TSXのファイルを開くと、自動的にLanguage Serverへの接続を試みる。
 
 | 言語 | Language Server | フォーマッタなど |
 | --- | --- | --- |
@@ -161,6 +161,27 @@ npm install --save-dev typescript
 ```
 
 TRAMPの場合、Language Server・フォーマッタは**接続先**で実行する。Tree-sitter文法のインストール先とは異なるので注意する。
+
+### Eglotの動作確認
+
+まずローカルのプロジェクト内で対象言語のファイルを開き、Emacsの `M-:` で次を評価する。
+
+```elisp
+(eglot-managed-p)
+```
+
+`t` ならEglotの管理下にある。接続できない場合は `M-x eglot` を手動実行し、エラーを確認する。`M-x eglot-events-buffer` で通信内容も確認できる。
+
+| 操作 | キーまたはコマンド |
+| --- | --- |
+| 定義へ移動 | `M-.` |
+| 参照を検索 | `M-?` |
+| 補完 | Corfuで候補を選択、または `M-x completion-at-point` |
+| 診断一覧 | `M-x flymake-show-buffer-diagnostics` |
+| カーソル位置の説明 | `M-x eldoc` |
+| シンボル名を変更 | `M-x eglot-rename` |
+
+Corfu・Flymake・Xref・ElDoc・Apheleiaは既存の設定を利用する。まず基本機能を確認し、Haskell補完やDocker/TRAMPで以前必要だった回避策がEglotでも必要かは、結果を見て判断する。
 
 ## Debian検証用Docker
 
