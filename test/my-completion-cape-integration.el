@@ -36,10 +36,10 @@
         (should (eq (plist-get props :category) 'lsp-capf))
         (should (member "userName" candidates))
         (should (member "userProfile" candidates))
-        ;; 統合後も、LSP由来の種類とdabbrev由来のTextを区別する。
+        ;; 統合後も、LSP由来とdabbrev由来の候補を区別する。
         (let ((kind (plist-get props :company-kind)))
           (should (eq (funcall kind "userName") 'function))
-          (should (eq (funcall kind "userProfile") 'text)))
+          (should (eq (funcall kind "userProfile") 'dabbrev)))
         ;; 本体と同じexit-functionを透過していること。
         (funcall (plist-get props :exit-function) "userName" 'finished)
         (should (equal completed '("userName" finished)))))))
