@@ -185,10 +185,9 @@ bash scripts/debian-test.sh rebuild
 
 ## テスト
 
-リポジトリ直下で単体ERTと結合ERTを実行する。
+リポジトリ直下で単体ERTを実行する。結合テストがある場合は、同じスクリプトから合わせて実行する。
 
 ```sh
 sh test/run-all-tests.sh
 ```
 
-結合テストがある場合は、同じスクリプトから実行する。
