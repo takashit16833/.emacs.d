@@ -31,7 +31,7 @@
     (let ((diag (flymake-make-diagnostic
                  "/project/Evaluation.hs" '(42 . 1) nil 'eglot-error
                  '("typecheck" "GHC-44432"
-                   "The type signature for reciprocalRankAt\\nlacks an accompanying binding"))))
+                   "The type signature for reciprocalRankAt\nlacks an accompanying binding"))))
       (my/flymake-problems-mode)
       (setq-local my/flymake-problems-project 'mock-project
                   my/flymake-problems-root "/project/")
@@ -43,7 +43,7 @@
                (buffer-string)))
       (should (string-match-p
                (regexp-quote
-                "The type signature for reciprocalRankAt\\n    lacks an accompanying binding")
+                "The type signature for reciprocalRankAt\n    lacks an accompanying binding")
                (buffer-string)))
       (should-not (string-match-p "HINT" (buffer-string))))))
 
