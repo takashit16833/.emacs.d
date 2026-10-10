@@ -177,7 +177,8 @@ TRAMPの場合、Language Server・フォーマッタは**接続先**で実行�
 | 定義へ移動 | `M-.` |
 | 参照を検索 | `M-?` |
 | 補完 | Corfuで候補を選択、または `M-x completion-at-point` |
-| 診断一覧 | `M-x flymake-show-buffer-diagnostics` |
+| 現在のファイルの診断一覧 | `M-x flymake-show-buffer-diagnostics` |
+| プロジェクトの診断全文一覧 | `S-s-m`（`my/flymake-problems`） |
 | カーソル位置の説明 | `M-x eldoc` |
 | シンボル名を変更 | `M-x eglot-rename` |
 
