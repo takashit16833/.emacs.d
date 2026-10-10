@@ -72,6 +72,64 @@ eglot-completion-at-pointの戻り値（CAPF）を包む:filter-return advice。
                   (eglot-execute server (copy-tree command))))))))
   capf)
 
+;; 【修飾名の補完が消える問題（自動importとは別問題）】
+;; ローカルのHaskellで「import qualified Data.Text as T」のもと、
+;; 「T.unp」からunpackを補完できなかった。Corfuを介さず
+;; eglot-completion-at-pointのtableを検査した結果、unpackは
+;; 28件の候補中に存在するのに、CAPFのprefixが「T.unp」となり、
+;; そのprefixでall-completionsすると候補が消えることを確認した。
+;; HLSからの候補不足やTRAMPではなく、Eglotのboundsと候補名の不一致。
+;;
+;; Eglot 31.1のeglot-completion-at-pointは
+;; bounds-of-thing-at-point 'symbolで補完範囲を決めるため、
+;; Haskellの修飾名を一つのsymbolと判定した場合に問題になる。
+;; https://github.com/emacs-mirror/emacs/blob/emacs-31.1/lisp/progmodes/eglot.el
+;;
+;; 【対応と限界】
+;; Haskellのモジュール修飾名（T.unp、Data.Text.unp等）だけ、
+;; Eglotがboundsを得る瞬間に末尾の「.」以降を補完範囲にする。
+;; HLSの問い合わせ・候補表・補完確定処理は変更しない。
+;; EglotのCAPFだけを修正し、Corfuやdabbrevの候補統合には介入しない。
+;; この処理はHaskellの通常の名前・他言語へ影響させない。
+;; 演算子補完等は今回の対象外。Eglotやhaskell-ts-modeの更新時に
+;; boundsが正しくなったなら、このadviceの必要性を再検証する。
+
+(defun my/eglot-haskell-qualified-bounds (bounds)
+  "Haskellの修飾名に限り、BOUNDSを最後のドット以降へ調整する。"
+  (if (and (consp bounds)
+           (<= (car bounds) (point))
+           (<= (point) (cdr bounds)))
+      (let ((dot (save-excursion
+                   (goto-char (point))
+                   (search-backward "." (car bounds) t))))
+        (if (and dot
+                 ;; モジュール名・別名は大文字から始まる。
+                 ;; 数値や演算子を修飾名と誤認識しない。
+                 (string-match-p
+                  "^[[:upper:]][[:alnum:]_'.]*$"
+                  (buffer-substring-no-properties (car bounds) dot))
+                 (string-match-p
+                  "^[[:alnum:]_']*$"
+                  (buffer-substring-no-properties (1+ dot) (point))))
+            (cons (1+ dot) (cdr bounds))
+          bounds))
+    bounds))
+
+(defun my/eglot-haskell-qualified-completion (original &rest args)
+  "Haskellの修飾名に対してだけEglotの補完開始位置を調整する。"
+  (if (derived-mode-p 'haskell-ts-mode)
+      (let ((bounds-function (symbol-function 'bounds-of-thing-at-point)))
+        ;; EglotがCAPFを構成する間だけboundsを補正する。
+        ;; グローバルな構文テーブルや他の補完コマンドは変更しない。
+        (cl-letf (((symbol-function 'bounds-of-thing-at-point)
+                   (lambda (thing)
+                     (let ((bounds (funcall bounds-function thing)))
+                       (if (eq thing 'symbol)
+                           (my/eglot-haskell-qualified-bounds bounds)
+                         bounds)))))
+          (apply original args)))
+    (apply original args)))
+
 (provide 'my-eglot)
 
 ;;; my-eglot.el ends here
