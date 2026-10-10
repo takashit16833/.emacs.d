@@ -19,8 +19,18 @@
     (unwind-protect
         (progn
           (with-temp-file my/theme--state-file
+            (insert "one-dark-blue\n"))
+          (should (eq (my/theme--read) 'one-dark-blue)))
+      (delete-file my/theme--state-file))))
+
+(ert-deftest my/theme--read-accepts-previous-theme-name ()
+  (let ((my/theme--state-file (make-temp-file "retro-theme-")))
+    (unwind-protect
+        (progn
+          (with-temp-file my/theme--state-file
             (insert "retro-one-dark\n"))
-          (should (eq (my/theme--read) 'retro-one-dark)))
+          (should (eq (my/theme--read) 'one-dark-blue))
+          (should (eq (my/theme--selected) 'one-dark-blue)))
       (delete-file my/theme--state-file))))
 
 (ert-deftest my/theme--selected-ignores-unknown-theme ()
@@ -37,8 +47,8 @@
          (my/theme--state-file (expand-file-name "state/retro-theme" directory)))
     (unwind-protect
         (progn
-          (my/theme--save 'retro-one-dark)
-          (should (eq (my/theme--read) 'retro-one-dark)))
+          (my/theme--save 'one-dark-blue)
+          (should (eq (my/theme--read) 'one-dark-blue)))
       (delete-directory directory t))))
 
 (ert-deftest my/theme--activate-rejects-unknown-theme ()
@@ -54,7 +64,7 @@
                (lambda (&rest _) (error "Test load failure")))
               ((symbol-function 'enable-theme)
                (lambda (theme) (push theme enabled))))
-      (should-error (my/theme--activate 'retro-one-dark) :type 'error)
+      (should-error (my/theme--activate 'one-dark-blue) :type 'error)
       (should (equal disabled '(original-theme original-theme)))
       (should (equal enabled '(original-theme))))))
 

@@ -11,7 +11,7 @@
 ;; 追加するテーマはここへ登録する。右側はテーマ固有の背景反映関数。
 (defconst my/theme--themes
   '((retro-hacker-blue . retro-hacker-blue-apply-background)
-    (retro-one-dark . retro-one-dark-apply-background))
+    (one-dark-blue . one-dark-blue-apply-background))
   "Emacs と WezTerm の両方が対応するテーマ。")
 
 (defconst my/theme--default 'retro-hacker-blue
@@ -27,6 +27,9 @@
                    (insert-file-contents my/theme--state-file)
                    (string-trim (buffer-string))))
            (theme (intern-soft name)))
+      ;; 以前のテーマ名で保存された選択も引き継ぐ。
+      (when (eq theme 'retro-one-dark)
+        (setq theme 'one-dark-blue))
       (when (assq theme my/theme--themes)
         theme))))
 
