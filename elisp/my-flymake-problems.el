@@ -51,11 +51,13 @@ LINEとCOLUMNは1始まり。POSITIONは訪問済みバッファ内の位置。"
       (cond
        ((and (bufferp locus) (buffer-live-p locus) (integerp beg))
         (with-current-buffer locus
-          (save-excursion
-            (goto-char beg)
-            (list file (line-number-at-pos) (1+ (- (point)
-                                                (line-beginning-position)))
-                  beg locus))))
+          (save-restriction
+            (widen)
+            (save-excursion
+              (goto-char beg)
+              (list file (line-number-at-pos)
+                    (1+ (- (point) (line-beginning-position)))
+                    beg locus)))))
        ((consp beg)
         (list file (car beg) (cdr beg) nil nil))))))
 
@@ -127,8 +129,11 @@ LINEとCOLUMNは1始まり。POSITIONは訪問済みバッファ内の位置。"
           (unless (equal file last-file)
             (setq last-file file)
             (insert
-             (propertize (file-relative-name file my/flymake-problems-root)
-                         'face 'bold)
+             (propertize
+              (condition-case nil
+                  (file-relative-name file my/flymake-problems-root)
+                (error file))
+              'face 'bold)
              "\n"))
           (my/flymake-problems--insert entry))))
     (setq my/flymake-problems-positions
