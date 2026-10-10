@@ -101,7 +101,9 @@ eglot-completion-at-pointの戻り値（CAPF）を包む:filter-return advice。
            (<= (point) (cdr bounds)))
       (let ((dot (save-excursion
                    (goto-char (point))
-                   (search-backward "." (car bounds) t))))
+                   (search-backward "." (car bounds) t)))
+            ;; case-fold-searchがtでも[:upper:]を小文字に一致させない。
+            (case-fold-search nil))
         (if (and dot
                  ;; モジュール名・別名は大文字から始まる。
                  ;; 数値や演算子を修飾名と誤認識しない。
