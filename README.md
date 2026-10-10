@@ -182,7 +182,9 @@ TRAMPの場合、Language Server・フォーマッタは**接続先**で実行�
 | カーソル位置の説明 | `M-x eldoc` |
 | シンボル名を変更 | `M-x eglot-rename` |
 
-Corfu・Flymake・Xref・ElDoc・Apheleiaは既存の設定を利用する。まず基本機能を確認し、Haskell補完やDocker/TRAMPで以前必要だった回避策がEglotでも必要かは、結果を見て判断する。
+Corfuの候補一覧には、Eglot（LSP）の候補とdabbrev（バッファ内の単語）を統合して表示する。Haskellでは修飾名の補完（例: `T.un` → `unpack`）と、未importの関数を補完した際の自動importにも対応する。HLSの補完候補数の上限は200件に設定している。Haskellの構文色はTree-sitterを優先し、EglotのSemantic Tokensによる上書きを無効にしている。
+
+`S-s-m` はプロジェクト内の診断メッセージを複数行のまま全文表示する。`RET` で診断位置へ移動、`n` / `p` で次・前、`g` で更新、`q` で閉じる。対象はFlymakeが把握している診断であり、プロジェクト内の全ファイルを自動検査するコマンドではない。
 
 ## Debian検証用Docker
 
@@ -207,7 +209,7 @@ bash scripts/debian-test.sh rebuild
 
 ## テスト
 
-リポジトリ直下で単体ERTを実行する。結合テストがある場合は、同じスクリプトから合わせて実行する。
+リポジトリ直下で単体ERTと結合ERTをまとめて実行する。
 
 ```sh
 sh test/run-all-tests.sh
