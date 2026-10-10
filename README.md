@@ -138,6 +138,8 @@ Emacsの `M-:` で、利用する文法を確認する。
 
 Emacsパッケージとは別に、Language Serverやフォーマッタの実行ファイルが必要。実際に使用する言語のものだけ用意する。
 
+この移行ブランチでは、EmacsからLanguage Serverを起動する設定はまだ追加していない。Eglotの導入時に設定する。
+
 | 言語 | Language Server | フォーマッタなど |
 | --- | --- | --- |
 | Lua | `lua-language-server` | `stylua` |
@@ -189,4 +191,4 @@ bash scripts/debian-test.sh rebuild
 sh test/run-all-tests.sh
 ```
 
-結合ERTではインストール済みの `lsp-mode` 等が必要。実際のLanguage Serverを起動せずに検証するテストも含む。
+結合テストがある場合は、同じスクリプトから実行する。
