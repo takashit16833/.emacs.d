@@ -20,7 +20,7 @@ This is a :filter-return advice for eglot-completion-at-point."
   (when (and (consp capf) (derived-mode-p 'haskell-ts-mode))
     (when-let* ((exit (plist-get (nthcdr 3 capf) :exit-function))
                 (server (eglot-current-server)))
-      (setf (plist-get (nthcdr 3 capf) :exit-function)
+      (plist-put (nthcdr 3 capf) :exit-function
             (lambda (candidate status)
               (let* ((item (when (and (stringp candidate)
                                       (> (length candidate) 0))
