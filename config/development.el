@@ -98,6 +98,26 @@
   :commands php-ts-mode)
 
 
+;;; Eglot -----------------------------------------------------------
+
+;; Language Serverとの通信はEmacs標準のEglotに任せる。
+;; 補完・診断・定義ジャンプはCorfu・Flymake・Xrefと連携する。
+(use-package eglot
+  :ensure nil
+  :hook
+  ((lua-ts-mode . eglot-ensure)
+   (haskell-ts-mode . eglot-ensure)
+   (php-ts-mode . eglot-ensure)
+   (python-ts-mode . eglot-ensure)
+   (typescript-ts-mode . eglot-ensure)
+   (tsx-ts-mode . eglot-ensure))
+  :config
+  ;; Eglot標準のPHP候補にはintelephenseがないため追加する。
+  ;; 他の言語サーバーはEmacs 31.1の標準定義をそのまま使用する。
+  (add-to-list 'eglot-server-programs
+               '(php-ts-mode . ("intelephense" "--stdio"))))
+
+
 ;;; Formatting ------------------------------------------------------
 
 
