@@ -30,9 +30,11 @@
     (insert "userName = 1\nuserProfile = 2\nuserN")
     ;; emacs -Qではcompletion.elを読み込まないため、実際の設定を再現する。
     (let ((dabbrev-case-replace nil))
-      (pcase-let ((`(,beg ,end ,table . ,_) (my/dabbrev-capf)))
+      (pcase-let ((`(,beg ,end ,table . ,props) (my/dabbrev-capf)))
         (should (equal (buffer-substring-no-properties beg end) "userN"))
-        (should (member "userName" (all-completions "userN" table)))))))
+        (should (member "userName" (all-completions "userN" table)))
+        (should (eq (funcall (plist-get props :company-kind) "userName")
+                    'text))))))
 
 (ert-deftest my/dabbrev-completion-setup-preserves-existing-capfs ()
   "既存CAPFの順番を保ち、重複なく最後に追加すること。"
