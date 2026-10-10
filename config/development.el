@@ -6,7 +6,6 @@
 
 
 (require 'my-development)
-(require 'my-lsp-problems)
 
 
 ;; Tree-sitterの色分けを最大レベル（４が最大）。
@@ -50,7 +49,7 @@
 (use-package lua-ts-mode
   :ensure nil
   :mode ("\\.lua\\'" . lua-ts-mode)
-  :hook (lua-ts-mode . my/lsp-lua-remote-command-setup))
+)
 
 
 ;;; Haskell ---------------------------------------------------------
@@ -92,168 +91,12 @@
                '(haskell-ts-mode my-haskell-simple-indent-offset)))
 
 
-;; HLSのqualified completionでCAPFの入力変化を追跡する。
-(use-package cape
-  :ensure t
-  :commands
-  (cape-wrap-buster
-   cape-wrap-super
-   cape-wrap-passthrough
-   cape-wrap-properties))
-
-
 ;;; PHP -------------------------------------------------------------
 
 ;; PHPではEmacs標準のTree-sitter modeを使用する。
 (use-package php-ts-mode
   :ensure nil
   :commands php-ts-mode)
-
-
-;;; LSP -------------------------------------------------------------
-
-
-;; Language Server Protocolを利用する。
-(use-package lsp-mode
-  :ensure t
-  :commands lsp-deferred
-  :hook
-  ((lua-ts-mode . lsp-deferred)
-   (haskell-ts-mode . lsp-deferred)
-   (php-ts-mode . lsp-deferred)
-   (python-ts-mode . lsp-deferred)
-   (typescript-ts-mode . lsp-deferred)
-   (tsx-ts-mode . lsp-deferred)
-   ;; HaskellだけLSP CAPFをqualified completion対応版へ差し替える。
-   (lsp-completion-mode . my/haskell-lsp-completion-setup)
-   ;; TRAMP先ではLSP接続後にdiff-hlを有効にする。
-   (lsp-after-open . my/diff-hl-enable-after-lsp-open)
-   (lsp-mode . lsp-enable-which-key-integration))
-
-  :init
-  (setq lsp-keymap-prefix "C-c l")
-
-  :custom
-  ;; LSPの補完候補はEmacs標準のcompletion-at-pointへ登録する。
-  ;; 候補の表示はCorfuに任せるため、company-modeは使用しない。
-  (lsp-completion-provider :none)
-
-  ;; 入力中断時に前回の候補を再利用すると、別の入力にも古い候補が残る。
-  (lsp-completion-use-last-result nil)
-
-  ;; 診断にはEmacs標準のFlymakeを使用する。
-  (lsp-diagnostics-provider :flymake)
-
-  ;; 入力中にはLanguage Serverによる自動整形を行わない。
-  ;; 編集中のインデントは各major modeに任せる。
-  (lsp-enable-on-type-formatting nil)
-  (lsp-enable-indentation nil)
-
-  ;; 保存時のコード変更はApheleiaなどの専用フォーマッタに任せる。
-  (lsp-before-save-edits nil)
-
-  ;; Tree-sitterによる色分けを使用するため、
-  ;; LSPによるSemantic Tokensは一旦使用しない。
-  (lsp-semantic-tokens-enable nil)
-
-  ;; コード上に参照数などを常時表示するCode Lensは一旦使用しない。
-  (lsp-lens-enable nil)
-
-  ;; 既存のMood Lineと表示が重複するため、
-  ;; lsp-mode独自のモードライン表示は使用しない。
-  (lsp-modeline-code-actions-enable nil)
-  (lsp-modeline-diagnostics-enable nil)
-  (lsp-modeline-workspace-status-enable nil)
-
-  ;; バッファ上部にパンくずリストを表示しない。
-  (lsp-headerline-breadcrumb-enable nil)
-  :bind
-  (:map lsp-mode-map
-	("<f12>" . lsp-find-definition)
-	("S-<f12>" . lsp-find-references)
-	("S-s-m" . my/lsp-problems))
-  (:map my/lsp-problems-mode-map
-	("S-s-m" . my/lsp-problems))
-
-  :config
-  ;; Docker/TRAMPではLSPだけdirect asyncで起動し、
-  ;; Content-Lengthを生のバイト列のまま扱えるようにする。
-  (my/lsp-enable-docker-direct-async)
-
-  ;; TRAMPの絶対パスをローカル側で再検査しないようにする。
-  (my/lsp-enable-tramp-server-check)
-
-  ;; HLSのcompletionItem/resolveでfalseがnullへ変換されるのを防ぐ。
-  ;; lsp-mode本体にもrust-analyzer向けの同種の補正がある。
-  (advice-add #'lsp-completion--fix-resolve-data
-              :after
-              #'my/lsp-completion-fix-haskell-resolve-data)
-
-  ;; ProblemsバッファをLSP診断の更新に追従させる。
-  (add-hook 'lsp-diagnostics-updated-hook
-            #'my/lsp-problems-refresh-if-open))
-
-
-;; TypeScriptはプロジェクトにインストールされたTypeScriptを優先する。
-(with-eval-after-load 'lsp-javascript
-  (setopt lsp-clients-typescript-prefer-use-project-ts-server t)
-  ;; プロジェクト内TypeScriptの存在確認にのみTRAMPパスを使う。
-  (my/lsp-enable-tramp-typescript-server-path))
-
-
-;; LSP起動前に、そのプロジェクトの仮想環境を認識させる。
-(add-hook 'python-ts-mode-hook #'my/python-setup-venv)
-
-
-;; Python Language ServerとしてPyrightを使用する。
-(use-package lsp-pyright
-  :ensure t
-  :after lsp-mode
-  :custom
-  ;; .venv / venv がなければPATH上のpython3を使用する。
-  (lsp-pyright-python-executable-cmd "python3"))
-
-
-;; Haskell Language Serverを使用する。
-(use-package lsp-haskell
-  :ensure t
-  :after lsp-mode
-  :custom
-  ;; HLSから明示的に整形した場合もFourmoluを使用する。
-  (lsp-haskell-formatting-provider "fourmolu")
-
-  ;; HLS内蔵版ではなくPATH上のFourmoluを使用する。
-  ;; Apheleiaと同じ実行ファイルを使うことで整形結果の差を防ぐ。
-  (lsp-haskell-plugin-fourmolu-config-external t)
-
-  ;; Stan有効時に補完応答が遅くなることを確認したため無効化する。
-  ;; HLS本体ではStanは既定で無効（lsp-haskellでは有効）。
-  (lsp-haskell-plugin-stan-global-on nil)
-
-  :config
-  ;; ファイル末尾の空行でnotes hoverが存在しない行を参照し、
-  ;; "Line not found in file" を出す問題を避ける。
-  ;; notesの補完・定義ジャンプ・参照検索はそのまま利用する。
-  (lsp-register-custom-settings
-   '(("haskell.plugin.notes.hoverOn" nil t))))
-
-
-;; LSPのシンボルや診断をConsultから検索できるようにする。
-(use-package consult-lsp
-  :ensure t
-  :after (consult lsp-mode)
-  :commands
-  (consult-lsp-symbols
-   consult-lsp-file-symbols
-   consult-lsp-diagnostics
-   consult-lsp-file-diagnostics))
-
-
-;; LSPの補完候補に含まれるスニペットを展開する。
-(use-package yasnippet
-  :ensure t
-  :hook
-  (lsp-mode . yas-minor-mode))
 
 
 ;;; Formatting ------------------------------------------------------
@@ -314,11 +157,6 @@
   
   (setf (alist-get 'haskell-cabal-mode apheleia-mode-alist)
 	'cabal-gild))
-
-
-;; 手動整形も保存時と同じApheleiaのformatter選択を使用する。
-(with-eval-after-load 'lsp-mode
-  (keymap-set lsp-command-map "= =" #'apheleia-format-buffer))
 
 
 (with-eval-after-load 'tramp
