@@ -111,10 +111,6 @@
   :ensure t
   :after corfu
   :config
-  ;; dabbrev候補のみFile Textにする。LSPのtextアイコンは変更しない。
-  (add-to-list 'nerd-icons-corfu-mapping
-               '(dabbrev :style "cod" :icon "file_text"
-                         :face font-lock-doc-face))
   (add-to-list 'corfu-margin-formatters
                #'nerd-icons-corfu-formatter))
 
