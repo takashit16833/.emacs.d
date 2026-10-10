@@ -67,7 +67,8 @@
             (insert "line1\n  hello\n"))
           (with-current-buffer problems
             (my/flymake-problems-mode)
-            (insert "  ERROR  2:3\n")
+            (let ((inhibit-read-only t))
+              (insert "  ERROR  2:3\n"))
             (add-text-properties
              (point-min) (point-max)
              (list 'my/flymake-problems-location
