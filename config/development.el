@@ -33,6 +33,11 @@
 ;; 診断マーカーはdiff-hlと重ならないよう右marginへ表示する。
 (use-package flymake
   :ensure nil
+  ;; 旧Problemsと同じキーで、診断メッセージの全文一覧を開く。
+  ;; UIの実装はコマンドを初めて使うまで読み込まない。
+  :init
+  (autoload 'my/flymake-problems "my-flymake-problems" nil t)
+  :bind ("S-s-m" . my/flymake-problems)
   :custom
   (flymake-indicator-type 'margins)
   (flymake-margin-indicator-position 'right-margin)
