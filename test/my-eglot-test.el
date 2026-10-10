@@ -21,7 +21,73 @@
 
 (require 'cl-lib)
 (require 'ert)
+(require 'eglot)
 (require 'my-eglot)
+
+
+;;; コードアクションの選択 -----------------------------------------
+
+(ert-deftest my/eglot-code-actions-prompts-for-one-suggested-action ()
+  "候補が1件のsuggestionでも即時実行せず、選択後に実行する。"
+  (with-temp-buffer
+    (let* ((action '(:title "Convert EvaluationSummary to GADT syntax"
+                     :kind "refactor.rewrite"))
+           (proposal (make-overlay (point) (point)))
+           (last-nonmenu-event ?a)
+           (requested nil)
+           (prompted nil)
+           (executed nil))
+      (unwind-protect
+          (progn
+            (overlay-put proposal 'eglot--actions (vector action))
+            (setq-local eglot--suggestion-overlay proposal)
+            (cl-letf (((symbol-function 'eglot--code-action-bounds)
+                       (lambda () (list (point) (point))))
+                      ((symbol-function 'eglot-server-capable-or-lose)
+                       (lambda (_capability) t))
+                      ((symbol-function 'eglot--current-server-or-lose)
+                       (lambda () 'test-server))
+                      ((symbol-function 'eglot--code-action-params)
+                       (lambda (&rest _) nil))
+                      ((symbol-function 'eglot--request)
+                       (lambda (_server method _params)
+                         (should (eq method :textDocument/codeAction))
+                         (setq requested t)
+                         (vector action)))
+                      ((symbol-function 'completing-read)
+                       (lambda (_prompt collection &rest _args)
+                         (should requested)
+                         (should-not executed)
+                         (should (equal (mapcar #'car collection)
+                                        '("Convert EvaluationSummary to GADT syntax")))
+                         (setq prompted t)
+                         "Convert EvaluationSummary to GADT syntax"))
+                      ((symbol-function 'eglot-execute)
+                       (lambda (server chosen)
+                         (should (eq server 'test-server))
+                         (setq executed chosen))))
+              (my/eglot-code-actions))
+            (should requested)
+            (should prompted)
+            (should (eq executed action))
+            (should (eq eglot--suggestion-overlay proposal)))
+        (delete-overlay proposal)))))
+
+(ert-deftest my/eglot-code-actions-restores-suggestion-after-error ()
+  "候補選択を中断してもEglotの提案表示を元に戻す。"
+  (with-temp-buffer
+    (let ((proposal (make-overlay (point) (point))))
+      (unwind-protect
+          (progn
+            (setq-local eglot--suggestion-overlay proposal)
+            (cl-letf (((symbol-function 'eglot-code-actions)
+                       (lambda ()
+                         (interactive)
+                         (should-not eglot--suggestion-overlay)
+                         (error "Selection interrupted"))))
+              (should-error (my/eglot-code-actions)))
+            (should (eq eglot--suggestion-overlay proposal)))
+        (delete-overlay proposal)))))
 
 (ert-deftest my/eglot-haskell-completion-executes-import-after-original-exit ()
   "候補確定時はEglot本来の編集の後にHLSコマンドを実行する。"

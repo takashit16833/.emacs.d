@@ -109,6 +109,9 @@
 ;; 補完・診断・定義ジャンプはCorfu・Flymake・Xrefと連携する。
 (use-package eglot
   :ensure nil
+  :bind
+  (:map eglot-mode-map
+        ("C-c l a" . my/eglot-code-actions))
   :hook
   ((lua-ts-mode . eglot-ensure)
    (haskell-ts-mode . eglot-ensure)

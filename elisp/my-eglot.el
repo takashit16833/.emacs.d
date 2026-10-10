@@ -1,4 +1,4 @@
-;;; my-eglot.el --- Haskellの自動import補完対応 -*- lexical-binding: t; -*-
+;;; my-eglot.el --- Eglotの補完・コードアクション調整 -*- lexical-binding: t; -*-
 
 ;;; Commentary:
 ;;
@@ -46,6 +46,22 @@
 ;; 二重実行を避けるためこのadviceを削除して再テストする。
 
 ;;; Code:
+
+
+;; Eglot 31.1は現在位置に提示した候補が1件だけの場合、
+;; eglot-code-actionsの対話的実行でも選択を省いて即時実行する。
+;; このコマンドでは、呼び出し中だけその提案を無視して、
+;; Eglot本来のcompleting-readによる候補選択に進ませる。
+;; 内部変数への依存はここだけに限定し、Eglot更新時に再確認する。
+(defvar eglot--suggestion-overlay)
+(declare-function eglot-code-actions "eglot"
+                  (beg &optional end action-kind interactive))
+
+(defun my/eglot-code-actions ()
+  "コードアクションを1件だけの場合も必ず候補から選択する。"
+  (interactive)
+  (let ((eglot--suggestion-overlay nil))
+    (call-interactively #'eglot-code-actions)))
 
 (declare-function eglot-current-server "eglot" ())
 (declare-function eglot-execute "eglot" (server action))
