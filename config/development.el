@@ -110,7 +110,9 @@
    (php-ts-mode . eglot-ensure)
    (python-ts-mode . eglot-ensure)
    (typescript-ts-mode . eglot-ensure)
-   (tsx-ts-mode . eglot-ensure))
+   (tsx-ts-mode . eglot-ensure)
+   ;; EglotがCAPFを設定し終わった段階で、dabbrevとの統合を切り替える。
+   (eglot-managed-mode . my/eglot-dabbrev-completion-setup))
   :config
   ;; Eglot標準のPHP候補にはintelephenseがないため追加する。
   ;; 他の言語サーバーはEmacs 31.1の標準定義をそのまま使用する。

@@ -5,6 +5,7 @@
 ;;; Code:
 
 (require 'ert)
+(require 'cl-lib)
 ;; `dabbrev-case-replace' を動的束縛するため、ERTの定義前に宣言を読み込む。
 (require 'dabbrev)
 (require 'my-completion)
@@ -45,5 +46,34 @@
     (my/dabbrev-completion-setup)
     (should (equal completion-at-point-functions
                    '(primary-capf secondary-capf my/dabbrev-capf)))))
+
+(ert-deftest my/eglot-dabbrev-tracking-preserves-original-candidates ()
+  "HLS由来の文字列プロパティを失わず、重複判定用の名前だけ記録する。"
+  (with-temp-buffer
+    (let* ((candidate (propertize "encode" 'eglot--lsp-item
+                                  '(:command (:command "extendImport"))))
+           (names (make-hash-table :test #'equal))
+           (capf (my/eglot-dabbrev--track-candidates
+                  (lambda () (list 1 1 (list candidate))) names))
+           (found (all-completions "enc" (nth 2 capf))))
+      (should (= (length found) 1))
+      (should (gethash "encode" names))
+      (should (equal (get-text-property 0 'eglot--lsp-item (car found))
+                     '(:command (:command "extendImport")))))))
+
+(ert-deftest my/eglot-dabbrev-setup-preserves-other-capfs ()
+  "EglotのCAPFだけを統合版へ差し替え、再接続でも重複しない。"
+  (with-temp-buffer
+    (setq-local completion-at-point-functions
+                '(eglot-completion-at-point tags-capf my/dabbrev-capf))
+    (cl-letf (((symbol-function 'eglot-managed-p) (lambda () t)))
+      (my/eglot-dabbrev-completion-setup)
+      (my/eglot-dabbrev-completion-setup))
+    (should (equal completion-at-point-functions
+                   '(my/eglot-dabbrev-capf tags-capf my/dabbrev-capf)))
+    (cl-letf (((symbol-function 'eglot-managed-p) (lambda () nil)))
+      (my/eglot-dabbrev-completion-setup))
+    (should (equal completion-at-point-functions
+                   '(tags-capf my/dabbrev-capf)))))
 
 ;;; my-completion-test.el ends here
