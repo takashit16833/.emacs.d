@@ -34,7 +34,7 @@
         (should (equal (buffer-substring-no-properties beg end) "userN"))
         (should (member "userName" (all-completions "userN" table)))
         (should (eq (funcall (plist-get props :company-kind) "userName")
-                    'text))))))
+                    'dabbrev))))))
 
 (ert-deftest my/dabbrev-completion-setup-preserves-existing-capfs ()
   "既存CAPFの順番を保ち、重複なく最後に追加すること。"
