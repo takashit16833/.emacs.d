@@ -117,9 +117,10 @@
   (add-to-list 'eglot-server-programs
                '(php-ts-mode . ("intelephense" "--stdio")))
 
-  ;; HLSは未importの補完候補にextendImportコマンドを付ける。
-  ;; Eglot 31.1の確定処理ではそのcommandを実行しないため、
-  ;; Haskellだけ元の確定処理の後に実行する。
+  ;; HLSの自動import補完をEglot 31.1で成立させるための互換処理。
+  ;; enc → encodeだけが挿入され、import Data.Aeson (encode)が追加されない
+  ;; 不具合への対応。原因・Eglot/HLSのソース・削除条件はmy-eglot.elを参照。
+  ;; Eglot本体がCompletionItem.commandに対応したら二重実行を避けて撤去する。
   (require 'my-eglot)
   (unless (advice-member-p #'my/eglot-haskell-completion-command
                            #'eglot-completion-at-point)
