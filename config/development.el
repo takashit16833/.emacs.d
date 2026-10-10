@@ -122,6 +122,13 @@
   ;; 不具合への対応。原因・Eglot/HLSのソース・削除条件はmy-eglot.elを参照。
   ;; Eglot本体がCompletionItem.commandに対応したら二重実行を避けて撤去する。
   (require 'my-eglot)
+  ;; T.unpを1つのsymbolとして扱う場合、unpackが候補表に存在しても
+  ;; 不一致として除外される。Haskellの修飾名のboundsだけ補正する。
+  ;; 自動import補完のadviceとは原因が異なるため独立させる。
+  (unless (advice-member-p #'my/eglot-haskell-qualified-completion
+                           #'eglot-completion-at-point)
+    (advice-add #'eglot-completion-at-point :around
+                #'my/eglot-haskell-qualified-completion))
   (unless (advice-member-p #'my/eglot-haskell-completion-command
                            #'eglot-completion-at-point)
     (advice-add #'eglot-completion-at-point :filter-return
