@@ -5,6 +5,8 @@
 ;;; Code:
 
 (require 'ert)
+;; `dabbrev-case-replace' を動的束縛するため、ERTの定義前に宣言を読み込む。
+(require 'dabbrev)
 (require 'my-completion)
 
 (ert-deftest my/dabbrev-capf-skips-whitespace ()
