@@ -115,7 +115,16 @@
   ;; Eglot標準のPHP候補にはintelephenseがないため追加する。
   ;; 他の言語サーバーはEmacs 31.1の標準定義をそのまま使用する。
   (add-to-list 'eglot-server-programs
-               '(php-ts-mode . ("intelephense" "--stdio"))))
+               '(php-ts-mode . ("intelephense" "--stdio")))
+
+  ;; HLSは未importの補完候補にextendImportコマンドを付ける。
+  ;; Eglot 31.1の確定処理ではそのcommandを実行しないため、
+  ;; Haskellだけ元の確定処理の後に実行する。
+  (require 'my-eglot)
+  (unless (advice-member-p #'my/eglot-haskell-completion-command
+                           #'eglot-completion-at-point)
+    (advice-add #'eglot-completion-at-point :filter-return
+                #'my/eglot-haskell-completion-command)))
 
 
 ;;; Formatting ------------------------------------------------------
