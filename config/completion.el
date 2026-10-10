@@ -122,12 +122,9 @@
   (dabbrev-case-replace nil))
 
 
-;; LSPなどの補完を優先し、担当するCAPFがなければバッファ内の単語を試す。
-;; 候補の統合はせず、既存のCAPFを置き換えない。
-(defun my/dabbrev-completion-setup ()
-  "Add `dabbrev-capf' as a buffer-local fallback completion source."
-  (add-hook 'completion-at-point-functions #'dabbrev-capf t t))
-
+;; LSPなど既存の補完元を優先し、単語補完を最後に試す。
+;; 空白直後にはdabbrevを起動しない。
+(require 'my-completion)
 (add-hook 'prog-mode-hook #'my/dabbrev-completion-setup)
 
 
