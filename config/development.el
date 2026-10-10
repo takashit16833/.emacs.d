@@ -112,7 +112,16 @@
    (typescript-ts-mode . eglot-ensure)
    (tsx-ts-mode . eglot-ensure)
    ;; EglotがCAPFを設定し終わった段階で、dabbrevとの統合を切り替える。
-   (eglot-managed-mode . my/eglot-dabbrev-completion-setup))
+   (eglot-managed-mode . my/eglot-dabbrev-completion-setup)
+   ;; Eglotは接続後にSemantic Tokensを有効化する。
+   ;; HaskellだけTree-sitterの配色に戻す（他言語には影響させない）。
+   (eglot-managed-mode . my/eglot-haskell-disable-semantic-tokens))
+  :init
+  ;; HLSの標準上限40件では、TRAMPでT.unからunpackが候補から漏れた。
+  ;; 200件に増やすと候補が表示されることを実機で確認済み。
+  ;; default値なので、必要ならプロジェクトの.dir-locals.elで上書きできる。
+  (setq-default eglot-workspace-configuration
+                '(:haskell (:maxCompletions 200)))
   :config
   ;; Eglot標準のPHP候補にはintelephenseがないため追加する。
   ;; 他の言語サーバーはEmacs 31.1の標準定義をそのまま使用する。
