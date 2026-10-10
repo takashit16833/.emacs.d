@@ -79,11 +79,16 @@ LINEとCOLUMNは1始まり。POSITIONは訪問済みバッファ内の位置。"
 
 (defun my/flymake-problems--severity (diagnostic)
   "DIAGNOSTICの種類を(ラベル . face)に変換する。"
-  (pcase (flymake-diagnostic-type diagnostic)
-    (:error (cons "ERROR" 'error))
-    (:warning (cons "WARNING" 'warning))
-    (:note (cons "INFO" 'success))
-    (_ (cons "HINT" 'shadow))))
+  ;; Eglotはeglot-error等の独自typeを使うが、Flymakeのカテゴリに
+  ;; flymake-error等を登録している。typeの名前ではなくカテゴリで判定する。
+  ;; flymake-errorそのものをtypeにするバックエンドにも対応する。
+  (let* ((type (flymake-diagnostic-type diagnostic))
+         (category (or (get type 'flymake-category) type)))
+    (pcase category
+      ('flymake-error (cons "ERROR" 'error))
+      ('flymake-warning (cons "WARNING" 'warning))
+      ('flymake-note (cons "INFO" 'success))
+      (_ (cons "UNKNOWN" 'shadow)))))
 
 (defun my/flymake-problems--insert (entry)
   "現在のバッファにENTRYの診断メッセージを全文挿入する。"
