@@ -154,9 +154,15 @@
 ;; ElDocの説明をchild frameで表示する。
 (use-package eldoc-box
   :ensure t
-  :commands (eldoc-box-help-at-point
-             eldoc-box-hover-mode
-             eldoc-box-hover-at-point-mode))
+  :bind ("C-c h" . eldoc-box-help-at-point)
+  :config
+  ;; TTY child frameの角丸枠を表示する。
+  (setf (alist-get 'undecorated eldoc-box-frame-parameters)
+        nil)
+
+  ;; child frame自体の背景色をCorfuと合わせる。
+  (setf (alist-get 'background-color eldoc-box-frame-parameters)
+        (face-attribute 'corfu-default :background nil 'default)))
 
 
 ;;; Formatting ------------------------------------------------------
