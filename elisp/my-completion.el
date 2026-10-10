@@ -16,7 +16,10 @@
   ;; コード補完では単語・シンボルだけを対象にする。
   (when (and (> (point) (point-min))
              (memq (char-syntax (char-before)) '(?w ?_)))
-    (dabbrev-capf)))
+    (when-let* ((capf (dabbrev-capf)))
+      ;; 単語補完のkindを明示し、CorfuにTextアイコンを表示させる。
+      ;; Capeで統合した場合も候補ごとにこのkindが引き継がれる。
+      (append capf (list :company-kind (lambda (_) 'text))))))
 
 (defun my/dabbrev-completion-setup ()
   "既存のCAPFを優先し、dabbrevをバッファの末尾へ追加する。"
