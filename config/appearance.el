@@ -71,7 +71,7 @@
   :commands nerd-icons-icon-for-file)
 
 
-;; 2つの Retro テーマを登録する。配色はテーマ本体へ置き、選択は my-theme に任せる。
+;; 2つのテーマを登録する。配色はテーマ本体へ置き、選択は my-theme に任せる。
 (use-package retro-hacker-blue-theme
   :vc (:url "https://github.com/takashit16833/emacs-retro-hacker-blue-theme.git"
        :rev :newest)
@@ -79,12 +79,12 @@
   :init
   (setq retro-hacker-blue-transparent-background nil))
 
-(use-package retro-one-dark-theme
-  :vc (:url "https://github.com/takashit16833/emacs-retro-one-dark-theme.git"
+(use-package one-dark-blue-theme
+  :vc (:url "https://github.com/takashit16833/emacs-one-dark-blue-theme.git"
        :rev :newest)
   :no-require t
   :init
-  (setq retro-one-dark-transparent-background nil))
+  (setq one-dark-blue-transparent-background nil))
 
 ;; WezTerm と共有した前回の選択を起動時に復元する。
 (require 'my-theme)
