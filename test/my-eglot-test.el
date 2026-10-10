@@ -157,6 +157,8 @@
   "通常の名前・小文字のフィールド・数値は変更しない。"
   (dolist (text '("encode" "value.field" "3.14"))
     (with-temp-buffer
+      ;; 通常のEmacs設定と同様に大文字小文字を無視する状態でも検証する。
+      (setq-local case-fold-search t)
       (insert text)
       (let ((bounds (cons (point-min) (point-max))))
         (should (equal (my/eglot-haskell-qualified-bounds bounds)
