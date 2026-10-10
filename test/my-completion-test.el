@@ -26,9 +26,11 @@
   "単語の途中ならバッファ内の単語を候補に出すこと。"
   (with-temp-buffer
     (insert "userName = 1\nuserProfile = 2\nuserN")
-    (pcase-let ((`(,beg ,end ,table . ,_) (my/dabbrev-capf)))
-      (should (equal (buffer-substring-no-properties beg end) "userN"))
-      (should (member "userName" (all-completions "userN" table))))))
+    ;; emacs -Qではcompletion.elを読み込まないため、実際の設定を再現する。
+    (let ((dabbrev-case-replace nil))
+      (pcase-let ((`(,beg ,end ,table . ,_) (my/dabbrev-capf)))
+        (should (equal (buffer-substring-no-properties beg end) "userN"))
+        (should (member "userName" (all-completions "userN" table)))))))
 
 (ert-deftest my/dabbrev-completion-setup-preserves-existing-capfs ()
   "既存CAPFの順番を保ち、重複なく最後に追加すること。"
