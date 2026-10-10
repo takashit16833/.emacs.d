@@ -122,6 +122,13 @@
   (dabbrev-case-replace nil))
 
 
+;; Eglotの補完とdabbrevを同じ候補一覧に統合する。
+;; 補完が必要になるまでCape本体は読み込まない。
+(use-package cape
+  :ensure t
+  :defer t)
+
+
 ;; コード補完の末尾にバッファ内の単語を追加する。
 (require 'my-completion)
 (add-hook 'prog-mode-hook #'my/dabbrev-completion-setup)
