@@ -479,38 +479,39 @@
 
 
 (ert-deftest my/lsp-lua-remote-command-setup-is-buffer-local ()
-  "Luaの回避策はリモートバッファだけに適用し、macOS側の設定を変えない。"
-  (let ((global-value '("/managed/lua-language-server" "-E")))
-    (let ((lsp-clients-lua-language-server-command global-value))
-      (with-temp-buffer
-        (let ((default-directory "/docker:debian-test:/workspace/"))
-          (my/lsp-lua-remote-command-setup)
-          (should (local-variable-p 'lsp-clients-lua-language-server-command))
-          (should (equal lsp-clients-lua-language-server-command
-                         '("lua-language-server" "-E")))))
-      (with-temp-buffer
-        (let ((default-directory "/tmp/"))
-          (my/lsp-lua-remote-command-setup)
-          (should-not (local-variable-p 'lsp-clients-lua-language-server-command))
-          (should (equal lsp-clients-lua-language-server-command global-value)))))))
+  "Luaの起動コマンドはリモートバッファだけに設定し、ローカルには設定しない。"
+  ;; 検証対象をletで動的束縛すると、その束縛がbuffer-local値より
+  ;; 優先されてしまう。実際のバッファの値を直接検証する。
+  (with-temp-buffer
+    (let ((default-directory "/docker:debian-test:/workspace/"))
+      (my/lsp-lua-remote-command-setup)
+      (should (local-variable-p 'lsp-clients-lua-language-server-command))
+      (should (equal lsp-clients-lua-language-server-command
+                     '("lua-language-server" "-E")))))
+  (with-temp-buffer
+    (let ((default-directory "/tmp/"))
+      (my/lsp-lua-remote-command-setup)
+      (should-not (local-variable-p 'lsp-clients-lua-language-server-command)))))
 
 
 (ert-deftest my/lsp-typescript-server-path-with-tramp-uses-project-version ()
   "Node.jsが返すコンテナの絶対パスをリモートで検査し、そのまま返す。"
   (with-temp-buffer
     (let ((default-directory "/docker:debian-test:/workspace/typescript-lsp-test/")
-          (lsp-clients-typescript-prefer-use-project-ts-server t)
           observed-path)
-      (cl-letf (((symbol-function 'lsp-clients-typescript-require-resolve)
-                 (lambda (&optional _dir)
-                   "/workspace/typescript-lsp-test/node_modules/typescript/lib"))
-                ((symbol-function 'file-exists-p)
-                 (lambda (path) (setq observed-path path) t)))
-        (should
-         (equal
-          (my/lsp-typescript-server-path-with-tramp
-           (lambda () (ert-fail "unexpected fallback")))
-          "/workspace/typescript-lsp-test/node_modules/typescript/lib")))
+      ;; emacs -Qではlsp-javascriptが未ロードでこのdefcustomも未定義。
+      ;; lexical-binding下のletではなく、cl-progvで実際の動的変数を束縛する。
+      (cl-progv '(lsp-clients-typescript-prefer-use-project-ts-server) '(t)
+        (cl-letf (((symbol-function 'lsp-clients-typescript-require-resolve)
+                   (lambda (&optional _dir)
+                     "/workspace/typescript-lsp-test/node_modules/typescript/lib"))
+                  ((symbol-function 'file-exists-p)
+                   (lambda (path) (setq observed-path path) t)))
+          (should
+           (equal
+            (my/lsp-typescript-server-path-with-tramp
+             (lambda () (ert-fail "unexpected fallback")))
+            "/workspace/typescript-lsp-test/node_modules/typescript/lib"))))
       (should (equal observed-path
                      "/docker:debian-test:/workspace/typescript-lsp-test/node_modules/typescript/lib")))))
 
@@ -519,16 +520,16 @@
   "TypeScriptがリモートにない場合は元の検出/エラー処理を残す。"
   (with-temp-buffer
     (let ((default-directory "/docker:debian-test:/workspace/")
-          (lsp-clients-typescript-prefer-use-project-ts-server t)
           (called nil))
-      (cl-letf (((symbol-function 'lsp-clients-typescript-require-resolve)
-                 (lambda (&optional _dir) "/workspace/missing/typescript/lib"))
-                ((symbol-function 'file-exists-p)
-                 (lambda (_path) nil)))
-        (should
-         (eq (my/lsp-typescript-server-path-with-tramp
-              (lambda () (setq called t) 'fallback))
-             'fallback)))
+      (cl-progv '(lsp-clients-typescript-prefer-use-project-ts-server) '(t)
+        (cl-letf (((symbol-function 'lsp-clients-typescript-require-resolve)
+                   (lambda (&optional _dir) "/workspace/missing/typescript/lib"))
+                  ((symbol-function 'file-exists-p)
+                   (lambda (_path) nil)))
+          (should
+           (eq (my/lsp-typescript-server-path-with-tramp
+                (lambda () (setq called t) 'fallback))
+               'fallback))))
       (should called))))
 
 
@@ -537,14 +538,15 @@
   (dolist (case '(("/tmp/" t)
                   ("/docker:debian-test:/workspace/" nil)))
     (with-temp-buffer
-      (let ((default-directory (car case))
-            (lsp-clients-typescript-prefer-use-project-ts-server (cadr case)))
-        (cl-letf (((symbol-function 'lsp-clients-typescript-require-resolve)
-                   (lambda (&optional _dir) (ert-fail "unexpected Node call"))))
-          (should
-           (eq (my/lsp-typescript-server-path-with-tramp
-                (lambda () 'original-result))
-               'original-result)))))))
+      (let ((default-directory (car case)))
+        (cl-progv '(lsp-clients-typescript-prefer-use-project-ts-server)
+            (list (cadr case))
+          (cl-letf (((symbol-function 'lsp-clients-typescript-require-resolve)
+                     (lambda (&optional _dir) (ert-fail "unexpected Node call"))))
+            (should
+             (eq (my/lsp-typescript-server-path-with-tramp
+                  (lambda () 'original-result))
+                 'original-result))))))))
 
 
 ;;; my-development-test.el ends here
