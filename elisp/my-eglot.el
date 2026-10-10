@@ -33,7 +33,7 @@ This is a :filter-return advice for eglot-completion-at-point."
                 (when command
                   ;; eglot-execute removes :title from Command objects.
                   ;; Keep the CompletionItem intact for any later use.
-                  (eglot-execute server (copy-tree command)))))))
+                  (eglot-execute server (copy-tree command))))))))
   capf)
 
 (provide 'my-eglot)
