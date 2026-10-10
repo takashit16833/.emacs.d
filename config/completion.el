@@ -122,11 +122,9 @@
   (dabbrev-case-replace nil))
 
 
-;; LSPなしでは単語補完を後段へ、LSP有効時は両方の候補を統合する。
+;; コード補完の末尾にバッファ内の単語を追加する。
 (require 'my-completion)
 (add-hook 'prog-mode-hook #'my/dabbrev-completion-setup)
-;; Haskell用の専用CAPFを差し替えた後で統合する。
-(add-hook 'lsp-completion-mode-hook #'my/lsp-dabbrev-completion-setup 90)
 
 
 ;;; completion.el ends here
