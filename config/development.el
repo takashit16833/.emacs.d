@@ -49,7 +49,8 @@
 ;; LuaでTree-sitterを使用する。
 (use-package lua-ts-mode
   :ensure nil
-  :mode ("\\.lua\\'" . lua-ts-mode))
+  :mode ("\\.lua\\'" . lua-ts-mode)
+  :hook (lua-ts-mode . my/lsp-lua-remote-command-setup))
 
 
 ;;; Haskell ---------------------------------------------------------
@@ -179,6 +180,9 @@
   ;; Content-Lengthを生のバイト列のまま扱えるようにする。
   (my/lsp-enable-docker-direct-async)
 
+  ;; TRAMPの絶対パスをローカル側で再検査しないようにする。
+  (my/lsp-enable-tramp-server-check)
+
   ;; HLSのcompletionItem/resolveでfalseがnullへ変換されるのを防ぐ。
   ;; lsp-mode本体にもrust-analyzer向けの同種の補正がある。
   (advice-add #'lsp-completion--fix-resolve-data
@@ -192,7 +196,9 @@
 
 ;; TypeScriptはプロジェクトにインストールされたTypeScriptを優先する。
 (with-eval-after-load 'lsp-javascript
-  (setopt lsp-clients-typescript-prefer-use-project-ts-server t))
+  (setopt lsp-clients-typescript-prefer-use-project-ts-server t)
+  ;; プロジェクト内TypeScriptの存在確認にのみTRAMPパスを使う。
+  (my/lsp-enable-tramp-typescript-server-path))
 
 
 ;; LSP起動前に、そのプロジェクトの仮想環境を認識させる。

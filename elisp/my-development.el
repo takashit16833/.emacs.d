@@ -333,6 +333,87 @@
               #'my/haskell-lsp-completion-reset-on-trigger nil t)))
 
 
+
+;;; TRAMP LSP paths --------------------------------------------------------
+;;
+;; Emacs 31.1のexecutable-findはTRAMP上のコマンドを発見しても、
+;; file-local-nameで接続先情報を除いた絶対パスを返す。
+;; lsp-modeがその絶対パスを再びexecutable-findへ渡すと、
+;; ローカル側のファイルとして検査され、サーバー未検出になる。
+;;
+;; lsp-server-present?をTRAMPの絶対パスの場合だけ補正する。
+;; executable-find/file-exists-p自体は変更しないので、
+;; ローカル接続と相対コマンド名の既存動作を維持できる。
+;;
+;; TypeScriptには別の同種の問題がある。Node.jsのrequire.resolveは
+;; コンテナ内の絶対パスを返すが、lsp-javascriptはそれをローカルの
+;; f-exists?で検査する。存在確認にだけTRAMPパスを使い、Language
+;; Serverへ渡す値はコンテナ内の絶対パスのままにしておく。
+;;
+;; Luaは共通のlsp-server-present?を使わず、専用の検査関数を使う。
+;; リモートのLuaバッファに限り起動コマンド名を明示する。
+;;
+;; lsp-server-present?とlsp-clients-typescript-server-pathは外部パッケージ
+;; の関数なので、lsp-mode更新時に回避策の要否を再確認すること。
+
+(defvar lsp-clients-lua-language-server-command)
+(defvar lsp-clients-typescript-prefer-use-project-ts-server)
+(declare-function lsp-clients-typescript-require-resolve
+                  "lsp-javascript" (&optional dir))
+
+
+(defun my/lsp-tramp-file-name (path)
+  "リモート上の絶対PATHを、Emacsが検査できるTRAMPパスにする。
+ローカルのパス、コマンド名、すでにTRAMP形式のパスにはnilを返す。"
+  (when-let* ((prefix (file-remote-p default-directory))
+              ((stringp path))
+              ((file-name-absolute-p path))
+              ((not (file-remote-p path))))
+    (concat prefix path)))
+
+
+(defun my/lsp-server-present-with-tramp-path (original command)
+  "TRAMPの絶対COMMANDだけリモート上で検査し、他はORIGINALへ委譲する。"
+  (if-let* ((path (my/lsp-tramp-file-name (car command))))
+      (file-executable-p path)
+    (funcall original command)))
+
+
+(defun my/lsp-enable-tramp-server-check ()
+  "lsp-modeの共通サーバー検査をTRAMPの絶対パスに対応させる。"
+  (unless (advice-member-p #'my/lsp-server-present-with-tramp-path
+                           'lsp-server-present?)
+    (advice-add 'lsp-server-present? :around
+                #'my/lsp-server-present-with-tramp-path)))
+
+
+(defun my/lsp-lua-remote-command-setup ()
+  "TRAMP上のLuaにだけ、PATHから解決する起動コマンドを指定する。"
+  (when (file-remote-p default-directory)
+    (setq-local lsp-clients-lua-language-server-command
+                '("lua-language-server" "-E"))))
+
+
+(defun my/lsp-typescript-server-path-with-tramp (original)
+  "TRAMP上のプロジェクト内TypeScriptを検出し、なければORIGINALへ委譲する。"
+  (or (when (and (file-remote-p default-directory)
+                 lsp-clients-typescript-prefer-use-project-ts-server)
+        (when-let* ((path (lsp-clients-typescript-require-resolve))
+                    (remote-path (my/lsp-tramp-file-name path))
+                    ((file-exists-p remote-path)))
+          ;; tsserverはリモートで起動するため、接続先情報を付けずに返す。
+          path))
+      (funcall original)))
+
+
+(defun my/lsp-enable-tramp-typescript-server-path ()
+  "TypeScriptのプロジェクト内パス検査をTRAMP対応にする。"
+  (unless (advice-member-p #'my/lsp-typescript-server-path-with-tramp
+                           'lsp-clients-typescript-server-path)
+    (advice-add 'lsp-clients-typescript-server-path :around
+                #'my/lsp-typescript-server-path-with-tramp)))
+
+
 ;;; Docker/TRAMP LSP transport ---------------------------------------------
 ;;
 ;; lsp-modeのstdio接続はLSPのContent-Lengthをバイト数として扱うため、
