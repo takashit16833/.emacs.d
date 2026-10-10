@@ -1,9 +1,21 @@
-;;; my-eglot-test.el --- Eglot completion integration tests -*- lexical-binding: t; -*-
+;;; my-eglot-test.el --- HLSの自動import補完対応のERT -*- lexical-binding: t; -*-
 
 ;;; Commentary:
-;; Verify that the Haskell-only CAPF wrapper preserves Eglot's exit
-;; behavior and executes a CompletionItem.command only on acceptance.
-;; Tests do not start a language server.
+;;
+;; my-eglot.elで補っているのは「補完候補の確定後にHLSのcommandを実行する」
+;; という一点。関数名の挿入やimport文の生成はここでは実装していない。
+;;
+;; 退行防止の対象:
+;; - 元のEglotのexit-functionを先に実行し、後からcommandを実行する
+;; - finished/exact以外では実行しない
+;; - Eglot由来のcommandがない候補、Haskell以外のモードには影響しない
+;; - 元の確定処理に失敗した場合はcommandを実行しない
+;; - eglot-executeが:titleを変更しても、受信した候補を壊さない
+;;
+;; HLS・Eglotの通信はモックしており、import文が実際に挿入されるかは未検証。
+;; 実機ではData.Aeson未importの状態でencからencodeを確定し、
+;; import Data.Aeson (encode)が追加されることを別途確認する。
+;; 原因と削除条件はelisp/my-eglot.elのCommentaryを参照する。
 
 ;;; Code:
 
@@ -12,7 +24,7 @@
 (require 'my-eglot)
 
 (ert-deftest my/eglot-haskell-completion-executes-import-after-original-exit ()
-  "Accepting an HLS item executes its command after Eglot's edits."
+  "候補確定時はEglot本来の編集の後にHLSコマンドを実行する。"
   (with-temp-buffer
     (setq-local major-mode 'haskell-ts-mode)
     (let* ((command '(:title "extend import"
@@ -32,7 +44,7 @@
                    (should (equal (plist-get action :command)
                                   (plist-get command :command)))
                    (push 'command events)
-                   ;; Eglot may destructively remove :title.
+                   ;; eglot-executeと同様に:titleを破壊的に変更しても安全か確認する。
                    (cl-remf action :title))))
         (should (eq capf (my/eglot-haskell-completion-command capf)))
         (funcall (plist-get (nthcdr 3 capf) :exit-function)
@@ -41,7 +53,7 @@
         (should (equal (plist-get command :title) "extend import"))))))
 
 (ert-deftest my/eglot-haskell-completion-supports-exact-status ()
-  "An exact completion also executes its command."
+  "exactステータスでも追加コマンドを実行する。"
   (with-temp-buffer
     (setq-local major-mode 'haskell-ts-mode)
     (let ((count 0)
@@ -58,7 +70,7 @@
         (should (= count 1))))))
 
 (ert-deftest my/eglot-haskell-completion-ignores-cancel-and-unmarked-candidates ()
-  "Do not run commands after cancel or for non-LSP candidates."
+  "キャンセルや追加コマンドのない候補ではサーバーを呼ばない。"
   (with-temp-buffer
     (setq-local major-mode 'haskell-ts-mode)
     (let* ((count 0)
@@ -80,7 +92,7 @@
         (should (= count 3))))))
 
 (ert-deftest my/eglot-haskell-completion-leaves-other-modes-unchanged ()
-  "Other major modes keep the original Eglot completion callback."
+  "Haskell以外ではEglotの確定処理を変更しない。"
   (with-temp-buffer
     (let* ((original #'ignore)
            (capf (list 1 4 nil :exit-function original)))
@@ -92,7 +104,7 @@
                     (plist-get (nthcdr 3 capf) :exit-function)))))))
 
 (ert-deftest my/eglot-haskell-completion-does-not-execute-after-exit-error ()
-  "Do not execute server commands if the original completion fails."
+  "元の確定処理が失敗した場合は追加コマンドを実行しない。"
   (with-temp-buffer
     (setq-local major-mode 'haskell-ts-mode)
     (let* ((candidate (propertize "encode" 'eglot--lsp-item
