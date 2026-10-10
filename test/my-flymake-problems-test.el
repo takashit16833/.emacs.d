@@ -7,7 +7,45 @@
 (require 'cl-lib)
 (require 'ert)
 (require 'flymake)
+(require 'eglot)
 (require 'my-flymake-problems)
+
+(ert-deftest my/flymake-problems-eglot-severity ()
+  "Eglotの診断をERROR/WARNING/INFOとして表示する。"
+  ;; Eglot 31.1が登録するflymake-categoryを実際に使用する。
+  (dolist (case '((eglot-error "ERROR" error)
+                  (eglot-warning "WARNING" warning)
+                  (eglot-note "INFO" success)
+                  (:error "ERROR" error)
+                  (:warning "WARNING" warning)
+                  (:note "INFO" success)))
+    (pcase-let ((`(,type ,label ,face) case))
+      (let ((diag (flymake-make-diagnostic
+                   "/project/Main.hs" '(1 . 1) nil type "diagnostic")))
+        (should (equal (my/flymake-problems--severity diag)
+                       (cons label face)))))))
+
+(ert-deftest my/flymake-problems-renders-eglot-error ()
+  "HLSのeglot-errorがHINTではなくERRORと全文表示される。"
+  (with-temp-buffer
+    (let ((diag (flymake-make-diagnostic
+                 "/project/Evaluation.hs" '(42 . 1) nil 'eglot-error
+                 '("typecheck" "GHC-44432"
+                   "The type signature for reciprocalRankAt\\nlacks an accompanying binding"))))
+      (my/flymake-problems-mode)
+      (setq-local my/flymake-problems-project 'mock-project
+                  my/flymake-problems-root "/project/")
+      (cl-letf (((symbol-function 'flymake--project-diagnostics)
+                 (lambda (_) (list diag))))
+        (my/flymake-problems-refresh))
+      (should (string-match-p
+               (regexp-quote "ERROR  42:1  [typecheck]  [GHC-44432]")
+               (buffer-string)))
+      (should (string-match-p
+               (regexp-quote
+                "The type signature for reciprocalRankAt\\n    lacks an accompanying binding")
+               (buffer-string)))
+      (should-not (string-match-p "HINT" (buffer-string))))))
 
 (ert-deftest my/flymake-problems-lists-full-multiline-message ()
   "全文とorigin/codeを省略せず、ファイルごとにグループ化する。"
