@@ -9,6 +9,7 @@
 (declare-function cape-wrap-super "cape" (&rest capfs))
 (declare-function cape-wrap-passthrough "cape" (capf))
 (declare-function cape-wrap-properties "cape" (capf &rest properties))
+(declare-function cape-wrap-predicate "cape" (capf predicate))
 
 (defun my/dabbrev-capf ()
   "単語・シンボルの直後だけdabbrevで補完する。"
@@ -28,20 +29,44 @@
 (defvar-local my/lsp-dabbrev-source-capf nil
   "統合前のLSP CAPF。Haskellの場合は専用CAPFを保持する。")
 
+(defun my/lsp-dabbrev--track-candidates (capf names)
+  "CAPFの候補名をNAMESへ記録しながら、元の補完結果を返す。"
+  (pcase (funcall capf)
+    (`(,beg ,end ,table . ,props)
+     `(,beg ,end
+       ,(lambda (str pred action)
+          (let ((result (complete-with-action action table str pred)))
+            (when (eq action t)
+              (clrhash names)
+              (dolist (candidate result)
+                (puthash (substring-no-properties candidate) t names)))
+            result))
+       ,@props))))
+
 (defun my/lsp-dabbrev-capf ()
-  "元のLSP補完処理を保ったままdabbrev候補を統合する。"
+  "元のLSP補完を維持し、同名のdabbrev候補だけを除外して統合する。"
   (when my/lsp-dabbrev-source-capf
-    ;; LSPが返した候補をCape内部でprefixフィルタし直さない。
-    ;; LSPはserver側のフィルタリングとlsp-passthroughを使っている。
-    (cape-wrap-properties
-     (lambda ()
-       (cape-wrap-super
-        (lambda ()
-          (cape-wrap-passthrough my/lsp-dabbrev-source-capf))
-        #'my/dabbrev-capf))
-     ;; Capeの合成カテゴリに置き換わるとlsp-passthroughが外れる。
-     ;; 元のLSPカテゴリを戻して候補絞り込み・確定を維持する。
-     :category 'lsp-capf)))
+    (let ((lsp-names (make-hash-table :test #'equal)))
+      (cape-wrap-properties
+       (lambda ()
+         (cape-wrap-super
+          (lambda ()
+            ;; Capeは先にLSP候補を取得する。既存の取得結果を記録し、
+            ;; 重複判定のためにLSPへ再問い合わせしない。
+            (my/lsp-dabbrev--track-candidates
+             (lambda ()
+               ;; サーバーの候補をprefixで再フィルタしない。
+               (cape-wrap-passthrough my/lsp-dabbrev-source-capf))
+             lsp-names))
+          (lambda ()
+            ;; dabbrevだけをフィルタする。LSP同士の同名候補は残す。
+            (cape-wrap-predicate
+             #'my/dabbrev-capf
+             (lambda (candidate)
+               (not (gethash (substring-no-properties candidate)
+                             lsp-names)))))))
+       ;; Capeの合成カテゴリでlsp-passthroughが失われないようにする。
+       :category 'lsp-capf))))
 
 (defun my/lsp-dabbrev-completion-setup ()
   "LSP有効時に元のCAPFを候補統合版へ差し替える。"
