@@ -19,6 +19,7 @@
 (require 'cl-lib)
 (require 'flymake)
 (require 'project)
+(require 'subr-x)
 
 (declare-function flymake--project-diagnostics "flymake"
                   (&optional project))
