@@ -48,8 +48,7 @@
 ;; LuaでTree-sitterを使用する。
 (use-package lua-ts-mode
   :ensure nil
-  :mode ("\\.lua\\'" . lua-ts-mode)
-)
+  :mode ("\\.lua\\'" . lua-ts-mode))
 
 
 ;;; Haskell ---------------------------------------------------------
