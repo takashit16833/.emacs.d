@@ -120,4 +120,76 @@
         (should-error (funcall (plist-get (nthcdr 3 capf) :exit-function)
                                candidate 'finished))))))
 
+;;; Haskell修飾名の補完範囲 -----------------------------------------
+;;
+;; ローカルの実測ではT.unpの候補表にunpackがあったが、
+;; EglotのCAPF範囲がT.unpだったため照合に失敗した。
+;; ここでは範囲補正と候補の照合を検証する。
+;; 実際のHLSからの応答・Corfuの自動表示は別途実機で確認する。
+
+(ert-deftest my/eglot-haskell-qualified-bounds-excludes-module-prefix ()
+  "T.unpのCAPF範囲はunpだけにする。"
+  (with-temp-buffer
+    (insert "T.unp")
+    (should (equal
+             (my/eglot-haskell-qualified-bounds
+              (cons (point-min) (point-max)))
+             (cons (+ (point-min) 2) (point-max))))))
+
+(ert-deftest my/eglot-haskell-qualified-bounds-supports-nested-module ()
+  "Data.Text.unpでは最後のドット以降だけを対象にする。"
+  (with-temp-buffer
+    (insert "Data.Text.unp")
+    (pcase-let ((`(,beg . ,end)
+                 (my/eglot-haskell-qualified-bounds
+                  (cons (point-min) (point-max)))))
+      (should (equal (buffer-substring-no-properties beg end) "unp")))))
+
+(ert-deftest my/eglot-haskell-qualified-bounds-supports-empty-suffix ()
+  "T.の直後でも補完範囲を空文字列にする。"
+  (with-temp-buffer
+    (insert "T.")
+    (should (equal (my/eglot-haskell-qualified-bounds
+                    (cons (point-min) (point-max)))
+                   (cons (point) (point))))))
+
+(ert-deftest my/eglot-haskell-qualified-bounds-preserves-unqualified-names ()
+  "通常の名前・小文字のフィールド・数値は変更しない。"
+  (dolist (text '("encode" "value.field" "3.14"))
+    (with-temp-buffer
+      (insert text)
+      (let ((bounds (cons (point-min) (point-max))))
+        (should (equal (my/eglot-haskell-qualified-bounds bounds)
+                       bounds))))))
+
+(ert-deftest my/eglot-haskell-qualified-completion-matches-unpack ()
+  "HLSの候補unpackがT.unpの接尾辞unpと一致すること。"
+  (with-temp-buffer
+    (setq-local major-mode 'haskell-ts-mode)
+    (insert "T.unp")
+    ;; Eglotの実装と同じbounds-of-thing-at-point呼び出しを模擬する。
+    (cl-letf (((symbol-function 'bounds-of-thing-at-point)
+               (lambda (_thing) (cons (point-min) (point-max)))))
+      (pcase-let* ((`(,beg ,end ,table)
+                    (my/eglot-haskell-qualified-completion
+                     (lambda ()
+                       (pcase-let ((`(,from . ,to)
+                                    (bounds-of-thing-at-point 'symbol)))
+                         (list from to '("unpack" "unsafeHead"))))))
+                   (prefix (buffer-substring-no-properties beg end)))
+        (should (equal prefix "unp"))
+        (should (member "unpack" (all-completions prefix table)))))))
+
+(ert-deftest my/eglot-haskell-qualified-completion-leaves-other-modes-alone ()
+  "他言語ではEglotのboundsに介入しない。"
+  (with-temp-buffer
+    (setq-local major-mode 'python-ts-mode)
+    (insert "T.unp")
+    (cl-letf (((symbol-function 'bounds-of-thing-at-point)
+               (lambda (_thing) (cons (point-min) (point-max)))))
+      (should (equal
+               (my/eglot-haskell-qualified-completion
+                (lambda () (bounds-of-thing-at-point 'symbol)))
+               (cons (point-min) (point-max)))))))
+
 ;;; my-eglot-test.el ends here
