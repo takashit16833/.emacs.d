@@ -132,6 +132,27 @@ eglot-completion-at-pointの戻り値（CAPF）を包む:filter-return advice。
           (apply original args)))
     (apply original args)))
 
+;; 【Haskellの色分けをTree-sitterに統一する】
+;; Emacs 31.1のEglotは接続後にSemantic Tokensを有効化する。
+;; HLSのトークンが届くと、最初のTree-sitterによる色分けに別のfaceが
+;; 加わり、関数などの色が後から白っぽく変わる現象を確認した。
+;; eglot-semantic-tokens-mode -1で元の配色に戻ることを実機で確認済み。
+;; Eglot 31.1ではsemantic tokens有効化の後に
+;; eglot-managed-mode-hookを呼ぶので、このhookでHaskellのみ無効化する。
+;; 他言語のSemantic TokensやHaskellの補完・診断には触れない。
+;; 根拠: https://github.com/emacs-mirror/emacs/blob/emacs-31.1/lisp/progmodes/eglot.el
+;;       eglot--maybe-activate-editing-mode
+
+(declare-function eglot-managed-p "eglot" ())
+(declare-function eglot-semantic-tokens-mode "eglot" (&optional arg))
+
+(defun my/eglot-haskell-disable-semantic-tokens ()
+  "Eglot管理中のHaskellではTree-sitterの色分けを優先する。"
+  (when (and (derived-mode-p 'haskell-ts-mode)
+             (eglot-managed-p)
+             (bound-and-true-p eglot-semantic-tokens-mode))
+    (eglot-semantic-tokens-mode -1)))
+
 (provide 'my-eglot)
 
 ;;; my-eglot.el ends here
