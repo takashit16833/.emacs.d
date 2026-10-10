@@ -105,4 +105,67 @@
     (should (eq :json-null (my-test/lsp-resolve-needs-type sent)))))
 
 
+
+;;; TRAMP LSP path integration ----------------------------------------------
+;;
+;; 単体テストではパス変換の判断を確認している。
+;; ここでは実物のlsp-mode / lsp-javascriptへadviceを適用し、
+;; 実際の検査関数から回避策が呼ばれることを確認する。
+;; ネットワークや外部Language Serverは必要としない。
+
+
+(ert-deftest my/lsp-integration-tramp-server-present-uses-remote-path ()
+  "lsp-mode本体からTRAMP上の実行ファイルを検査できること。"
+  (let ((already-enabled
+         (advice-member-p #'my/lsp-server-present-with-tramp-path
+                          'lsp-server-present?)))
+    (unwind-protect
+        (progn
+          (my/lsp-enable-tramp-server-check)
+          (with-temp-buffer
+            (let ((default-directory "/docker:debian-test:/workspace/")
+                  observed-path)
+              (cl-letf (((symbol-function 'file-executable-p)
+                         (lambda (path)
+                           (setq observed-path path)
+                           t)))
+                (should (lsp-server-present?
+                         '("/usr/local/bin/intelephense" "--stdio"))))
+              (should (equal observed-path
+                             "/docker:debian-test:/usr/local/bin/intelephense")))))
+      ;; 個別のERTの後に他の結合テストへadviceを残さない。
+      (unless already-enabled
+        (advice-remove 'lsp-server-present?
+                       #'my/lsp-server-present-with-tramp-path)))))
+
+
+(ert-deftest my/lsp-integration-typescript-server-path-uses-project-version ()
+  "lsp-javascript本体からもプロジェクト内TypeScriptの検出に成功すること。"
+  (require 'lsp-javascript)
+  (let ((already-enabled
+         (advice-member-p #'my/lsp-typescript-server-path-with-tramp
+                          'lsp-clients-typescript-server-path)))
+    (unwind-protect
+        (progn
+          (my/lsp-enable-tramp-typescript-server-path)
+          (with-temp-buffer
+            (let ((default-directory
+                    "/docker:debian-test:/workspace/typescript-lsp-test/")
+                  (lsp-clients-typescript-prefer-use-project-ts-server t))
+              (cl-letf
+                  (((symbol-function 'lsp-clients-typescript-require-resolve)
+                    (lambda (&optional _dir)
+                      "/workspace/typescript-lsp-test/node_modules/typescript/lib"))
+                   ((symbol-function 'file-exists-p)
+                    (lambda (path)
+                      (equal path
+                             "/docker:debian-test:/workspace/typescript-lsp-test/node_modules/typescript/lib"))))
+                (should
+                 (equal (lsp-clients-typescript-server-path)
+                        "/workspace/typescript-lsp-test/node_modules/typescript/lib"))))))
+      (unless already-enabled
+        (advice-remove 'lsp-clients-typescript-server-path
+                       #'my/lsp-typescript-server-path-with-tramp)))))
+
+
 ;;; my-development-lsp-integration.el ends here
