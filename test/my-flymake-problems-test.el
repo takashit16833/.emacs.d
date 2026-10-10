@@ -105,12 +105,14 @@
             (insert "line1\n  hello\n"))
           (with-current-buffer problems
             (my/flymake-problems-mode)
+            ;; special-modeは読み取り専用なので、テスト用の診断を
+            ;; 追加する間だけ書き込みを許可する。
             (let ((inhibit-read-only t))
-              (insert "  ERROR  2:3\n"))
-            (add-text-properties
-             (point-min) (point-max)
-             (list 'my/flymake-problems-location
-                   (list "/project/A.hs" 2 3 nil nil)))
+              (insert "  ERROR  2:3\n")
+              (add-text-properties
+               (point-min) (point-max)
+               (list 'my/flymake-problems-location
+                     (list "/project/A.hs" 2 3 nil nil))))
             (goto-char (point-min))
             (cl-letf (((symbol-function 'find-file-noselect)
                        (lambda (file)
