@@ -13,7 +13,7 @@
              (memq (char-syntax (char-before)) '(?w ?_)))
     (when-let* ((capf (dabbrev-capf)))
       ;; 単語補完のkindを明示し、CorfuにTextアイコンを表示させる。
-      ;; Capeで統合した場合も候補ごとにこのkindが引き継がれる。
+      ;; Corfu側でTextの種類として表示できるようにする。
       (append capf (list :company-kind (lambda (_) 'text))))))
 
 (defun my/dabbrev-completion-setup ()
