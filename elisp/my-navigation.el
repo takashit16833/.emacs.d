@@ -73,10 +73,6 @@
   (with-eval-after-load 'xref
     (my/navigation--advise 'xref-find-definitions))
 
-  ;; LSP。
-  (with-eval-after-load 'lsp-mode
-    (my/navigation--advise 'lsp-find-definition))
-
   ;; Consult。
   (with-eval-after-load 'consult
     (dolist (command '(consult-buffer
