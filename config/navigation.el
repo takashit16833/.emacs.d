@@ -94,7 +94,8 @@
         bufferlo-hidden-buffers '("\\`magit"))
   :bind
   (("C-x b" . bufferlo-switch-to-buffer)
-   ("C-x k" . bufferlo-remove))
+   ("C-x K" . bufferlo-remove)
+   ("C-x k" . bufferlo-bury))
   :config
   (bufferlo-mode 1))
 
