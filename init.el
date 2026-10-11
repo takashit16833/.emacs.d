@@ -29,6 +29,7 @@
  ;; If you edit it by hand, you could mess it up, so be careful.
  ;; Your init file should contain only one such instance.
  ;; If there is more than one, they won't work right.
+ '(ignored-local-variable-values '((my-haskell-simple-indent-offset . 2)))
  '(package-selected-packages
    '(avy browsing-history bufferlo cape clutch embark embark-consult
 	 one-dark-blue-theme pgsql retro-hacker-blue-theme tab-router
