@@ -129,6 +129,16 @@
   (message "クリップボードにコピーしました"))
 
 
+(defun my/cut-region-to-clipboard (beg end)
+  "選択範囲をOSのクリップボードへ切り取り、キルリングにも保存する。"
+  (interactive "r")
+  (unless (use-region-p)
+    (user-error "選択範囲がありません"))
+  (let ((text (buffer-substring-no-properties beg end)))
+    (kill-region beg end)
+    (gui-set-selection 'CLIPBOARD text)))
+
+
 (defun my/delete-whole-line ()
   "現在の行を改行ごと削除し、空行を残さない。"
   (interactive)
