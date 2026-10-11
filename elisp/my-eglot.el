@@ -149,8 +149,9 @@ eglot-completion-at-pointの戻り値（CAPF）を包む:filter-return advice。
     (apply original args)))
 
 
-;;; 型ヒントの確定 -------------------------------------------------
-;; basedpyright 1.40.2は型注釈と必要なimportのtextEditsを返す。
+;;; インレイヒントの確定 -------------------------------------------
+;; basedpyright 1.40.2は型・引数名ヒントのtextEditsを返す。
+;; 型注釈に必要なimportの編集情報も含まれる。
 ;; https://github.com/DetachHead/basedpyright/blob/v1.40.2/packages/pyright-internal/src/languageService/inlayHintsProvider.ts
 ;; Emacs 31.1のEglotに確定コマンドはないため、問い合わせと編集適用には
 ;; Eglot内部APIを利用する。将来のEglot更新時に再確認する。
@@ -185,9 +186,9 @@ STARTはシンボルの先頭、ENDは末尾の位置。
    (append hints nil)))
 
 (defun my/eglot-apply-inlay-hint ()
-  "カーソル位置のシンボルに付く型ヒントをコードへ反映する。
-サーバーが返すimport文などの編集もまとめて適用する。
-対象はシンボル末尾に挿入される型ヒントだけに限定する。"
+  "カーソル位置のシンボルに付くインレイヒントをコードへ反映する。
+型ヒントはシンボル末尾、引数名ヒントは先頭を対象とする。
+サーバーが返すimport文などの編集もまとめて適用する。"
   (interactive)
   (let ((bounds (bounds-of-thing-at-point 'symbol)))
     (unless bounds
@@ -195,8 +196,6 @@ STARTはシンボルの先頭、ENDは末尾の位置。
     (eglot-server-capable-or-lose :inlayHintProvider)
     (let* ((server (eglot--current-server-or-lose))
            ;; eglot--pos-to-lsp-positionはpointを動かす。
-           (position (save-excursion
-                       (eglot--pos-to-lsp-position (cdr bounds))))
 	   (start (save-excursion
 		    (eglot--pos-to-lsp-position (car bounds))))
 	   (end (save-excursion
@@ -215,16 +214,16 @@ STARTはシンボルの先頭、ENDは末尾の位置。
         (user-error "Buffer changed while requesting inlay hints"))
       (cond
        ((null matches)
-        (user-error "No type inlay hint for symbol at point"))
+        (user-error "No inlay hint for symbol at point"))
        ((cdr matches)
-        (user-error "Multiple type inlay hints for symbol at point"))
+        (user-error "Multiple inlay hints for symbol at point"))
        (t
         (let ((edits (plist-get (car matches) :textEdits)))
           (unless (and edits (> (length edits) 0))
-            (user-error "Type inlay hint has no text edits"))
+            (user-error "Inlay hint has no text edits"))
           (save-excursion
             (eglot--apply-text-edits edits))
-          (message "Applied type hint: %s"
+          (message "Applied inlay hint: %s"
                    (plist-get (car matches) :label))))))))
 
 (provide 'my-eglot)

@@ -187,9 +187,9 @@ TRAMPの場合、Language Server・フォーマッタは**接続先**で実行�
 | プロジェクトの診断全文一覧 | `S-s-m`（`my/flymake-problems`） |
 | カーソル位置の説明 | `M-x eldoc` |
 | シンボル名を変更 | `M-x eglot-rename` |
-| 変数の型ヒントを確定 | `C-c l i`（`my/eglot-apply-inlay-hint`、サーバーが編集情報を返す場合） |
+| 型・引数名ヒントを確定 | `C-c l i`（`my/eglot-apply-inlay-hint`、サーバーが編集情報を返す場合） |
 
-型ヒント確定は、変数名にカーソルを置いたときの型注釈が対象。関数の戻り値の型ヒントや引数名ヒントには対応していない。
+変数名の型注釈に加え、`json.dumps(result)` の `result` のような単純な引数名にカーソルを置くと、`obj=` などの引数名ヒントも反映できる。関数の戻り値や、辞書・関数呼び出しなどシンボル以外の引数式は対象外。
 
 Corfuの候補一覧には、Eglot（LSP）の候補とdabbrev（バッファ内の単語）を統合して表示する。Haskellでは修飾名の補完（例: `T.un` → `unpack`）と、未importの関数を補完した際の自動importにも対応する。HLSの補完候補数の上限は200件に設定している。EglotのSemantic Tokensによる色分けは全言語で無効にし、文字色は各言語のメジャーモード（HaskellではTree-sitter）に任せている。
 

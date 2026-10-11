@@ -281,8 +281,9 @@
 ;;; 型ヒントの確定 -------------------------------------------------
 
 (ert-deftest my/eglot-type-inlay-hints-selects-only-target-type ()
-  "同じ行の別の型ヒントや引数名ヒントを除外する。"
-  (let* ((target '(:line 23 :character 8))
+  "末尾に付く対象の型ヒントだけを選択する。"
+  (let* ((start '(:line 23 :character 0))
+         (end '(:line 23 :character 8))
          (wanted '(:label ": ChatResponse" :kind 1
                            :position (:line 23 :character 8)
                            :textEdits [(:newText ": ChatResponse")]))
@@ -291,24 +292,30 @@
                         '(:label ": str" :kind 1
                                  :position (:line 23 :character 22))
                         wanted)))
-    (should (equal (my/eglot--type-inlay-hints-at-position hints target)
+    ;; 引数名ヒントは先頭、型ヒントは末尾と比較する。
+    (should (equal (my/eglot--inlay-hints-at-symbol hints start end)
                    (list wanted)))
-    (should-not (my/eglot--type-inlay-hints-at-position
-                 hints '(:line 24 :character 8)))))
+    (should-not (my/eglot--inlay-hints-at-symbol
+                 hints '(:line 24 :character 0)
+                 '(:line 24 :character 8)))))
 
 
 (ert-deftest my/eglot-type-inlay-hints-matches-reordered-position ()
-  "LSP Positionのキー順が違っても同じ位置の型ヒントを選択する。"
+  "LSP Positionのキー順が違っても同じ型ヒントを選択する。"
   (let ((hint '(:label ": ChatResponse" :kind 1
                        :position (:character 8 :line 23)
                        :textEdits [(:newText ": ChatResponse")]))
         (other '(:kind 1 :position (:line 23 :character 9))))
-    (should (equal (my/eglot--type-inlay-hints-at-position
-                    (vector other hint) '(:line 23 :character 8))
+    (should (equal (my/eglot--inlay-hints-at-symbol
+                    (vector other hint)
+                    '(:line 23 :character 0)
+                    '(:line 23 :character 8))
                    (list hint)))
     ;; 問い合わせ側のPositionのキー順を変えても一致する。
-    (should (equal (my/eglot--type-inlay-hints-at-position
-                    (vector hint) '(:character 8 :line 23))
+    (should (equal (my/eglot--inlay-hints-at-symbol
+                    (vector hint)
+                    '(:character 0 :line 23)
+                    '(:character 8 :line 23))
                    (list hint)))))
 
 (ert-deftest my/eglot-apply-inlay-hint-applies-type-and-import ()
@@ -346,6 +353,34 @@
       (should requested)
       (should (equal (buffer-string)
                      "from ollama._types import ChatResponse\n\nresponse: ChatResponse = chat()\n")))))
+
+(ert-deftest my/eglot-apply-inlay-hint-applies-parameter ()
+  "引数名ヒントのtextEditsを実際に適用する。"
+  (with-temp-buffer
+    (insert "json.dumps(result, ensure_ascii=False)\n")
+    (goto-char (point-min))
+    (search-forward "result")
+    (backward-char 3)
+    (cl-letf (((symbol-function 'eglot-server-capable-or-lose)
+               (lambda (cap) (should (eq cap :inlayHintProvider)) t))
+              ((symbol-function 'eglot--current-server-or-lose)
+               (lambda () 'test-server))
+              ((symbol-function 'eglot--TextDocumentIdentifier)
+               (lambda () '(:uri "file:///test.py")))
+              ((symbol-function 'eglot--request)
+               (lambda (server method _params)
+                 (should (eq server 'test-server))
+                 (should (eq method :textDocument/inlayHint))
+                 [(:kind 2 :label "obj="
+                          :position (:line 0 :character 11)
+                          :textEdits
+                          [(:newText "obj="
+                                     :range
+                                     (:start (:line 0 :character 11)
+                                      :end (:line 0 :character 11)))])])))
+      (my/eglot-apply-inlay-hint))
+    (should (equal (buffer-string)
+                   "json.dumps(obj=result, ensure_ascii=False)\n"))))
 
 (ert-deftest my/eglot-apply-inlay-hint-ignores-other-symbol ()
   "型ヒントの位置がカーソルの変数と異なる場合は適用しない。"
