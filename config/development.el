@@ -133,9 +133,10 @@
   :config
   ;; Eglot標準のPHP候補にはintelephenseがないため追加する。
   ;; 他の言語サーバーはEmacs 31.1の標準定義をそのまま使用する。
-  (add-to-list 'eglot-server-programs
-               '(php-ts-mode . ("intelephense" "--stdio")))
-
+  (dolist (entry
+           '((php-ts-mode . ("intelephense" "--stdio"))
+             (python-ts-mode . my/eglot-python-server)))
+    (add-to-list 'eglot-server-programs entry))
   ;; HLSの自動import補完をEglot 31.1で成立させるための互換処理。
   ;; enc → encodeだけが挿入され、import Data.Aeson (encode)が追加されない
   ;; 不具合への対応。原因・Eglot/HLSのソース・削除条件はmy-eglot.elを参照。

@@ -252,6 +252,29 @@ JSONを編集したらC-c C-jで \`jq-interactively' を起動する。"
         (insert text)))
     (switch-to-buffer buffer)))
 
+
+;;; Python  ---------------------------------------------------------
+
+;; Pythonはプロジェクト内のBasedpyrightを優先する。
+;; 存在しなければPATH上のBasedpyrightを使用する。
+(defun my/eglot-python-server (_interactive)
+  "Python用Language Serverの起動コマンドを返す。"
+  (let* ((project (project-current nil))
+         (local-server
+          (when project
+            (expand-file-name
+             ".venv/bin/basedpyright-langserver"
+             (project-root project))))
+         (server
+          (if (and local-server
+                   (file-executable-p local-server))
+              local-server
+            (executable-find "basedpyright-langserver"))))
+    (unless server
+      (user-error "Python用Basedpyrightが見つかりません"))
+    (list server "--stdio")))
+
+
 (provide 'my-development)
 
 ;;; my-development.el ends here
