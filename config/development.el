@@ -206,6 +206,10 @@
           "--search-parent-directories"
           "-"))
 
+  ;; PythonのフォーマッタにはBlackではなくRuffを使用する。
+  (setf (alist-get 'python-ts-mode apheleia-mode-alist)
+	'ruff)
+  
   ;; Pythonはプロジェクト内のRuffを優先する。
   ;; 存在しない場合はPATH上のRuffを使用する。
   (setcar (alist-get 'ruff apheleia-formatters)
