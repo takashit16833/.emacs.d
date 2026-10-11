@@ -113,7 +113,7 @@
 ;; 選択範囲を単語や括弧などの単位で広げる。
 (use-package expand-region
   :ensure t
-  :bind ("s-x" . er/expand-region))
+  :bind ("S-s-l" . er/expand-region))
 
 
 ;; Undo / Redo: Command（Super）とOption（Meta）のZを割り当てる。
