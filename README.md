@@ -145,13 +145,19 @@ Emacs 31.1標準のEglotを使用する。Lua・Haskell・PHP・Python・TypeScr
 | Lua | `lua-language-server` | `stylua` |
 | Haskell | `haskell-language-server-wrapper` | `fourmolu`、Cabalには `cabal-gild` |
 | PHP | `intelephense` | `phpcbf` |
-| Python | `pyright-langserver` | `ruff` |
+| Python | `basedpyright-langserver` | `ruff` |
 | TypeScript / TSX | `typescript-language-server` とプロジェクト内の `typescript` | `prettier` |
 
 Node.js/npmを使用するLanguage Serverは、例えば次のようにインストールできる。
 
 ```sh
-npm install --global intelephense typescript-language-server pyright
+npm install --global intelephense typescript-language-server basedpyright
+```
+
+Pythonでは、プロジェクト内の `.venv/bin/basedpyright-langserver` を優先し、見つからなければ `PATH` 上の `basedpyright-langserver` を使用する。既存の `.venv` にインストールする場合は次のコマンドを実行する。
+
+```sh
+.venv/bin/python -m pip install basedpyright
 ```
 
 TypeScript本体はプロジェクトで管理する。
@@ -181,7 +187,9 @@ TRAMPの場合、Language Server・フォーマッタは**接続先**で実行�
 | プロジェクトの診断全文一覧 | `S-s-m`（`my/flymake-problems`） |
 | カーソル位置の説明 | `M-x eldoc` |
 | シンボル名を変更 | `M-x eglot-rename` |
-| カーソル位置の型ヒントを確定 | `C-c l i`（`my/eglot-apply-inlay-hint`、サーバーが編集情報を返す場合） |
+| 変数の型ヒントを確定 | `C-c l i`（`my/eglot-apply-inlay-hint`、サーバーが編集情報を返す場合） |
+
+型ヒント確定は、変数名にカーソルを置いたときの型注釈が対象。関数の戻り値の型ヒントや引数名ヒントには対応していない。
 
 Corfuの候補一覧には、Eglot（LSP）の候補とdabbrev（バッファ内の単語）を統合して表示する。Haskellでは修飾名の補完（例: `T.un` → `unpack`）と、未importの関数を補完した際の自動importにも対応する。HLSの補完候補数の上限は200件に設定している。EglotのSemantic Tokensによる色分けは全言語で無効にし、文字色は各言語のメジャーモード（HaskellではTree-sitter）に任せている。
 

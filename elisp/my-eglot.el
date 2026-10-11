@@ -160,8 +160,13 @@ eglot-completion-at-pointの戻り値（CAPF）を包む:filter-return advice。
   "HINTSからPOSITIONに挿入される型ヒントだけを返す。"
   (cl-remove-if-not
    (lambda (hint)
-     (and (eql (plist-get hint :kind) 1)
-          (equal (plist-get hint :position) position)))
+     (let ((hint-position (plist-get hint :position)))
+       (and (eql (plist-get hint :kind) 1)
+            ;; LSP PositionはJSONオブジェクトなのでキーの並び順を問わない。
+            (eql (plist-get hint-position :line)
+                 (plist-get position :line))
+            (eql (plist-get hint-position :character)
+                 (plist-get position :character)))))
    (append hints nil)))
 
 (defun my/eglot-apply-inlay-hint ()

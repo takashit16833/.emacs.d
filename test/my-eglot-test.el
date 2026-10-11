@@ -296,6 +296,21 @@
     (should-not (my/eglot--type-inlay-hints-at-position
                  hints '(:line 24 :character 8)))))
 
+
+(ert-deftest my/eglot-type-inlay-hints-matches-reordered-position ()
+  "LSP Positionのキー順が違っても同じ位置の型ヒントを選択する。"
+  (let ((hint '(:label ": ChatResponse" :kind 1
+                       :position (:character 8 :line 23)
+                       :textEdits [(:newText ": ChatResponse")]))
+        (other '(:kind 1 :position (:line 23 :character 9))))
+    (should (equal (my/eglot--type-inlay-hints-at-position
+                    (vector other hint) '(:line 23 :character 8))
+                   (list hint)))
+    ;; 問い合わせ側のPositionのキー順を変えても一致する。
+    (should (equal (my/eglot--type-inlay-hints-at-position
+                    (vector hint) '(:character 8 :line 23))
+                   (list hint)))))
+
 (ert-deftest my/eglot-apply-inlay-hint-applies-type-and-import ()
   "実測のbasedpyright応答から注釈とimportの両方を適用する。"
   (with-temp-buffer
