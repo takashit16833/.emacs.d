@@ -156,17 +156,32 @@ eglot-completion-at-pointの戻り値（CAPF）を包む:filter-return advice。
 ;; Eglot内部APIを利用する。将来のEglot更新時に再確認する。
 ;; https://github.com/emacs-mirror/emacs/blob/emacs-31.1/lisp/progmodes/eglot.el
 
-(defun my/eglot--type-inlay-hints-at-position (hints position)
-  "HINTSからPOSITIONに挿入される型ヒントだけを返す。"
+(defun my/eglot--same-lsp-position-p (a b)
+  "AとBがソースコード上の同じ場所を指しているか調べる。
+それぞれの行番号と、行内の文字位置を比較する。"
+  (and a b
+       (eql (plist-get a :line)
+	    (plist-get b :line))
+       (eql (plist-get a :character)
+	    (plist-get b :character))))
+
+(defun my/eglot--inlay-hints-at-symbol (hints start end)
+  "HINTSから、現在のシンボルに対応するヒントだけを取り出す。
+STARTはシンボルの先頭、ENDは末尾の位置。
+型ヒントは末尾、引数名ヒントは先頭に付くため、
+ヒントの種類に応じて比較する位置を変える。"
   (cl-remove-if-not
    (lambda (hint)
-     (let ((hint-position (plist-get hint :position)))
-       (and (eql (plist-get hint :kind) 1)
-            ;; LSP PositionはJSONオブジェクトなのでキーの並び順を問わない。
-            (eql (plist-get hint-position :line)
-                 (plist-get position :line))
-            (eql (plist-get hint-position :character)
-                 (plist-get position :character)))))
+     (let ((position (plist-get hint :position)))
+       (pcase (plist-get hint :kind)
+	 ;; 型ヒントならENDと比較
+	 (1 (my/eglot--same-lsp-position-p position end))
+	 
+	 ;; 引数名ヒントならSTARTと比較
+	 (2 (my/eglot--same-lsp-position-p position start))
+
+	 ;; その他は対象外
+	 (_ nil))))
    (append hints nil)))
 
 (defun my/eglot-apply-inlay-hint ()
@@ -182,6 +197,10 @@ eglot-completion-at-pointの戻り値（CAPF）を包む:filter-return advice。
            ;; eglot--pos-to-lsp-positionはpointを動かす。
            (position (save-excursion
                        (eglot--pos-to-lsp-position (cdr bounds))))
+	   (start (save-excursion
+		    (eglot--pos-to-lsp-position (car bounds))))
+	   (end (save-excursion
+		  (eglot--pos-to-lsp-position (cdr bounds))))
            (range (save-excursion
                     (eglot-region-range (line-beginning-position)
                                         (line-end-position))))
@@ -190,8 +209,8 @@ eglot-completion-at-pointの戻り値（CAPF）を包む:filter-return advice。
                    server :textDocument/inlayHint
                    (list :textDocument (eglot--TextDocumentIdentifier)
                          :range range)))
-           (matches (my/eglot--type-inlay-hints-at-position
-                     hints position)))
+	   (matches (my/eglot--inlay-hints-at-symbol
+		     hints start end)))
       (unless (= tick (buffer-chars-modified-tick))
         (user-error "Buffer changed while requesting inlay hints"))
       (cond

@@ -409,4 +409,20 @@
                (lambda (&rest _) (ert-fail "Unexpected edit"))))
       (should-error (my/eglot-apply-inlay-hint) :type 'user-error))))
 
+(ert-deftest my/eglot-inlay-hints-selects-parameter ()
+  "引数名ヒントをシンボル先頭の位置で選択する。"
+  (let* ((start '(:line 0 :character 11))
+         (end '(:line 0 :character 17))
+         (wanted '(:kind 2
+                         :label "obj="
+                         :position (:character 11 :line 0)))
+         (other '(:kind 2
+                        :label "other="
+                        :position (:line 0 :character 20))))
+    (should
+     (equal
+      (my/eglot--inlay-hints-at-symbol
+       (vector other wanted) start end)
+      (list wanted)))))
+
 ;;; my-eglot-test.el ends here
