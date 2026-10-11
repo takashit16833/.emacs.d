@@ -260,49 +260,21 @@
                 (lambda () (bounds-of-thing-at-point 'symbol)))
                (cons (point-min) (point-max)))))))
 
-;; Eglot 31.1ではSemantic Tokensを有効にしてから
-;; eglot-managed-mode-hookが呼ばれるため、接続後にHaskellだけ無効化する。
-;; ここではEglot管理状態とモード切替をモックして分岐を検証する。
-;; 実際のTree-sitterの色に戻ることは実機で確認済み。
-
-(ert-deftest my/eglot-haskell-semantic-tokens-disabled-after-connect ()
-  "Eglot管理中のHaskellで有効なSemantic Tokensを無効化する。"
+;; 全言語共通の無効化はEglot標準の設定で行う。
+;; Eglot内部の挙動ではなく、設定から除外指定が消えないことを確認する。
+(ert-deftest my/eglot-semantic-tokens-ignored-in-config ()
+  "Eglotの全言語共通設定でSemantic Tokensを使わない。"
   (with-temp-buffer
-    (setq-local major-mode 'haskell-ts-mode)
-    (setq-local eglot-semantic-tokens-mode t)
-    (let (calls)
-      (cl-letf (((symbol-function 'eglot-managed-p) (lambda () t))
-                ((symbol-function 'eglot-semantic-tokens-mode)
-                 (lambda (arg)
-                   (push arg calls)
-                   (setq-local eglot-semantic-tokens-mode nil))))
-        (my/eglot-haskell-disable-semantic-tokens)
-        (should (equal calls '(-1)))
-        (should-not eglot-semantic-tokens-mode)
-        ;; 同じhookが再実行されても余分な切替をしない。
-        (my/eglot-haskell-disable-semantic-tokens)
-        (should (equal calls '(-1)))))))
-
-(ert-deftest my/eglot-haskell-semantic-tokens-preserves-other-modes ()
-  "Haskell以外のSemantic Tokensは無効化しない。"
-  (with-temp-buffer
-    (setq-local major-mode 'python-ts-mode)
-    (setq-local eglot-semantic-tokens-mode t)
-    (cl-letf (((symbol-function 'eglot-managed-p) (lambda () t))
-              ((symbol-function 'eglot-semantic-tokens-mode)
-               (lambda (&rest _) (ert-fail "他言語のSemantic Tokensを変更した"))))
-      (my/eglot-haskell-disable-semantic-tokens)
-      (should eglot-semantic-tokens-mode))))
-
-(ert-deftest my/eglot-haskell-semantic-tokens-ignores-disconnected-buffer ()
-  "Eglot非管理中のHaskellには介入しない。"
-  (with-temp-buffer
-    (setq-local major-mode 'haskell-ts-mode)
-    (setq-local eglot-semantic-tokens-mode t)
-    (cl-letf (((symbol-function 'eglot-managed-p) (lambda () nil))
-              ((symbol-function 'eglot-semantic-tokens-mode)
-               (lambda (&rest _) (ert-fail "Eglot非管理中に無効化した"))))
-      (my/eglot-haskell-disable-semantic-tokens)
-      (should eglot-semantic-tokens-mode))))
+    (insert-file-contents
+     (expand-file-name "../config/development.el"
+                       (file-name-directory (locate-library "my-eglot-test"))))
+    (goto-char (point-min))
+    (should (re-search-forward "^(use-package eglot\\_>" nil t))
+    (beginning-of-line)
+    (let* ((form (read (current-buffer)))
+           (setting (cadr (member :custom (cddr form)))))
+      (should (equal setting
+                     '(eglot-ignored-server-capabilities
+                       '(:semanticTokensProvider)))))))
 
 ;;; my-eglot-test.el ends here
