@@ -35,11 +35,7 @@
 
 
 (defun my/project-run-command ()
-  "現在のプロジェクトに定義されたコマンドを選択して実行する。
-
-コマンドはプロジェクトの `.dir-locals.el' にある
-`my/project-commands' から取得し、プロジェクトルートを
-作業ディレクトリとして `compile' で実行する。"
+  "現在のプロジェクトに定義されたコマンドを選択して実行する。"
   (interactive)
   (let* ((project (project-current t))
          (root (project-root project))
@@ -50,10 +46,16 @@
     (let* ((completion-extra-properties
             (my/project-command--completion-extra-properties commands))
            (name (completing-read "Command: " commands nil t))
-           (command
-            (plist-get
-             (cdr (assoc name commands))
-             :command)))
+           (options (cdr (assoc name commands)))
+           (command (plist-get options :command))
+           (prompt (plist-get options :prompt))
+           (candidates (plist-get options :candidates)))
+      (when prompt
+        (let ((input (completing-read prompt candidates nil nil)))
+          (when (equal input "")
+            (user-error "入力が空です"))
+          (setq command
+                (concat command " " (shell-quote-argument input)))))
       (pop-to-buffer
        (compile command)))))
 
@@ -148,7 +150,13 @@
           (plistp body)
           (stringp name)
           (stringp (plist-get body :command))
-          (stringp (plist-get body :description))))))
+          (stringp (plist-get body :description))
+	  (or (not (plist-member body :prompt))
+	      (stringp (plist-get body :prompt)))
+	  (or (not (plist-member body :candidates))
+	      (let ((candidates (plist-get body :candidates)))
+		(and (listp candidates)
+		     (seq-every-p #'stringp candidates))))))))
     commands)))
 
 
