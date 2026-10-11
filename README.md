@@ -181,6 +181,7 @@ TRAMPの場合、Language Server・フォーマッタは**接続先**で実行�
 | プロジェクトの診断全文一覧 | `S-s-m`（`my/flymake-problems`） |
 | カーソル位置の説明 | `M-x eldoc` |
 | シンボル名を変更 | `M-x eglot-rename` |
+| カーソル位置の型ヒントを確定 | `C-c l i`（`my/eglot-apply-inlay-hint`、サーバーが編集情報を返す場合） |
 
 Corfuの候補一覧には、Eglot（LSP）の候補とdabbrev（バッファ内の単語）を統合して表示する。Haskellでは修飾名の補完（例: `T.un` → `unpack`）と、未importの関数を補完した際の自動importにも対応する。HLSの補完候補数の上限は200件に設定している。EglotのSemantic Tokensによる色分けは全言語で無効にし、文字色は各言語のメジャーモード（HaskellではTree-sitter）に任せている。
 

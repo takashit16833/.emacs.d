@@ -148,6 +148,61 @@ eglot-completion-at-pointの戻り値（CAPF）を包む:filter-return advice。
           (apply original args)))
     (apply original args)))
 
+
+;;; 型ヒントの確定 -------------------------------------------------
+;; basedpyright 1.40.2は型注釈と必要なimportのtextEditsを返す。
+;; https://github.com/DetachHead/basedpyright/blob/v1.40.2/packages/pyright-internal/src/languageService/inlayHintsProvider.ts
+;; Emacs 31.1のEglotに確定コマンドはないため、問い合わせと編集適用には
+;; Eglot内部APIを利用する。将来のEglot更新時に再確認する。
+;; https://github.com/emacs-mirror/emacs/blob/emacs-31.1/lisp/progmodes/eglot.el
+
+(defun my/eglot--type-inlay-hints-at-position (hints position)
+  "HINTSからPOSITIONに挿入される型ヒントだけを返す。"
+  (cl-remove-if-not
+   (lambda (hint)
+     (and (eql (plist-get hint :kind) 1)
+          (equal (plist-get hint :position) position)))
+   (append hints nil)))
+
+(defun my/eglot-apply-inlay-hint ()
+  "カーソル位置のシンボルに付く型ヒントをコードへ反映する。
+サーバーが返すimport文などの編集もまとめて適用する。
+対象はシンボル末尾に挿入される型ヒントだけに限定する。"
+  (interactive)
+  (let ((bounds (bounds-of-thing-at-point 'symbol)))
+    (unless bounds
+      (user-error "No symbol at point"))
+    (eglot-server-capable-or-lose :inlayHintProvider)
+    (let* ((server (eglot--current-server-or-lose))
+           ;; eglot--pos-to-lsp-positionはpointを動かす。
+           (position (save-excursion
+                       (eglot--pos-to-lsp-position (cdr bounds))))
+           (range (save-excursion
+                    (eglot-region-range (line-beginning-position)
+                                        (line-end-position))))
+           (tick (buffer-chars-modified-tick))
+           (hints (eglot--request
+                   server :textDocument/inlayHint
+                   (list :textDocument (eglot--TextDocumentIdentifier)
+                         :range range)))
+           (matches (my/eglot--type-inlay-hints-at-position
+                     hints position)))
+      (unless (= tick (buffer-chars-modified-tick))
+        (user-error "Buffer changed while requesting inlay hints"))
+      (cond
+       ((null matches)
+        (user-error "No type inlay hint for symbol at point"))
+       ((cdr matches)
+        (user-error "Multiple type inlay hints for symbol at point"))
+       (t
+        (let ((edits (plist-get (car matches) :textEdits)))
+          (unless (and edits (> (length edits) 0))
+            (user-error "Type inlay hint has no text edits"))
+          (save-excursion
+            (eglot--apply-text-edits edits))
+          (message "Applied type hint: %s"
+                   (plist-get (car matches) :label))))))))
+
 (provide 'my-eglot)
 
 ;;; my-eglot.el ends here

@@ -277,4 +277,121 @@
                      '(eglot-ignored-server-capabilities
                        '(:semanticTokensProvider)))))))
 
+
+;;; 型ヒントの確定 -------------------------------------------------
+
+(ert-deftest my/eglot-type-inlay-hints-selects-only-target-type ()
+  "同じ行の別の型ヒントや引数名ヒントを除外する。"
+  (let* ((target '(:line 23 :character 8))
+         (wanted '(:label ": ChatResponse" :kind 1
+                           :position (:line 23 :character 8)
+                           :textEdits [(:newText ": ChatResponse")]))
+         (hints (vector '(:label "parameter:" :kind 2
+                                 :position (:line 23 :character 8))
+                        '(:label ": str" :kind 1
+                                 :position (:line 23 :character 22))
+                        wanted)))
+    (should (equal (my/eglot--type-inlay-hints-at-position hints target)
+                   (list wanted)))
+    (should-not (my/eglot--type-inlay-hints-at-position
+                 hints '(:line 24 :character 8)))))
+
+(ert-deftest my/eglot-apply-inlay-hint-applies-type-and-import ()
+  "実測のbasedpyright応答から注釈とimportの両方を適用する。"
+  (with-temp-buffer
+    (insert "response = chat()\n")
+    (goto-char (+ (point-min) 3))
+    (let ((requested nil)
+          (hints
+           [(:label ": ChatResponse" :kind 1
+                    :position (:line 0 :character 8)
+                    :textEdits
+                    [(:newText ": ChatResponse"
+                               :range (:start (:line 0 :character 8)
+                                       :end (:line 0 :character 8)))
+                     (:range (:start (:line 0 :character 0)
+                              :end (:line 0 :character 0))
+                      :newText "from ollama._types import ChatResponse\n\n")])]))
+      (cl-letf (((symbol-function 'eglot-server-capable-or-lose)
+                 (lambda (cap) (should (eq cap :inlayHintProvider)) t))
+                ((symbol-function 'eglot--current-server-or-lose)
+                 (lambda () 'test-server))
+                ((symbol-function 'eglot--TextDocumentIdentifier)
+                 (lambda () '(:uri "file:///test.py")))
+                ((symbol-function 'eglot--request)
+                 (lambda (server method params)
+                   (should (eq server 'test-server))
+                   (should (eq method :textDocument/inlayHint))
+                   (should (equal (plist-get params :range)
+                                  '(:start (:line 0 :character 0)
+                                    :end (:line 0 :character 17))))
+                   (setq requested t)
+                   hints)))
+        (my/eglot-apply-inlay-hint))
+      (should requested)
+      (should (equal (buffer-string)
+                     "from ollama._types import ChatResponse\n\nresponse: ChatResponse = chat()\n")))))
+
+(ert-deftest my/eglot-apply-inlay-hint-ignores-other-symbol ()
+  "型ヒントの位置がカーソルの変数と異なる場合は適用しない。"
+  (with-temp-buffer
+    (insert "response = chat()\n")
+    (goto-char (+ (point-min) 3))
+    (cl-letf (((symbol-function 'eglot-server-capable-or-lose)
+               (lambda (&rest _) t))
+              ((symbol-function 'eglot--current-server-or-lose)
+               (lambda () 'test-server))
+              ((symbol-function 'eglot--TextDocumentIdentifier)
+               (lambda () '(:uri "file:///test.py")))
+              ((symbol-function 'eglot--request)
+               (lambda (&rest _)
+                 [(:label ": str" :kind 1
+                          :position (:line 0 :character 12)
+                          :textEdits [(:newText ": str")])]))
+              ((symbol-function 'eglot--apply-text-edits)
+               (lambda (&rest _) (ert-fail "Unexpected edit"))))
+      (should-error (my/eglot-apply-inlay-hint) :type 'user-error)
+      (should (equal (buffer-string) "response = chat()\n")))))
+
+(ert-deftest my/eglot-apply-inlay-hint-refuses-missing-edits ()
+  "編集情報のないヒントを確定しない。"
+  (with-temp-buffer
+    (insert "response = chat()\n")
+    (goto-char (+ (point-min) 3))
+    (cl-letf (((symbol-function 'eglot-server-capable-or-lose)
+               (lambda (&rest _) t))
+              ((symbol-function 'eglot--current-server-or-lose)
+               (lambda () 'test-server))
+              ((symbol-function 'eglot--TextDocumentIdentifier)
+               (lambda () '(:uri "file:///test.py")))
+              ((symbol-function 'eglot--request)
+               (lambda (&rest _)
+                 [(:label ": ChatResponse" :kind 1
+                          :position (:line 0 :character 8))]))
+              ((symbol-function 'eglot--apply-text-edits)
+               (lambda (&rest _) (ert-fail "Unexpected edit"))))
+      (should-error (my/eglot-apply-inlay-hint) :type 'user-error)
+      (should (equal (buffer-string) "response = chat()\n")))))
+
+(ert-deftest my/eglot-apply-inlay-hint-refuses-stale-response ()
+  "問い合わせ中に編集されたバッファへ古い変更を適用しない。"
+  (with-temp-buffer
+    (insert "response = chat()\n")
+    (goto-char (+ (point-min) 3))
+    (cl-letf (((symbol-function 'eglot-server-capable-or-lose)
+               (lambda (&rest _) t))
+              ((symbol-function 'eglot--current-server-or-lose)
+               (lambda () 'test-server))
+              ((symbol-function 'eglot--TextDocumentIdentifier)
+               (lambda () '(:uri "file:///test.py")))
+              ((symbol-function 'eglot--request)
+               (lambda (&rest _)
+                 (insert "#")
+                 [(:label ": ChatResponse" :kind 1
+                          :position (:line 0 :character 8)
+                          :textEdits [(:newText ": ChatResponse")])]))
+              ((symbol-function 'eglot--apply-text-edits)
+               (lambda (&rest _) (ert-fail "Unexpected edit"))))
+      (should-error (my/eglot-apply-inlay-hint) :type 'user-error))))
+
 ;;; my-eglot-test.el ends here
