@@ -19,6 +19,9 @@
 (require 'seq)
 
 
+;;; Variables -------------------------------------------------------
+
+
 ;; Clutchは実行時にautoloadされるため、
 ;; byte compilerへ関数定義だけを宣言する。
 (declare-function clutch-query-console "clutch" (target))
@@ -32,6 +35,24 @@
 
 (defvar-local my/project-database-connections nil
   "現在のプロジェクトで利用できるデータベース接続一覧。")
+
+
+;;; Common ----------------------------------------------------------
+
+
+(defun my/project--get-local-variable (root variable)
+  "ROOT の `.dir-locals.el' から VARIABLE の値を取得する。"
+  (with-temp-buffer
+    (let ((default-directory root)
+          ;; TRAMP先でもプロジェクト固有設定を読み込む。
+          (enable-remote-dir-locals t))
+      ;; 非ファイルバッファなので、ディレクトリローカル変数を
+      ;; 明示的に適用する。
+      (hack-dir-local-variables-non-file-buffer)
+      (symbol-value variable))))
+
+
+;;; Commands --------------------------------------------------------
 
 
 (defun my/project-run-command ()
@@ -60,65 +81,9 @@
        (compile command)))))
 
 
-(defun my/project--get-local-variable (root variable)
-  "ROOT の `.dir-locals.el' から VARIABLE の値を取得する。"
-  (with-temp-buffer
-    (let ((default-directory root)
-          ;; TRAMP先でもプロジェクト固有設定を読み込む。
-          (enable-remote-dir-locals t))
-      ;; 非ファイルバッファなので、ディレクトリローカル変数を
-      ;; 明示的に適用する。
-      (hack-dir-local-variables-non-file-buffer)
-      (symbol-value variable))))
-
-
 (defun my/project-command--get-project-commands (root)
   "ROOT の `.dir-locals.el' からプロジェクトコマンド一覧を取得する。"
   (my/project--get-local-variable root 'my/project-commands))
-
-
-(defun my/project-database--get-connections (root)
-  "ROOT の `.dir-locals.el' からデータベース接続一覧を取得する。"
-  (my/project--get-local-variable
-   root
-   'my/project-database-connections))
-
-
-(defun my/project-open-database ()
-  "現在のプロジェクトに定義されたデータベースをClutchで開く。
-
-接続情報はプロジェクトの `.dir-locals.el' にある
-`my/project-database-connections' から取得する。"
-  (interactive)
-  (let* ((project (project-current t))
-         (root (project-root project))
-         (connections
-          (my/project-database--get-connections root)))
-    (unless connections
-      (user-error "データベース接続定義がありません"))
-    (let* ((name
-            (completing-read
-             "Database: "
-             connections
-             nil
-             t))
-           (params
-            (copy-sequence
-             (cdr (assoc name connections)))))
-      ;; Clutchが定義する変数を動的束縛する前に本体を読み込む。
-      ;; `defcustom' を束縛中に評価しないため、autoloadには任せない。
-      (require 'clutch)
-
-      ;; Clutchには保存済み接続ではなくad-hoc接続として渡す。
-      ;; これによりグローバルなclutch-connection-alistを使用しない。
-      (let ((default-directory root)
-            ;; 現在のTRAMPバッファから接続経路を推測しない。
-            ;; 明示された:ssh-hostや:tramp-default-directoryは
-            ;; Clutchがそのまま接続経路として使用する。
-            (clutch-tramp-context-policy nil))
-        (clutch-query-console
-         (list :name name
-               :params params))))))
 
 
 (defun my/project-command--completion-extra-properties (commands)
@@ -165,6 +130,53 @@
 (put 'my/project-commands
      'safe-local-variable
      #'my/project-commands-safe-p)
+
+
+;;; Database --------------------------------------------------------
+
+
+(defun my/project-database--get-connections (root)
+  "ROOT の `.dir-locals.el' からデータベース接続一覧を取得する。"
+  (my/project--get-local-variable
+   root
+   'my/project-database-connections))
+
+
+(defun my/project-open-database ()
+  "現在のプロジェクトに定義されたデータベースをClutchで開く。
+
+接続情報はプロジェクトの `.dir-locals.el' にある
+`my/project-database-connections' から取得する。"
+  (interactive)
+  (let* ((project (project-current t))
+         (root (project-root project))
+         (connections
+          (my/project-database--get-connections root)))
+    (unless connections
+      (user-error "データベース接続定義がありません"))
+    (let* ((name
+            (completing-read
+             "Database: "
+             connections
+             nil
+             t))
+           (params
+            (copy-sequence
+             (cdr (assoc name connections)))))
+      ;; Clutchが定義する変数を動的束縛する前に本体を読み込む。
+      ;; `defcustom' を束縛中に評価しないため、autoloadには任せない。
+      (require 'clutch)
+
+      ;; Clutchには保存済み接続ではなくad-hoc接続として渡す。
+      ;; これによりグローバルなclutch-connection-alistを使用しない。
+      (let ((default-directory root)
+            ;; 現在のTRAMPバッファから接続経路を推測しない。
+            ;; 明示された:ssh-hostや:tramp-default-directoryは
+            ;; Clutchがそのまま接続経路として使用する。
+            (clutch-tramp-context-policy nil))
+        (clutch-query-console
+         (list :name name
+               :params params))))))
 
 
 (defun my/project-database-connections-safe-p (connections)
