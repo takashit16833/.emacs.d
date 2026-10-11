@@ -21,6 +21,7 @@
 /recentf.eld
 /.lsp-session-v1
 /clutch
+/.cache
 
 # Package quickstart cache
 /package-quickstart.el
