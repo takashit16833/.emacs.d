@@ -182,7 +182,7 @@ TRAMPの場合、Language Server・フォーマッタは**接続先**で実行�
 | カーソル位置の説明 | `M-x eldoc` |
 | シンボル名を変更 | `M-x eglot-rename` |
 
-Corfuの候補一覧には、Eglot（LSP）の候補とdabbrev（バッファ内の単語）を統合して表示する。Haskellでは修飾名の補完（例: `T.un` → `unpack`）と、未importの関数を補完した際の自動importにも対応する。HLSの補完候補数の上限は200件に設定している。Haskellの構文色はTree-sitterを優先し、EglotのSemantic Tokensによる上書きを無効にしている。
+Corfuの候補一覧には、Eglot（LSP）の候補とdabbrev（バッファ内の単語）を統合して表示する。Haskellでは修飾名の補完（例: `T.un` → `unpack`）と、未importの関数を補完した際の自動importにも対応する。HLSの補完候補数の上限は200件に設定している。EglotのSemantic Tokensによる色分けは全言語で無効にし、文字色は各言語のメジャーモード（HaskellではTree-sitter）に任せている。
 
 `S-s-m` はプロジェクト内の診断メッセージを複数行のまま全文表示する。`RET` で診断位置へ移動、`n` / `p` で次・前、`g` で更新、`q` で閉じる。対象はFlymakeが把握している診断であり、プロジェクト内の全ファイルを自動検査するコマンドではない。
 
