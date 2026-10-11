@@ -206,10 +206,17 @@
           "--search-parent-directories"
           "-"))
 
-  ;; PythonはRuffで整形する。
-  ;; Apheleia標準のRuff formatter定義を使用する。
-  (setf (alist-get 'python-ts-mode apheleia-mode-alist)
-        'ruff)
+  ;; Pythonはプロジェクト内のRuffを優先する。
+  ;; 存在しない場合はPATH上のRuffを使用する。
+  (setcar (alist-get 'ruff apheleia-formatters)
+          '(let* ((project (project-current nil))
+                  (local-ruff
+                   (when project
+                     (expand-file-name ".venv/bin/ruff"
+                                       (project-root project)))))
+             (if (and local-ruff (file-executable-p local-ruff))
+		 local-ruff
+               "ruff")))
 
   ;; HaskellはFourmoluで整形する。
   ;; 元ファイルの場所を渡し、Fourmoluの設定やCabal情報を正しく探索させる。
