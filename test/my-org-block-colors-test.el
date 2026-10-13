@@ -26,6 +26,7 @@
             "#+begin_comment\nコメントです。\n#+end_comment\n"
             "#+begin_export html\nExport text\n#+end_export\n")
     (org-mode)
+    (font-lock-mode 1)
     (font-lock-ensure)
     (dolist (case '(("quote" "引用です。" my/org-block-quote
                      my/org-block-quote-delimiter)
@@ -52,6 +53,7 @@
             "#+begin_example\nExample text\n#+end_example\n"
             "通常の本文です。\n")
     (org-mode)
+    (font-lock-mode 1)
     (font-lock-ensure)
     (dolist (word '("#+begin_src" "message" "#+end_src"
                     "#+begin_example" "Example text" "#+end_example"
@@ -71,6 +73,20 @@
                     org-font-lock-keywords))
     (should-not (member '(org-fontify-meta-lines-and-blocks)
                         org-font-lock-keywords))))
+
+(ert-deftest my/org-block-colors-case-insensitive ()
+  "大文字のブロック名も Org 標準と同様に色分けする。"
+  (with-temp-buffer
+    (insert "#+BEGIN_QUOTE\nQuoted text\n#+END_QUOTE\n")
+    (org-mode)
+    (font-lock-mode 1)
+    (font-lock-ensure)
+    (should (my/org-block-colors-test--has-face
+             "#+BEGIN_QUOTE" 'my/org-block-quote-delimiter))
+    (should (my/org-block-colors-test--has-face
+             "Quoted text" 'my/org-block-quote))
+    (should (my/org-block-colors-test--has-face
+             "#+END_QUOTE" 'my/org-block-quote-delimiter))))
 
 (provide 'my-org-block-colors-test)
 ;;; my-org-block-colors-test.el ends here
