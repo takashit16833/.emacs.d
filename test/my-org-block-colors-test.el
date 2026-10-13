@@ -84,6 +84,48 @@
     (should-not (member '(org-fontify-meta-lines-and-blocks)
                         org-font-lock-keywords))))
 
+(ert-deftest my/org-block-colors-fontifies-caption-and-name ()
+  "CAPTION と NAME の名前・値をアウトラインプロパティと同じ face にする。"
+  (with-temp-buffer
+    (insert "#+CAPTION: Org テーマ確認用の表\n"
+            "#+NAME: theme-table\n"
+            "| Name | Status |\n"
+            "|------+--------|\n"
+            "| Emacs | Active |\n")
+    (org-mode)
+    (font-lock-mode 1)
+    (font-lock-ensure)
+    (dolist (name '("#+CAPTION:" "#+NAME:"))
+      (should (my/org-block-colors-test--has-face
+               name 'org-special-keyword)))
+    (dolist (value '("Org テーマ確認用の表" "theme-table"))
+      (should (my/org-block-colors-test--has-face
+               value 'org-property-value)))
+    ;; テーブル本体の配色は変更しない。
+    (should-not (my/org-block-colors-test--has-face
+                 "| Name" 'org-property-value))))
+
+(ert-deftest my/org-block-colors-keeps-other-metadata ()
+  "TITLE や TAGS など、指定外のメタデータは変更しない。"
+  (with-temp-buffer
+    (insert "#+TITLE: Test title\n"
+            "#+TAGS: emacs org\n"
+            "#+caption: lower case\n"
+            "#+name: lower-name\n")
+    (org-mode)
+    (font-lock-mode 1)
+    (font-lock-ensure)
+    (should (my/org-block-colors-test--has-face
+             "Test title" 'org-document-title))
+    (should (my/org-block-colors-test--has-face
+             "emacs org" 'org-meta-line))
+    (dolist (name '("#+caption:" "#+name:"))
+      (should (my/org-block-colors-test--has-face
+               name 'org-special-keyword)))
+    (dolist (value '("lower case" "lower-name"))
+      (should (my/org-block-colors-test--has-face
+               value 'org-property-value)))))
+
 (ert-deftest my/org-block-colors-case-insensitive ()
   "大文字のブロック名も Org 標準と同様に色分けする。"
   (with-temp-buffer
