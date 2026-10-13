@@ -82,7 +82,8 @@
 
 (use-package one-dark-blue-theme
   :vc (:url "https://github.com/takashit16833/emacs-one-dark-blue-theme.git"
-       :rev :newest)
+	    :branch "feature/org-modern-badges"
+	    :rev :newest)
   :no-require t
   :init
   (setq one-dark-blue-transparent-background nil))
