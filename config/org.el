@@ -17,8 +17,8 @@
   ;; *bold* や /italic/ の記号を通常時は隠す。
   (org-hide-emphasis-markers t)
 
-  ;; 見出しが1段深くなるごとに2文字分インデントする。
-  (org-indent-indentation-per-level 2)
+  ;; 見出しが1段深くなるごとに1文字分インデントする。
+  (org-indent-indentation-per-level 1)
 
   (org-tag-alist
    '(("emacs" . ?e)
