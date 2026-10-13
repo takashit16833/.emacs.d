@@ -14,7 +14,7 @@
 
 *** Level 3 Heading
 :PROPERTIES:
-:ID:       org-theme-test
+:ID: org-theme-test
 :CUSTOM_ID: level-3
 :END:
 
