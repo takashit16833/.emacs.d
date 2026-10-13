@@ -31,6 +31,9 @@
 ;; Org のブロック種類別配色（標準ブロック描画の後に適用）。
 (require 'my-org-block-colors)
 
+;; テーブルのヘッダーと罫線を専用 face で表示する。
+(require 'my-org-table-colors)
+
 ;; 優先度別の face。配色はテーマ側で指定し、他のテーマでは標準の装飾を継承する。
 (defface my/org-modern-priority-a
   '((t :inherit org-modern-priority))
