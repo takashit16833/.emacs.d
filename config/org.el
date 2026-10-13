@@ -216,6 +216,36 @@
   :hook (org-mode . org-modern-mode))
 
 
+;; Agenda は1日分に絞り、予定と期限を見失わない範囲で情報量を減らす。
+(use-package org-agenda
+  :ensure nil
+  :custom
+  ;; 今日の予定を1日分だけ表示する。開始日は標準の nil（今日）を使う。
+  (org-agenda-span 'day)
+
+  ;; 日付見出しから週番号などを省く。
+  (org-agenda-format-date "%A  %d %B %Y")
+
+  ;; 定時刻の予定は残し、時刻ごとの補助線と現在時刻の線を消す。
+  (org-agenda-use-time-grid nil)
+
+  ;; カテゴリ・開始時刻・期限情報を残し、未設定のアイコン欄を省く。
+  ;; TODO/タグ検索など、Agenda 以外の一覧の表示形式は従来どおり。
+  (org-agenda-prefix-format
+   '((agenda . " %-10:c%?-12t% s")
+     (todo . " %i %-12:c")
+     (tags . " %i %-12:c")
+     (search . " %i %-12:c")))
+
+  ;; タグは一覧から隠すが、タグによる絞り込みは可能なままにする。
+  (org-agenda-hide-tags-regexp ".*")
+
+  ;; 完了済みの予定・期限・タイムスタンプは日別 Agenda から省く。
+  (org-agenda-skip-scheduled-if-done t)
+  (org-agenda-skip-deadline-if-done t)
+  (org-agenda-skip-timestamp-if-done t))
+
+
 (setq org-agenda-files
       (list org-default-notes-file))
 
