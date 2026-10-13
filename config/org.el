@@ -47,6 +47,12 @@
   "Org の優先度 C に使う face。"
   :group 'org)
 
+;; 見出し記号専用の face。テーマ未指定時は第1レベルの見出し色を継承する。
+(defface my/org-modern-heading-bullet
+  '((t :inherit org-level-1))
+  "Org の見出し記号に使う face。"
+  :group 'org)
+
 ;; Orgの表示を見やすく整える。
 (use-package org-modern
   :ensure t
@@ -64,11 +70,11 @@
   ;; 文字や文字列を指定すると、その記号に置き換える。
   (org-modern-hide-stars 'leading)
 
-  ;; 見出し記号だけを紫にして、見出し文字と区別する。
+  ;; 見出し記号の色はテーマ側で指定する。
   (org-modern-replace-stars
    (mapcar (lambda (symbol)
              (propertize (char-to-string symbol)
-                         'face '(:foreground "#7CBEFF")))
+                         'face 'my/org-modern-heading-bullet))
            (string-to-list "󰎤󰎧󰎪󰎭󰎱󰎳󰎶󰎹")))
 
   ;; fold使用時に表示する記号。
