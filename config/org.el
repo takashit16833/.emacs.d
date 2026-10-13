@@ -233,6 +233,28 @@
         (tags . " %i %-12:c")
         (search . " %i %-12:c")))
 
+;; Agenda のタグは表示したまま、org-modern のバッジ用に右端の余白を確保する。
+;; ウィンドウ幅から求めるので、横幅の広い端末でもタグを右側に配置できる。
+(defun my/org-agenda-set-tags-column ()
+  "Agenda のタグをウィンドウ右端から6列内側に揃える。"
+  (setq-local org-agenda-tags-column
+              (- (window-max-chars-per-line) 6)))
+
+(add-hook 'org-agenda-mode-hook #'my/org-agenda-set-tags-column)
+
+;; 予定時刻は残し、時刻の後ろに表示される点線だけをなくす。
+;; 時刻ごとの補助線は org-agenda-use-time-grid で無効化済み。
+(setq org-agenda-time-grid
+      '((daily today require-timed)
+        (800 1000 1200 1400 1600 1800 2000)
+        ""
+        "----------------"))
+
+;; 予定日・期限・期限までの日数を短い日本語で表示する。
+(setq org-agenda-scheduled-leaders '("予定: " "予定%2d回目: "))
+(setq org-agenda-deadline-leaders '("期限: " "あと%3d日: " "%2d日前: "))
+
+
 
 (setq org-agenda-files
       (list org-default-notes-file))
