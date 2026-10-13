@@ -30,6 +30,7 @@ RUN apt-get update \
        curl \
        gh \
        git \
+       jq \
        libffi-dev \
        libgccjit-14-dev \
        libgmp-dev \
