@@ -31,6 +31,22 @@
 ;; Org のブロック種類別配色（標準ブロック描画の後に適用）。
 (require 'my-org-block-colors)
 
+;; 優先度別の face。配色はテーマ側で指定し、他のテーマでは標準の装飾を継承する。
+(defface my/org-modern-priority-a
+  '((t :inherit org-modern-priority))
+  "Org の優先度 A に使う face。"
+  :group 'org)
+
+(defface my/org-modern-priority-b
+  '((t :inherit org-modern-priority))
+  "Org の優先度 B に使う face。"
+  :group 'org)
+
+(defface my/org-modern-priority-c
+  '((t :inherit org-modern-priority))
+  "Org の優先度 C に使う face。"
+  :group 'org)
+
 ;; Orgの表示を見やすく整える。
 (use-package org-modern
   :ensure t
@@ -83,9 +99,11 @@
   ;; nil: 無効 / t: 標準装飾 / 対応表: 任意の記号に置換
   (org-modern-priority t)
 
-  ;; 優先度ごとの色を指定する。
-  ;; nil: 個別指定なし / 対応表: 優先度ごとに色を指定
-  (org-modern-priority-faces nil)
+  ;; 優先度 A/B/C を別々の face に割り当て、色はテーマ側で管理する。
+  (org-modern-priority-faces
+   '((?A . my/org-modern-priority-a)
+     (?B . my/org-modern-priority-b)
+     (?C . my/org-modern-priority-c)))
 
   ;; 見出しのタグ「:emacs:」などをラベル風に装飾する。
   (org-modern-tag t)
