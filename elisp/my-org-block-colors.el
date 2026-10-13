@@ -4,6 +4,38 @@
 
 ;;; Code:
 
+;; テーマから配色する独自 face は、名前だけでなく face 自体の定義が必要。
+;; Retro Hacker Blue 以外のテーマでは Org 標準のブロック色を継承する。
+(defface my/org-block-quote
+  '((t :inherit org-block))
+  "引用・詩ブロックの本文。"
+  :group 'org)
+
+(defface my/org-block-quote-delimiter
+  '((t :inherit org-block-begin-line))
+  "引用・詩ブロックの開始・終了行。"
+  :group 'org)
+
+(defface my/org-block-comment
+  '((t :inherit org-block))
+  "コメントブロックの本文。"
+  :group 'org)
+
+(defface my/org-block-comment-delimiter
+  '((t :inherit org-block-begin-line))
+  "コメントブロックの開始・終了行。"
+  :group 'org)
+
+(defface my/org-block-export
+  '((t :inherit org-block))
+  "エクスポートブロックの本文。"
+  :group 'org)
+
+(defface my/org-block-export-delimiter
+  '((t :inherit org-block-begin-line))
+  "エクスポートブロックの開始・終了行。"
+  :group 'org)
+
 (defconst my/org-block-colors--begin-regexp
   "^[ \t]*#\\+begin_\\(quote\\|verse\\|comment\\|export\\)\\(?:[ \t].*\\)?$"
   "色分けするブロックの開始行。")
