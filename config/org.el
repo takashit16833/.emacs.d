@@ -216,6 +216,11 @@
   :hook (org-mode . org-modern-mode))
 
 
+;; Agenda の日付は日本語ロケールで YYYY/MM/DD (曜日) と表示する。
+;; system-time-locale は Emacs 全体の日時書式にも反映される。
+(setq system-time-locale "ja_JP.UTF-8")
+(setq org-agenda-format-date "%Y/%m/%d (%a)")
+
 (setq org-agenda-files
       (list org-default-notes-file))
 
