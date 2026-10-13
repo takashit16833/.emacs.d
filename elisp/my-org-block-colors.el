@@ -21,7 +21,8 @@
 (defun my/org-fontify-colored-block (limit)
   "Org 標準の色付け後、LIMIT 内の対象ブロックに種類別の色を付ける。"
   (let ((start (point))
-        (found (org-fontify-meta-lines-and-blocks limit)))
+        (found (org-fontify-meta-lines-and-blocks limit))
+        (case-fold-search t))
     (when found
       ;; Org 標準の処理が見つけたブロックだけを対象にする。
       ;; Font Lock が参照する元の検索結果は保持する。
