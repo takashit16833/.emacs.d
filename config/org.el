@@ -28,6 +28,16 @@
    ("C-c o a" . org-agenda)))
 
 
+;; #+TAGS: は Org 標準の文書情報用 face が適用されないため、
+;; この行だけ名前と値に文書情報と同じ face を割り当てる。
+(with-eval-after-load 'org
+  (font-lock-add-keywords
+   'org-mode
+   '(("^\\([ \\t]*#\\+TAGS:\\)[ \\t]*\\(.*\\)$"
+      (1 'org-document-info-keyword t)
+      (2 'org-document-info t)))
+   'append))
+
 ;; Orgの表示を見やすく整える。
 (use-package org-modern
   :ensure t
