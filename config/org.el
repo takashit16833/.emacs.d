@@ -12,12 +12,13 @@
 
 (use-package org
   :ensure nil
+  :hook (org-mode . org-indent-mode)
   :custom
   ;; *bold* や /italic/ の記号を通常時は隠す。
-  ;(org-hide-emphasis-markers t)
+  (org-hide-emphasis-markers t)
 
   ;; 見出しが1段深くなるごとに2文字分インデントする。
-  ;(org-indent-indentation-per-level 2)
+  (org-indent-indentation-per-level 2)
 
   (org-tag-alist
    '(("emacs" . ?e)
