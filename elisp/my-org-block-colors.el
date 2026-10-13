@@ -50,8 +50,25 @@
    ((equal kind "export")
     '(my/org-block-export . my/org-block-export-delimiter))))
 
+(defun my/org-fontify-caption-and-name (start end)
+  "START から END の CAPTION と NAME をアウトラインプロパティと同じ色にする。"
+  (save-excursion
+    (goto-char start)
+    (let ((case-fold-search t))
+      (when (re-search-forward
+             (rx bol (* (any " \t"))
+                 (group "#+" (or "CAPTION" "NAME") ":")
+                 (* (any " \t"))
+                 (group (* nonl)) eol)
+             end t)
+        (put-text-property (match-beginning 1) (match-end 1)
+                           'face 'org-special-keyword)
+        (when (< (match-beginning 2) (match-end 2))
+          (put-text-property (match-beginning 2) (match-end 2)
+                             'face 'org-property-value))))))
+
 (defun my/org-fontify-colored-block (limit)
-  "Org 標準の色付け後、LIMIT 内の対象ブロックに種類別の色を付ける。"
+  "Org 標準の色付け後、ブロックと CAPTION/NAME に独自配色を適用する。"
   (let ((start (point))
         (found (org-fontify-meta-lines-and-blocks limit))
         (case-fold-search t))
@@ -60,6 +77,7 @@
       ;; Font Lock が参照する元の検索結果は保持する。
       (let ((end (point)))
         (save-match-data
+          (my/org-fontify-caption-and-name start end)
           (save-excursion
             (goto-char start)
             (when (re-search-forward my/org-block-colors--begin-regexp end t)
