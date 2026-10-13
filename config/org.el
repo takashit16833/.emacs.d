@@ -29,7 +29,6 @@
 
 
 ;; Orgの表示を見やすく整える。
-;; Orgの表示を見やすく整える。
 (use-package org-modern
   :ensure t
   :custom
