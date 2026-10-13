@@ -221,6 +221,18 @@
 (setq system-time-locale "ja_JP.UTF-8")
 (setq org-agenda-format-date "%Y/%m/%d (%a)")
 
+;; 時刻指定のある予定は表示したまま、時刻ごとの補助線は表示しない。
+(setq org-agenda-use-time-grid nil)
+
+;; カテゴリ欄を広げ、Scheduled / Deadline がカテゴリ名に接しないようにする。
+;; TODO・タグ検索など、Agenda 以外の一覧は標準の表示形式を維持する。
+(setq org-agenda-prefix-format
+      '((agenda . " %-15:c%?-12t% s")
+        (todo . " %i %-12:c")
+        (tags . " %i %-12:c")
+        (search . " %i %-12:c")))
+
+
 (setq org-agenda-files
       (list org-default-notes-file))
 
