@@ -1,0 +1,157 @@
+#+TITLE: Org Theme Color Test
+#+AUTHOR: Takashi Suzuki
+#+DATE: 2026-10-13
+#+TAGS: emacs org theme
+
+* Level 1 Heading                                              :emacs:
+本文です。通常文字の見え方を確認します。
+
+** Level 2 Heading
+通常の文章に *太字* 、/斜体/ 、_下線_ 、+取り消し線+ を含めます。
+
+** TODO 未完了タスク
+DEADLINE: <2026-10-20 Tue>
+
+TODO の色を確認します。
+
+** DONE 完了済みタスク
+CLOSED: [2026-10-13 Tue 09:30]
+
+DONE の色を確認します。
+
+*** Level 3 Heading
+リンクの確認です。
+
+https://www.gnu.org/software/emacs/
+
+[[https://orgmode.org/][Org mode]]
+
+*** 日付
+<2026-10-13 Tue>
+
+[2026-10-13 Tue]
+
+<2026-10-13 Tue 10:00-11:00>
+
+**** Level 4 Heading
+インラインコードは =~/.emacs.d/init.el= のように表示されます。
+
+verbatim は ~M-x org-mode~ のように表示されます。
+
+***** Level 5 Heading
+:PROPERTIES:
+:ID:       org-theme-test
+:CUSTOM_ID: level-5
+:END:
+
+Drawer と Property の表示確認です。
+
+****** Level 6 Heading
+通常の本文です。
+
+******* Level 7 Heading
+通常の本文です。
+
+******** Level 8 Heading
+通常の本文です。
+
+* コードブロック
+
+#+begin_src emacs-lisp
+(defun hello ()
+  "Hello from Org."
+  (message "Hello, world!"))
+#+end_src
+
+#+begin_src python
+def hello(name: str) -> str:
+    return f"Hello, {name}"
+
+print(hello("Org"))
+#+end_src
+
+* Example
+
+#+begin_example
+これは example block です。
+背景色や文字色を確認します。
+#+end_example
+
+* Quote
+
+#+begin_quote
+Org mode は、文章・タスク・知識を
+同じ形式で扱えるのが面白いところです。
+#+end_quote
+
+* 表
+
+| Name              | Type        | Status |
+|-------------------+-------------+--------|
+| Emacs             | Editor      | Active |
+| Org mode          | Major mode  | Active |
+| Retro Hacker Blue | Theme       | Test   |
+| One Dark Blue     | Theme       | Test   |
+
+* リスト
+
+- 通常の項目
+- テーマ確認
+  - ネストした項目
+  - さらに別の項目
+- 色の確認
+
+1. 見出し
+2. TODO
+3. コード
+4. 表
+5. リンク
+
+* チェックボックス
+
+- [ ] 未完了
+- [-] 一部完了
+- [X] 完了
+
+* タグ
+
+** 見出し with tag                                         :work:emacs:
+タグの色を確認します。
+
+* コメントとメタ情報
+
+#+begin_comment
+この部分は Org のコメントブロックです。
+#+end_comment
+
+#+CAPTION: Org テーマ確認用の表
+#+NAME: theme-table
+| Face       | Purpose |
+|------------+---------|
+| org-table  | Table   |
+| org-link   | Link    |
+| org-code   | Code    |
+
+* 水平線
+
+-----
+
+水平線の前後の見え方を確認します。
+
+* 数式
+
+インライン数式:
+
+\( x^2 + y^2 = z^2 \)
+
+表示数式:
+
+\[
+E = mc^2
+\]
+
+* Footnote
+
+Org mode のテーマ確認用文章です。[fn:1]
+
+[fn:1] これは脚注です。

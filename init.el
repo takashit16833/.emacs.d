@@ -32,8 +32,8 @@
  '(ignored-local-variable-values '((my-haskell-simple-indent-offset . 2)))
  '(package-selected-packages
    '(avy browsing-history bufferlo cape clutch embark embark-consult
-	 one-dark-blue-theme pgsql retro-hacker-blue-theme tab-router
-	 undo-fu))
+	 one-dark-blue-theme org-appear org-modern pgsql
+	 retro-hacker-blue-theme tab-router undo-fu))
  '(package-vc-selected-packages
    '((retro-hacker-blue-theme :url
 			      "https://github.com/takashit16833/emacs-retro-hacker-blue-theme.git")))
