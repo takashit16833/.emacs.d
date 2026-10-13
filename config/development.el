@@ -181,7 +181,8 @@
   (apheleia-remote-algorithm 'remote)
   :hook
   ;; 保存時の整形も手動実行と同じApheleiaの設定を使用する。
-  ((lua-ts-mode . apheleia-mode)
+  ((js-json-mode . apheleia-mode)
+   (lua-ts-mode . apheleia-mode)
    (haskell-ts-mode . apheleia-mode)
    (haskell-cabal-mode . apheleia-mode)
    (php-ts-mode . apheleia-mode)
@@ -190,6 +191,11 @@
    (tsx-ts-mode . apheleia-mode))
 
   :config
+  ;; JSONはjqで整形する。
+  ;; Apheleiaの既定値はPrettierなので、JSONだけjqへ切り替える。
+  (setf (alist-get 'js-json-mode apheleia-mode-alist)
+        'jq)
+
   ;; LuaはStyLuaで整形する。
   ;;
   ;; --respect-ignores:
