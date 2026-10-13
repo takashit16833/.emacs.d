@@ -5,7 +5,7 @@
 
 * Level 1 Heading                                                 :emacs:org:
 
-通常の本文です。*太字* /斜体/ _下線_ +取り消し線+ を確認します。
+通常の本文です。 *太字* /斜体/ _下線_ +取り消し線+ を確認します。
 コード =init.el= と verbatim ~M-x org-mode~ も確認します。
 リンク: [[https://orgmode.org/][Org mode]]
 
