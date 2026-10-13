@@ -29,6 +29,11 @@
 
 
 ;; Orgの表示を見やすく整える。
+(use-package org-modern
+  :ensure t
+  :hook (org-mode . org-modern-mode))
+
+
 ;; 隠れているOrgの記号を、カーソルを置いたときだけ表示する。
 (use-package org-appear
   :ensure t
