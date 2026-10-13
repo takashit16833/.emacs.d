@@ -225,10 +225,10 @@
 ;; 時刻指定のある予定は表示したまま、時刻ごとの補助線は表示しない。
 (setq org-agenda-use-time-grid nil)
 
-;; カテゴリ欄を広げ、Scheduled / Deadline がカテゴリ名に接しないようにする。
-;; TODO・タグ検索など、Agenda 以外の一覧は標準の表示形式を維持する。
+;; カテゴリと予定・期限情報の表示幅を確保し、TODO の開始位置を揃える。
+;; 時刻は指定された項目にだけ表示。ほかの Agenda 一覧は標準書式のまま。
 (setq org-agenda-prefix-format
-      '((agenda . " %-15:c%?-12t% s")
+      '((agenda . " %-15:c%?-12t%-13s")
         (todo . " %i %-12:c")
         (tags . " %i %-12:c")
         (search . " %i %-12:c")))
@@ -236,9 +236,9 @@
 ;; Agenda のタグは表示したまま、org-modern のバッジ用に右端の余白を確保する。
 ;; ウィンドウ幅から求めるので、横幅の広い端末でもタグを右側に配置できる。
 (defun my/org-agenda-set-tags-column ()
-  "Agenda のタグをウィンドウ右端から6列内側に揃える。"
+  "Agenda のタグの右端をウィンドウ端から6列内側に揃える。"
   (setq-local org-agenda-tags-column
-              (- (window-max-chars-per-line) 6)))
+              (- 6 (window-max-chars-per-line))))
 
 (add-hook 'org-agenda-mode-hook #'my/org-agenda-set-tags-column)
 
@@ -250,9 +250,9 @@
         ""
         "----------------"))
 
-;; 予定日・期限・期限までの日数を短い日本語で表示する。
-(setq org-agenda-scheduled-leaders '("予定: " "予定%2d回目: "))
-(setq org-agenda-deadline-leaders '("期限: " "あと%3d日: " "%2d日前: "))
+;; 予定・期限の状態を短い英語で表示する。%d は回数または日数。
+(setq org-agenda-scheduled-leaders '("SCHED " "SCHED %dx "))
+(setq org-agenda-deadline-leaders '("DUE " "DUE IN %dD " "%dD OVERDUE "))
 
 
 
