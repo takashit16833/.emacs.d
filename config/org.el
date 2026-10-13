@@ -45,8 +45,12 @@
   ;; 文字や文字列を指定すると、その記号に置き換える。
   (org-modern-hide-stars 'leading)
 
-  ;; replace使用時に見出しレベルごとに表示する記号。
-  (org-modern-replace-stars "◉○◈◇✳")
+  ;; 見出し記号だけを紫にして、見出し文字と区別する。
+  (org-modern-replace-stars
+   (mapcar (lambda (symbol)
+             (propertize (char-to-string symbol)
+                         'face '(:foreground "#B07CFF")))
+           (string-to-list "◉○◈◇✳")))
 
   ;; fold使用時に表示する記号。
   ;; 各組の左側が閉じた状態、右側が開いた状態。
