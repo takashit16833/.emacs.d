@@ -18,6 +18,16 @@
             (memq expected face)
           (eq face expected))))))
 
+(ert-deftest my/org-block-colors-defines-faces ()
+  "色付けに使う face を実際の face として定義する。"
+  (dolist (face '(my/org-block-quote
+                  my/org-block-quote-delimiter
+                  my/org-block-comment
+                  my/org-block-comment-delimiter
+                  my/org-block-export
+                  my/org-block-export-delimiter))
+    (should (facep face))))
+
 (ert-deftest my/org-block-colors-fontifies-whole-blocks ()
   "開始行、本文、終了行のすべてに専用 face を付ける。"
   (with-temp-buffer
