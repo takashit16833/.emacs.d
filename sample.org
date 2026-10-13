@@ -3,12 +3,12 @@
 #+DATE: 2026-10-13
 #+TAGS: emacs org theme
 
-* Level 1 Heading                                              :emacs:
+* Level 1 Heading                                                 :emacs:org:
 通常の本文です。*太字* /斜体/ _下線_ +取り消し線+ を確認します。
 コード =init.el= と verbatim ~M-x org-mode~ も確認します。
 リンク: [[https://orgmode.org/][Org mode]]
 
-** Level 2 Heading                                           :work:
+** Level 2 Heading                                                :work:org:
 日付: <2026-10-13 Tue> [2026-10-13 Tue]
 時刻: <2026-10-13 Tue 10:00-11:00>
 
@@ -20,7 +20,7 @@
 
 プロパティと見出しの色を確認します。
 
-* TODO [#A] 未完了タスク                                             :task:
+* TODO [#A] 未完了タスク                                         :task:org:
 DEADLINE: <2026-10-20 Tue>
 TODO と期限の色を確認します。
 
