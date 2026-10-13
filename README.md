@@ -5,7 +5,7 @@
 HomebrewとXcode Command Line Toolsを用意する。Cコンパイラがなければ `xcode-select --install` を実行する。
 
 ```sh
-brew install emacs git ripgrep cmake libvterm
+brew install emacs git ripgrep jq cmake libvterm
 emacs --version
 ```
 
@@ -17,7 +17,7 @@ GNU Emacs 31.1（Tree-sitter対応ビルド）を用意し、次のコマンド�
 
 ```sh
 sudo apt update
-sudo apt install -y git ripgrep build-essential cmake libvterm-dev
+sudo apt install -y git ripgrep jq build-essential cmake libvterm-dev
 emacs --version
 ```
 
@@ -147,6 +147,7 @@ Emacs 31.1標準のEglotを使用する。Lua・Haskell・PHP・Python・TypeScr
 | PHP | `intelephense` | `phpcbf` |
 | Python | `basedpyright-langserver` | `ruff` |
 | TypeScript / TSX | `typescript-language-server` とプロジェクト内の `typescript` | `prettier` |
+| JSON | なし | `jq` |
 
 Node.js/npmを使用するLanguage Serverは、例えば次のようにインストールできる。
 
