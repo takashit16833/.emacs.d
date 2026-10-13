@@ -28,43 +28,8 @@
    ("C-c o a" . org-agenda)))
 
 
-;; ブロックの種類別に、開始行・本文・終了行の配色を揃える。
-;; Org 標準の色付けが終わった後に、対象のブロックだけ face を重ねる。
-(defun my/org-fontify-colored-block (limit)
-  "LIMIT までに始まる quote/verse/comment/export を色分けする。"
-  (let ((case-fold-search t))
-    (when (re-search-forward
-           "^[ \t]*#\\+begin_\\(quote\\|verse\\|comment\\|export\\)\\(?:[ \t].*\\)?$"
-           limit t)
-      (let* ((begin (line-beginning-position))
-             (body-begin (min (point-max) (1+ (line-end-position))))
-             (kind (downcase (match-string-no-properties 1)))
-             (quote-p (member kind '("quote" "verse")))
-             (body-face (cond (quote-p 'my/org-block-quote)
-                              ((equal kind "comment") 'my/org-block-comment)
-                              (t 'my/org-block-export)))
-             (edge-face (cond (quote-p 'my/org-block-quote-delimiter)
-                              ((equal kind "comment") 'my/org-block-comment-delimiter)
-                              (t 'my/org-block-export-delimiter))))
-        (save-excursion
-          (when (re-search-forward
-                 (format "^[ \t]*#\\+end_%s[ \t]*$" (regexp-quote kind))
-                 nil t)
-            (let ((body-end (line-beginning-position))
-                  (end (min (point-max) (1+ (line-end-position)))))
-              ;; prepend により既存の Org face より背景・文字色を優先する。
-              (add-face-text-property begin body-begin edge-face)
-              (when (< body-begin body-end)
-                (add-face-text-property body-begin body-end body-face))
-              (add-face-text-property body-end end edge-face)))))
-      t)))
-
-(defun my/org-setup-colored-blocks ()
-  "Org バッファに種類別ブロックの配色を追加する。"
-  (font-lock-add-keywords
-   nil '((my/org-fontify-colored-block (0 nil))) 'append))
-
-(add-hook 'org-mode-hook #'my/org-setup-colored-blocks)
+;; Org のブロック種類別配色（標準ブロック描画の後に適用）。
+(require 'my-org-block-colors)
 
 ;; Orgの表示を見やすく整える。
 (use-package org-modern
