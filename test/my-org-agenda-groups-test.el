@@ -86,10 +86,10 @@
     (should (equal (alist-get 'agenda org-agenda-prefix-format)
                    "ORIGINAL"))))
 
-(ert-deftest my/org-agenda-groups-hides-default-day-and-week-header ()
-  "日別・週別で上部の標準 Agenda 見出しを表示しない。"
+(ert-deftest my/org-agenda-groups-hides-day-and-week-header ()
+  "日別・週別では上部の Agenda 見出しだけを非表示にする。"
   (let ((org-agenda-overriding-arguments nil)
-        (org-agenda-overriding-header nil))
+        (org-agenda-overriding-header "Original"))
     (dolist (span '(day week))
       (let ((org-agenda-span span))
         (should
@@ -97,35 +97,7 @@
           (my/org-agenda-groups-around-list
            (lambda (&rest _args) org-agenda-overriding-header))
           ""))))
-    (should-not org-agenda-overriding-header)))
-
-(ert-deftest my/org-agenda-groups-preserves-custom-section-header ()
-  "複合表示 n の指定見出しは日別・週別でも消さない。"
-  (let ((org-agenda-overriding-arguments nil)
-        (org-agenda-overriding-header "│ Agenda ─────"))
-    (dolist (span '(day week))
-      (let ((org-agenda-span span))
-        (should
-         (equal
-          (my/org-agenda-groups-around-list
-           (lambda (&rest _args) org-agenda-overriding-header))
-          "│ Agenda ─────"))))
-    (should (equal org-agenda-overriding-header "│ Agenda ─────"))))
-
-(ert-deftest my/org-agenda-groups-section-header-fills-width ()
-  "大見出しの横線は画面幅を超えず、右端を1列空ける。"
-  (cl-letf (((symbol-function 'window-max-chars-per-line)
-             (lambda (&rest _) 30)))
-    (let ((heading (my/org-agenda-section-header "All TODOs")))
-      (should (string-prefix-p "│ All TODOs ─" heading))
-      (should (= 29 (string-width heading))))))
-
-(ert-deftest my/org-agenda-groups-section-header-narrow-window ()
-  "狭いウィンドウでは横線の長さが負にならない。"
-  (cl-letf (((symbol-function 'window-max-chars-per-line)
-             (lambda (&rest _) 7)))
-    (should (equal (my/org-agenda-section-header "Agenda")
-                   "│ Agenda "))))
+    (should (equal org-agenda-overriding-header "Original"))))
 
 (ert-deftest my/org-agenda-groups-other-prefixes-unchanged ()
   "月間 Agenda は今までどおりカテゴリ列を残す。"
