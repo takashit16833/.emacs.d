@@ -74,7 +74,6 @@
 ;; 2つのテーマを登録する。配色はテーマ本体へ置き、選択は my-theme に任せる。
 (use-package retro-hacker-blue-theme
   :vc (:url "https://github.com/takashit16833/emacs-retro-hacker-blue-theme.git"
-	    :branch "feature/org-modern-badges"
 	    :rev :newest)
   :no-require t
   :init
@@ -82,7 +81,6 @@
 
 (use-package one-dark-blue-theme
   :vc (:url "https://github.com/takashit16833/emacs-one-dark-blue-theme.git"
-	    :branch "feature/org-modern-badges"
 	    :rev :newest)
   :no-require t
   :init
