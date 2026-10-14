@@ -110,6 +110,34 @@
     (my/org-agenda-layout-finalize)
     (should-not (overlays-in (point-min) (point-max)))))
 
+(ert-deftest my/org-agenda-layout-adds-space-above-date-band ()
+  "日付帯の上にだけ表示上の1行余白を追加し、本文は変更しない。"
+  (with-temp-buffer
+    (insert "2026/10/14 (水)\n  Development\n")
+    (setq-local major-mode 'org-agenda-mode)
+    (setq-local org-agenda-current-span 'week)
+    (let ((date-end (line-end-position))
+          (original (buffer-string)))
+      (put-text-property (point-min) date-end
+                         'org-agenda-date-header t)
+      (my/org-agenda-layout-finalize)
+      (should (equal original (buffer-string)))
+      (let ((spacing
+             (cl-find-if
+              (lambda (ov)
+                (overlay-get ov 'my/org-agenda-date-spacing))
+              (overlays-in (point-min) (point-max)))))
+        (should spacing)
+        (should (equal (overlay-get spacing 'before-string) "\n")))
+      ;; 再描画でも余白用 overlay は1つだけに保つ。
+      (my/org-agenda-layout-finalize)
+      (should
+       (= 1
+          (cl-count-if
+           (lambda (ov)
+             (overlay-get ov 'my/org-agenda-date-spacing))
+           (overlays-in (point-min) (point-max))))))))
+
 (ert-deftest my/org-agenda-layout-extends-date-background ()
   "Agenda の日付の face を改行にも付け、他の行には付けない。"
   (with-temp-buffer
