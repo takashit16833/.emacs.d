@@ -71,9 +71,13 @@
   ;; Agenda の表示期間が確定した後、日別・週別の分類に切り替える。
   ;; org-super-agenda の分類処理を包み、ほかの一覧は従来の設定を使う。
   (autoload 'my/org-agenda-groups-around-finalize "my-org-agenda-groups")
+  (autoload 'my/org-agenda-groups-around-list "my-org-agenda-groups")
   (advice-add 'org-agenda-finalize-entries
               :around #'my/org-agenda-groups-around-finalize
               '((depth . -50)))
+  ;; d/w の切り替えで Agenda を再生成するときも、カテゴリ列は表示しない。
+  (advice-add 'org-agenda-list
+              :around #'my/org-agenda-groups-around-list)
   (org-super-agenda-mode 1))
 
 
