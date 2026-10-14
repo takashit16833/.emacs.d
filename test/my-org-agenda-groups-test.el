@@ -70,6 +70,19 @@
     (should (equal (alist-get 'agenda org-agenda-prefix-format)
                    "ORIGINAL"))))
 
+(ert-deftest my/org-agenda-groups-hides-day-and-week-header ()
+  "日別・週別では上部の Agenda 見出しだけを非表示にする。"
+  (let ((org-agenda-overriding-arguments nil)
+        (org-agenda-overriding-header "Original"))
+    (dolist (span '(day week))
+      (let ((org-agenda-span span))
+        (should
+         (equal
+          (my/org-agenda-groups-around-list
+           (lambda (&rest _args) org-agenda-overriding-header))
+          ""))))
+    (should (equal org-agenda-overriding-header "Original"))))
+
 (ert-deftest my/org-agenda-groups-other-prefixes-unchanged ()
   "月間 Agenda は今までどおりカテゴリ列を残す。"
   (let ((org-agenda-prefix-format '((agenda . "ORIGINAL")))
