@@ -43,7 +43,8 @@ org-agenda-finalize-entries の呼び出し時には表示期間が確定して�
   (let ((groups (my/org-agenda-groups-for-span org-agenda-current-span)))
     (if groups
         (let ((org-super-agenda-groups groups)
-              (org-super-agenda-header-prefix "  ")
+              ;; Org のアウトライン見出しと同じ感覚で、左に縦線を置く。
+              (org-super-agenda-header-prefix "  ┃ ")
               ;; 日付と最初のカテゴリ、カテゴリ同士に1行の余白を残す。
               (org-super-agenda-header-separator "\n"))
           (apply original args))
