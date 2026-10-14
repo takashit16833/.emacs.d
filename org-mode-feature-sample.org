@@ -1,0 +1,315 @@
+#+TITLE: Org mode 機能サンプル
+#+AUTHOR: Takashi Suzuki
+#+DATE: 2026-10-14
+#+CATEGORY: OrgSample
+#+FILETAGS: :org_sample:
+#+TODO: TODO NEXT WAIT | DONE CANCELLED
+#+PRIORITIES: A C B
+#+STARTUP: overview logdone
+#+COLUMNS: %40ITEM(Task) %TODO %PRIORITY %TAGS %8EFFORT(Estimate) %8CLOCKSUM(Actual)
+
+* このファイルの見方
+
+このファイルは、同じような TODO を並べるのではなく、
+Org mode の各機能が「何のためにあるのか」を見比べるためのサンプル。
+
+- =TODO / NEXT / WAIT= :: タスクの状態
+- =SCHEDULED= :: 取り組む予定日
+- =DEADLINE= :: 終了期限
+- タグ :: プロジェクトをまたいで検索・絞り込みするためのラベル
+- =PROPERTIES= :: その見出しに持たせる追加情報
+- =EFFORT= :: 作業時間の見積もり
+- =CLOCK= :: 実際に作業した時間
+- 繰り返し指定 :: 定期タスク
+- Archive :: 終わった項目を普段の一覧から退避する
+
+* Projects
+
+** Emacs 改善                                                          :emacs:
+:PROPERTIES:
+:CATEGORY: Development
+:END:
+
+親見出しに =:emacs:= タグを付けているため、
+子タスクを Emacs 関連としてまとめて扱える。
+
+*** NEXT [#A] Agenda の表示を整える
+SCHEDULED: <2026-10-14 水 15:00>
+DEADLINE: <2026-10-16 金>
+:PROPERTIES:
+:EFFORT:   1:30
+:OWNER:    Takashi
+:END:
+
+このタスクは、
+
+- 10/14 に取り組む予定
+- 10/16 が締切
+- 見積もりは 1時間30分
+- =OWNER= は自由に付けたプロパティ
+
+という情報を持つ。
+
+CLOCK は「予定」ではなく、実際に作業した時間。
+
+CLOCK: [2026-10-14 水 15:10]--[2026-10-14 水 15:55] =>  0:45
+
+*** WAIT [#B] org-super-agenda の挙動を確認する                       :research:
+:PROPERTIES:
+:EFFORT:   0:30
+:END:
+
+=WAIT= は「今すぐ自分が進める状態ではない」ことを表す例。
+=:research:= を使えば、Emacs 以外の調査タスクと横断して探せる。
+
+*** DONE [#C] README を更新する
+CLOSED: [2026-10-13 火 18:30]
+:PROPERTIES:
+:EFFORT:   0:20
+:END:
+CLOCK: [2026-10-13 火 18:05]--[2026-10-13 火 18:25] =>  0:20
+
+** RAG Lab                                                            :rag_lab:
+:PROPERTIES:
+:CATEGORY: Development
+:END:
+
+*** TODO [#A] Retrieval 評価を実装する                               :coding:
+DEADLINE: <2026-10-19 月>
+:PROPERTIES:
+:EFFORT:   2:00
+:END:
+
+*** TODO [#B] 評価指標について調べる                                :research:
+:PROPERTIES:
+:EFFORT:   1:00
+:END:
+
+=:research:= で検索すると、
+「org-super-agenda の挙動を確認する」と
+「評価指標について調べる」をプロジェクト横断でまとめて見られる。
+
+* Schedule と Deadline の違い
+
+** TODO 請求書を作成する
+SCHEDULED: <2026-10-15 木>
+
+これは「10/15 にやる予定」。
+締切そのものは設定していない。
+
+** TODO 請求書を提出する
+DEADLINE: <2026-10-20 火>
+
+これは「10/20 までに終わらせる必要がある」。
+いつ着手するかは指定していない。
+
+** TODO レポートを提出する
+SCHEDULED: <2026-10-16 金>
+DEADLINE: <2026-10-20 火>
+
+「10/16 に着手し、10/20 までに終える」のように両方を持たせることもできる。
+
+* 繰り返しタスク
+
+** TODO 毎週の振り返り                                              :review:
+SCHEDULED: <2026-10-14 水 +1w>
+:PROPERTIES:
+:EFFORT:   0:30
+:END:
+
+DONE にすると次回の日付へ進む、毎週の定期タスクの例。
+
+** TODO 月次バックアップ                                             :maintenance:
+SCHEDULED: <2026-10-31 土 +1m>
+
+毎月繰り返す例。
+
+* Tags の使い方
+
+タグは「所属先」よりも「あとで横断して取り出したい特徴」に使うと便利。
+
+** TODO Emacs の不具合を調べる                                     :emacs:research:
+** TODO RAG の論文を読む                                           :rag_lab:research:
+** TODO Python の処理を書く                                        :rag_lab:coding:
+** TODO Emacs Lisp を修正する                                      :emacs:coding:
+
+例えば Agenda のタグ検索では、
+
+- =research= :: 調査系だけ
+- =coding= :: 実装系だけ
+- =emacs= :: Emacs 関連だけ
+- =emacs+coding= :: Emacs かつ実装系
+
+のように、ファイルやプロジェクトをまたいで絞り込める。
+
+* Properties の使い方
+
+** TODO 小さな機能を実装する
+:PROPERTIES:
+:EFFORT:   0:45
+:OWNER:    Takashi
+:PROJECT:  Emacs
+:CONTEXT:  Home
+:END:
+
+=EFFORT= は Org が時間管理に利用できるプロパティ。
+=OWNER= / =PROJECT= / =CONTEXT= は、このサンプルでは自由に作ったプロパティ。
+
+値を持つ情報は、タグより Property の方が向いている。
+
+例:
+
+- タグ: =:research:= のような「該当する / しない」
+- Property: =:EFFORT: 0:45= のような「名前と値」
+
+* Clock と Effort
+
+** TODO テーマを調整する
+:PROPERTIES:
+:EFFORT:   2:00
+:END:
+CLOCK: [2026-10-14 水 09:00]--[2026-10-14 水 10:10] =>  1:10
+CLOCK: [2026-10-14 水 11:00]--[2026-10-14 水 11:35] =>  0:35
+
+見積もり:
+
+#+begin_example
+EFFORT = 2:00
+#+end_example
+
+実績:
+
+#+begin_example
+CLOCK 合計 = 1:45
+#+end_example
+
+=Effort= と =Clock= を一緒に使うと、
+「2時間の見積もりに対して、実際は1時間45分だった」のように比較できる。
+
+** Clock 集計
+
+下の dynamic block は、このファイルの Clock を集計するためのもの。
+BEGIN 行で =C-c C-c= を実行すると内容を更新できる。
+
+#+BEGIN: clocktable :scope file :maxlevel 3
+#+END:
+
+* Events
+
+TODO ではなく、単純に「その日時に存在する予定」は active timestamp だけでも Agenda に表示できる。
+
+** チームミーティング                                               :meeting:
+<2026-10-14 水 10:00-11:00>
+
+** 勉強会
+<2026-10-16 金 19:00-20:30>
+
+** 週末イベント
+<2026-10-17 土>--<2026-10-18 日>
+
+=SCHEDULED= はタスクの予定日、
+上のような timestamp はイベント・予定そのもの、
+という使い分けができる。
+
+* Checklist と進捗
+
+** リリース準備 [1/4]
+
+- [X] バージョン番号を確認する
+- [ ] テストを実行する
+- [ ] README を更新する
+- [ ] タグを作成する
+
+見出しの =[1/4]= は進捗 cookie。
+チェックボックスの完了数を見出しに反映できる。
+
+* Links
+
+Org はノート同士や外部情報へのリンクも扱える。
+
+- [[https://orgmode.org/][Org mode]]
+- [[file:README.org][同じディレクトリの README]]
+- [[file:~/notes/emacs.org::*Agenda][別ファイルの特定見出し]]
+
+* Table
+
+表は単なる見た目だけでなく、簡単な計算もできる。
+
+| Task          | Estimate | Actual |
+|---------------+----------+--------|
+| Agenda        |       90 |     75 |
+| Theme         |      120 |    105 |
+| Documentation |       30 |     20 |
+|---------------+----------+--------|
+| Total         |          |        |
+#+TBLFM: @>$2=vsum(@2..@-1);@>$3=vsum(@2..@-1)
+
+=#+TBLFM:= は表計算の式。
+表の中で =C-c C-c= などを使って再計算できる。
+
+* Babel
+
+Org Babel を使うと、文書内に実行可能なコードブロックを置ける。
+
+#+begin_src emacs-lisp :results value
+(+ 20 22)
+#+end_src
+
+コードブロック上で =C-c C-c= を実行すると、
+設定が許可されていれば結果を文書内に挿入できる。
+
+* 記録用タイムスタンプ
+
+active timestamp:
+
+<2026-10-14 水>
+
+Agenda の予定として扱われる。
+
+inactive timestamp:
+
+[2026-10-14 水]
+
+作成日・更新日・記録など、
+Agenda に予定として出したくない日時に向いている。
+
+* Archive
+
+** DONE 完了して普段は見なくてよい作業
+CLOSED: [2026-10-01 木 12:00]
+
+Archive は削除ではない。
+
+完了した subtree を普段の作業ファイル・Agenda から外し、
+履歴として別の場所へ退避するために使う。
+
+そのため、
+
+- 通常の Agenda を過去の DONE で埋めない
+- 必要なら後から履歴を調べられる
+- grep / ripgrep などでは archive ファイルも検索できる
+
+という使い方になる。
+
+* 日付のない Backlog
+
+** TODO いつか試したい Org Capture
+** TODO Column View を試す
+** TODO Agenda のカスタムコマンドを調べる
+
+日付を付けない TODO は、
+「いつやるかはまだ決めていないが、忘れたくないもの」として残せる。
+
+Agenda の日付表示には出なくても、TODO 一覧では確認できる。
+
+* Column View
+
+このファイル先頭の =#+COLUMNS:= により、
+タスクを表形式で見るための列を定義している。
+
+#+begin_example
+Task | TODO | Priority | Tags | Estimate | Actual
+#+end_example
+
+見出し階層を保ったまま、
+Property や Clock の情報を一覧で確認したいときに使える。
