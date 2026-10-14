@@ -39,14 +39,15 @@
 (defun my/org-agenda-groups-around-finalize (original &rest args)
   "ORIGINAL を ARGS で呼び、Agenda の表示期間に応じてグループ化する。
 org-agenda-finalize-entries の呼び出し時には表示期間が確定している。
-その処理中だけ org-super-agenda-groups を動的に束縛する。"
-  (let ((groups (my/org-agenda-groups-for-span org-agenda-current-span)))
+日別・週別では分類条件を切り替え、すべてのグループ見出しを同じ
+スタイルで表示する。"
+  (let ((groups (my/org-agenda-groups-for-span org-agenda-current-span))
+        ;; Org のアウトライン見出しと同じ感覚で、左に縦線を置く。
+        (org-super-agenda-header-prefix "  ┃ ")
+        ;; グループ同士に1行の余白を残す。
+        (org-super-agenda-header-separator "\n"))
     (if groups
-        (let ((org-super-agenda-groups groups)
-              ;; Org のアウトライン見出しと同じ感覚で、左に縦線を置く。
-              (org-super-agenda-header-prefix "  ┃ ")
-              ;; 日付と最初のカテゴリ、カテゴリ同士に1行の余白を残す。
-              (org-super-agenda-header-separator "\n"))
+        (let ((org-super-agenda-groups groups))
           (apply original args))
       (apply original args))))
 
