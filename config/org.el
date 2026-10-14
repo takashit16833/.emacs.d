@@ -62,16 +62,12 @@
 (use-package org-super-agenda
   :ensure t
   :after org-agenda
-  :custom
-  (org-super-agenda-groups
-   '((:name "Deadlines" :deadline t)
-     (:name "Scheduled" :scheduled t)
-     (:name "Other" :anything t)))
   :config
+  (require 'my-org-agenda-groups)
+  ;; TODO 一覧は期限の緊急度と予定の有無で分類する。
+  (setq org-super-agenda-groups my/org-agenda-todo-groups)
   ;; Agenda の表示期間が確定した後、日別・週別の分類に切り替える。
-  ;; org-super-agenda の分類処理を包み、ほかの一覧は従来の設定を使う。
-  (autoload 'my/org-agenda-groups-around-finalize "my-org-agenda-groups")
-  (autoload 'my/org-agenda-groups-around-list "my-org-agenda-groups")
+  ;; org-super-agenda の分類処理を包み、ほかの一覧は TODO 用設定を使う。
   (advice-add 'org-agenda-finalize-entries
               :around #'my/org-agenda-groups-around-finalize
               '((depth . -50)))
