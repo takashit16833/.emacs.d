@@ -50,22 +50,6 @@ Org は TODO を整形する際に見出し属性を失う場合があるので�
           (setq heading (match-beginning 1)))))
     heading))
 
-(defun my/org-agenda-layout--add-date-top-spacing ()
-  "Agenda の日付帯の前に1行分の表示上の余白を追加する。
-バッファ本文には改行を挿入せず、日付行の先頭文字に overlay を置く。"
-  (save-excursion
-    (goto-char (point-min))
-    (while (< (point) (point-max))
-      (let ((beg (line-beginning-position))
-            (end (line-end-position)))
-        (when (and (< beg end)
-                   (get-text-property beg 'org-agenda-date-header))
-          (let ((ov (make-overlay beg (1+ beg))))
-            (overlay-put ov 'my/org-agenda-layout t)
-            (overlay-put ov 'my/org-agenda-date-spacing t)
-            (overlay-put ov 'before-string "\n"))))
-      (forward-line 1))))
-
 (defun my/org-agenda-layout--extend-date-background ()
   "Agenda の日付行の背景を、行末まで表示する。
 日付に既に設定された face を改行文字にも適用し、face の
@@ -91,8 +75,6 @@ Org は TODO を整形する際に見出し属性を失う場合があるので�
     ;; Agenda の再生成や再実行後も装飾が重複しないようにする。
     (remove-overlays (point-min) (point-max)
                      'my/org-agenda-layout t)
-    ;; グループ見出し側の余白と揃うよう、日付帯の上にも1行空ける。
-    (my/org-agenda-layout--add-date-top-spacing)
     ;; 日付の face を改行にも付け、テーマ側の :extend を有効にする。
     (my/org-agenda-layout--extend-date-background)
     (save-excursion
