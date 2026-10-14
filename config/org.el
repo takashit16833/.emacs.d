@@ -256,7 +256,8 @@
 ;; TODO・タグ検索など、Agenda 以外の一覧は標準の表示形式を維持する。
 (setq org-agenda-prefix-format
       '((agenda . " %-15:c%-13s%-12t")
-        (todo . " %i %-12:c")
+        ;; グループ見出しとの親子関係が分かるよう、TODO 項目は一段下げる。
+        (todo . "    %i %-12:c")
         (tags . " %i %-12:c")
         (search . " %i %-12:c")))
 
