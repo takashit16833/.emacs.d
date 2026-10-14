@@ -33,9 +33,8 @@
     (should (string-prefix-p " Development:  SCHED" plain))
     (should (string-match-p "emacs.*rag_lab" plain))
     (should (string-suffix-p "\n  " plain))
-    (should (eq 'org-modern-tag
-                (get-text-property (string-match "emacs" text) 'face text)))
-    ))
+    (should (eq (if (facep 'org-modern-tag) 'org-modern-tag 'org-tag)
+                (get-text-property (string-match "emacs" text) 'face text)))))
 
 (ert-deftest my/org-agenda-layout-preserves-original-line ()
   "装飾しても項目が物理的には1行で、元の文字列も変わらない。"
