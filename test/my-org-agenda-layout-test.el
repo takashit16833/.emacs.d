@@ -32,7 +32,7 @@
          (plain (substring-no-properties text)))
     (should (string-prefix-p " Development:  SCHED" plain))
     (should (string-match-p "emacs.*rag_lab" plain))
-    (should (string-suffix-p "\n  " plain))
+    (should (string-suffix-p "\n      " plain))
     (should (eq (if (facep 'org-modern-tag) 'org-modern-tag 'org-tag)
                 (get-text-property (string-match "emacs" text) 'face text)))))
 
@@ -94,7 +94,7 @@
           (let ((ovs (overlays-in (point-min) (point-max))))
             (should (= 1 (length ovs)))
             (should (string-suffix-p
-                     "\n  "
+                     "\n      "
                      (overlay-get (car ovs) 'before-string)))))
       (kill-buffer buffer))))
 
