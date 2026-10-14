@@ -143,16 +143,16 @@
       "  "))
     (should (equal org-super-agenda-header-prefix " "))))
 
-(ert-deftest my/org-agenda-groups-week-removes-header-gap ()
-  "週別だけグループ見出し前の空行をなくす。"
+(ert-deftest my/org-agenda-groups-week-retains-header-gap ()
+  "週別でも日付とカテゴリ、カテゴリ間の余白を残す。"
   (let ((org-agenda-current-span 'week)
-        (org-super-agenda-header-separator "\n"))
+        (org-super-agenda-header-separator "CUSTOM"))
     (should
      (equal
       (my/org-agenda-groups-around-finalize
        (lambda (&rest _args) org-super-agenda-header-separator))
-      ""))
-    (should (equal org-super-agenda-header-separator "\n"))))
+      "\n"))
+    (should (equal org-super-agenda-header-separator "CUSTOM"))))
 
 (ert-deftest my/org-agenda-groups-day-retains-header-gap ()
   "日別ではグループ見出し間の余白を残す。"
