@@ -14,43 +14,26 @@
 
 (defun my/navigation--track (original &rest args)
   "ORIGINAL による移動が成立したときだけ Browsing History に記録する。"
-  (if (or my/navigation--tracking
-          (not buffer-file-name))
+  (if my/navigation--tracking
       (apply original args)
     (let ((my/navigation--tracking t)
           (source-buffer (current-buffer))
           (source-window (selected-window))
-          (source-file buffer-file-name)
           (source-position (point))
-          (source-marker (copy-marker (point)))
-          recorded-p)
-      (unwind-protect
-          (let ((result (apply original args)))
-            ;; 同じウィンドウ内で、実際に位置が変わった場合だけ記録する。
-            (when (and (eq source-window (selected-window))
-                       buffer-file-name
-                       (or (not (eq source-buffer (current-buffer)))
-                           (/= source-position (point))))
-              (let ((history (browsing-history-ensure-current)))
-                ;; 移動元と移動先の両方を記録することで、
-                ;; 移動直後から back で移動元へ戻れるようにする。
-                (browsing-history-push
-                 history
-                 (make-browsing-history-location
-                  :file source-file
-                  :position source-position
-                  :marker source-marker))
-                (browsing-history-push
-                 history
-                 (make-browsing-history-location
-                  :file buffer-file-name
-                  :position (point)
-                  :marker (point-marker)))
-                (setq recorded-p t)))
-            result)
-        ;; 履歴に保存しなかった marker は不要なので切り離す。
-        (unless recorded-p
-          (set-marker source-marker nil))))))
+          (source-location (browsing-history-location-at-point)))
+      (let ((result (apply original args)))
+        ;; 同じウィンドウ内で、実際に位置が変わった場合だけ記録する。
+        (when (and (eq source-window (selected-window))
+                   (or (not (eq source-buffer (current-buffer)))
+                       (/= source-position (point))))
+          (let ((history (browsing-history-ensure-current)))
+            ;; 移動元と移動先の両方を記録することで、
+            ;; 移動直後から back で移動元へ戻れるようにする。
+            (browsing-history-push history source-location)
+            (browsing-history-push
+             history
+             (browsing-history-location-at-point))))
+        result)))
 
 
 (defun my/navigation--advise (command)
@@ -60,7 +43,7 @@
 
 
 (defun my/navigation-setup ()
-  "ファイル切り替えと明示的なジャンプの履歴記録を設定する。"
+  "バッファ切り替えと明示的なジャンプの履歴記録を設定する."
   ;; Emacs 標準の移動。
   (dolist (command '(find-file switch-to-buffer goto-line))
     (my/navigation--advise command))
@@ -85,7 +68,11 @@
 
   ;; Avy。
   (with-eval-after-load 'avy
-    (my/navigation--advise 'avy-goto-char-timer)))
+    (my/navigation--advise 'avy-goto-char-timer))
+
+  ;; Org Agenda の RET で元項目へ移動する操作。
+  (with-eval-after-load 'org-agenda
+    (my/navigation--advise 'org-agenda-switch-to)))
 
 
 (defun my/browsing-history-back ()
