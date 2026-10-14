@@ -103,7 +103,7 @@
    (mapcar (lambda (symbol)
              (propertize (char-to-string symbol)
                          'face 'my/org-modern-heading-bullet))
-           (string-to-list "󰎤󰎧󰎪󰎭󰎱󰎳󰎶󰎹")))
+           (string-to-list "┃")))
 
   ;; fold使用時に表示する記号。
   ;; 各組の左側が閉じた状態、右側が開いた状態。
