@@ -5,7 +5,7 @@
 
 ;;; Code:
 
-(require 'org)
+(require 'org-agenda)
 (require 'subr-x)
 
 (defun my/org-agenda-layout--tags (raw)
@@ -34,6 +34,21 @@
   "Agenda の長いタイトルを端末幅に合わせて折り返す。"
   (setq-local truncate-lines nil)
   (setq-local word-wrap t))
+
+(defun my/org-agenda-layout--title-start (beg end)
+  "Agenda 項目の BEG と END の間でタイトルの開始位置を返す。
+Org は TODO を整形する際に見出し属性を失う場合があるので、
+残った見出し属性の前に TODO があれば、その開始位置まで戻す。"
+  (let ((heading (text-property-any beg end 'org-heading t))
+        (re (get-text-property beg 'org-todo-regexp)))
+    (when (and heading re)
+      (save-excursion
+        (goto-char beg)
+        (when (re-search-forward
+               (concat "[[:space:]]\\(" re "\\)[[:space:]]+")
+               heading t)
+          (setq heading (match-beginning 1)))))
+    heading))
 
 (defun my/org-agenda-layout-finalize ()
   "日付付き Agenda の各項目を表示上だけ2行にする。
