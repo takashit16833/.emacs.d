@@ -57,6 +57,20 @@
   "Org の見出し記号に使う face。"
   :group 'org)
 
+
+;; Agenda の項目を予定・期限などでグループ化する。
+(use-package org-super-agenda
+  :ensure t
+  :after org-agenda
+  :custom
+  (org-super-agenda-groups
+   '((:name "Deadlines" :deadline t)
+     (:name "Scheduled" :scheduled t)
+     (:name "Other" :anything t)))
+  :config
+  (org-super-agenda-mode 1))
+
+
 ;; Orgの表示を見やすく整える。
 (use-package org-modern
   :ensure t
