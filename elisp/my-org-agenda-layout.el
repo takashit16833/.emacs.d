@@ -107,5 +107,16 @@ Org は TODO を整形する際に見出し属性を失う場合があるので�
           (goto-char end)
           (forward-line 1))))))
 
+(defun my/org-agenda-layout-style-block-separators ()
+  "複合 Agenda の横罫線に、縦分割線と同じ face を適用する。
+元の文字列は変更せず、テーマ切り替え後も同じ色を参照する。"
+  (when (derived-mode-p 'org-agenda-mode)
+    (save-excursion
+      (goto-char (point-min))
+      (let ((inhibit-read-only t))
+        (while (re-search-forward "^─+$" nil t)
+          (put-text-property (match-beginning 0) (match-end 0)
+                             'face 'vertical-border))))))
+
 (provide 'my-org-agenda-layout)
 ;;; my-org-agenda-layout.el ends here

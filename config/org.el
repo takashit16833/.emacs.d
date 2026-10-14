@@ -244,6 +244,10 @@
 (setq system-time-locale "ja_JP.UTF-8")
 (setq org-agenda-format-date "%Y/%m/%d (%a)")
 
+;; 複合 Agenda のブロック間は、隙間のない細い罫線で区切る。
+;; 線の色は描画後に、縦分割線と同じ vertical-border face を適用する。
+(setq org-agenda-block-separator ?─)
+
 ;; 時刻指定のある予定は表示したまま、時刻ごとの補助線は表示しない。
 (setq org-agenda-use-time-grid nil)
 
@@ -282,9 +286,12 @@
 ;; 元のバッファは1項目1行のまま保ち、通常の Agenda 操作を維持する。
 (autoload 'my/org-agenda-layout-setup "my-org-agenda-layout")
 (autoload 'my/org-agenda-layout-finalize "my-org-agenda-layout")
+(autoload 'my/org-agenda-layout-style-block-separators "my-org-agenda-layout")
 (add-hook 'org-agenda-mode-hook #'my/org-agenda-layout-setup)
 ;; org-modern によるバッジ装飾が終わってから2行の表示を作る。
 (add-hook 'org-agenda-finalize-hook #'my/org-agenda-layout-finalize t)
+;; org-modern などの装飾が済んでから区切り線を縦分割線と同じ色にする。
+(add-hook 'org-agenda-finalize-hook #'my/org-agenda-layout-style-block-separators t)
 
 
 

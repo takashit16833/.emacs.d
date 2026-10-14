@@ -155,4 +155,36 @@
       (should (eq (get-text-property (line-beginning-position) 'face)
                   'org-agenda-date)))))
 
+(ert-deftest my/org-agenda-layout-block-separator-matches-vertical-border ()
+  "複合 Agenda の横罫線だけを縦分割線と同じ face にする。"
+  (with-temp-buffer
+    (insert "2026/10/14 (水)\n────────\nGlobal list of TODO items of type: ALL\n")
+    (setq-local major-mode 'org-agenda-mode)
+    (let ((original (buffer-string)))
+      (my/org-agenda-layout-style-block-separators)
+      (should (equal (buffer-string) original))
+      (goto-char (point-min))
+      (should-not (get-text-property (point) 'face))
+      (forward-line 1)
+      (should (eq (get-text-property (point) 'face) 'vertical-border))
+      (should (eq (get-text-property (1- (line-end-position)) 'face)
+                  'vertical-border))
+      (forward-line 1)
+      (should-not (get-text-property (point) 'face))
+      ;; 更新しても属性が重ならず、別の行まで装飾しない。
+      (my/org-agenda-layout-style-block-separators)
+      (forward-line -1)
+      (should (eq (get-text-property (point) 'face) 'vertical-border)))))
+
+(ert-deftest my/org-agenda-layout-block-separator-skips-other-lines ()
+  "横罫線以外の行や別のバッファは変更しない。"
+  (with-temp-buffer
+    (insert "──────── item\n========\n")
+    (setq-local major-mode 'org-agenda-mode)
+    (my/org-agenda-layout-style-block-separators)
+    (goto-char (point-min))
+    (should-not (get-text-property (point) 'face))
+    (forward-line 1)
+    (should-not (get-text-property (point) 'face))))
+
 ;;; my-org-agenda-layout-test.el ends here
