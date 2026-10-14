@@ -114,6 +114,7 @@
   "Agenda の日付の face を改行にも付け、他の行には付けない。"
   (with-temp-buffer
     (insert "2026/10/14 (水)\n  Development\n    SCHED\n")
+    (goto-char (point-min))
     (setq-local major-mode 'org-agenda-mode)
     (setq-local org-agenda-current-span 'week)
     (let ((date-end (line-end-position))
@@ -138,6 +139,7 @@
   "日付属性がない見出しや改行のない最終行には触れない。"
   (with-temp-buffer
     (insert "  Development\n2026/10/14 (水)")
+    (goto-char (point-min))
     (put-text-property (point-min) (line-end-position)
                        'face 'org-agenda-structure)
     (forward-line 1)
