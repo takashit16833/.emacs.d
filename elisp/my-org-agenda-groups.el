@@ -44,9 +44,8 @@ org-agenda-finalize-entries の呼び出し時には表示期間が確定して�
     (if groups
         (let ((org-super-agenda-groups groups)
               (org-super-agenda-header-prefix "  ")
-              ;; 週表示は見出し数が多いので、見出し直前の空行を省く。
-              (org-super-agenda-header-separator
-               (if (eq org-agenda-current-span 'week) "" "\n")))
+              ;; 日付と最初のカテゴリ、カテゴリ同士に1行の余白を残す。
+              (org-super-agenda-header-separator "\n"))
           (apply original args))
       (apply original args))))
 
