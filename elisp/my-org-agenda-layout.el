@@ -64,7 +64,7 @@ Org は TODO を整形する際に見出し属性を失う場合があるので�
       (while (< (point) (point-max))
         (let* ((beg (line-beginning-position))
                (end (line-end-position))
-               (heading (text-property-any beg end 'org-heading t)))
+               (heading (my/org-agenda-layout--title-start beg end)))
           (when (and heading
                      (> heading beg)
                      (get-text-property heading 'org-marker))
