@@ -26,7 +26,7 @@
      ("rag_lab" . ?r)))
   :bind
   (("C-c o c" . org-capture)
-   ("C-c o a" . org-agenda)))
+   ("C-c o o" . org-agenda)))
 
 
 ;; Org のブロック種類別配色（標準ブロック描画の後に適用）。
