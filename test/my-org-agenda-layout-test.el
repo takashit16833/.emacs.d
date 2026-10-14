@@ -36,6 +36,24 @@
     (should (eq (if (facep 'org-modern-tag) 'org-modern-tag 'org-tag)
                 (get-text-property (string-match "emacs" text) 'face text)))))
 
+(ert-deftest my/org-agenda-layout-preserves-todo-and-priority ()
+  "Org が TODO の見出し属性を置換してもバッジは2行目に残す。"
+  (let ((buffer (my/org-agenda-layout-test--render
+                 " Development:  SCHED       09:00      TODO [#B] テスト"
+                 "[#B]")))
+    (unwind-protect
+        (with-current-buffer buffer
+          (put-text-property (point-min) (line-end-position)
+                             'org-todo-regexp "\\(?:TODO\\|DONE\\)")
+          (my/org-agenda-layout-finalize)
+          (let ((meta (cl-find-if
+                       (lambda (ov) (overlay-get ov 'before-string))
+                       (overlays-in (point-min) (point-max)))))
+            (should meta)
+            (should (eq ?T (char-after (overlay-end meta))))
+            (should (string-match-p "TODO \\[#B\\]" (buffer-string)))))
+      (kill-buffer buffer))))
+
 (ert-deftest my/org-agenda-layout-preserves-original-line ()
   "装飾しても項目が物理的には1行で、元の文字列も変わらない。"
   (let* ((line " Development:  SCHED       09:00      TODO [#B] Python のテスト  :emacs:rag_lab:")
