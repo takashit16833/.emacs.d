@@ -1,7 +1,7 @@
 ;;; my-org-agenda-layout.el --- Two-line Org Agenda display -*- lexical-binding: t; -*-
 ;;; Commentary:
 ;; Agenda の1項目を1行のまま保持し、画面上では補助情報とタイトルを分ける。
-;; テキストは書き換えず、overlay の表示だけを変更する。
+;; 項目は overlay で装飾し、日付行の改行には face を追加する。
 
 ;;; Code:
 
@@ -50,6 +50,22 @@ Org は TODO を整形する際に見出し属性を失う場合があるので�
           (setq heading (match-beginning 1)))))
     heading))
 
+(defun my/org-agenda-layout--extend-date-background ()
+  "Agenda の日付行の背景を、行末まで表示する。
+日付に既に設定された face を改行文字にも適用し、face の
+:extend 属性を使う。文字列や他の行の装飾は変更しない。"
+  (save-excursion
+    (goto-char (point-min))
+    (while (< (point) (point-max))
+      (let ((beg (line-beginning-position))
+            (end (line-end-position)))
+        (when (and (< end (point-max))
+                   (get-text-property beg 'org-agenda-date-header))
+          (when-let* ((face (get-text-property beg 'face)))
+            (let ((inhibit-read-only t))
+              (put-text-property end (1+ end) 'face face)))))
+      (forward-line 1))))
+
 (defun my/org-agenda-layout-finalize ()
   "日付付き Agenda の各項目を表示上だけ2行にする。
 元のテキストとその Org マーカーは変更しないので、Agenda の
@@ -59,6 +75,8 @@ Org は TODO を整形する際に見出し属性を失う場合があるので�
     ;; Agenda の再生成や再実行後も装飾が重複しないようにする。
     (remove-overlays (point-min) (point-max)
                      'my/org-agenda-layout t)
+    ;; 日付の face を改行にも付け、テーマ側の :extend を有効にする。
+    (my/org-agenda-layout--extend-date-background)
     (save-excursion
       (goto-char (point-min))
       (while (< (point) (point-max))
