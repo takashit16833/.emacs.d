@@ -70,7 +70,8 @@ d/w の再表示時は org-agenda-overriding-arguments を優先する。"
   (let ((span (my/org-agenda-groups--effective-span
                (nth 0 args) (nth 2 args))))
     (if (memq span '(day week))
-        (let ((org-agenda-prefix-format
+        (let ((org-agenda-overriding-header "")
+              (org-agenda-prefix-format
                (cons (cons 'agenda
                            (if (eq span 'day)
                                "    %-14:c%-13s%-12t"
