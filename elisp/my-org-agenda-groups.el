@@ -6,37 +6,10 @@
 ;;; Code:
 
 (require 'org-agenda)
-(require 'subr-x)
 
 (defvar org-super-agenda-groups)
 (defvar org-super-agenda-header-prefix)
 (defvar org-super-agenda-header-separator)
-
-;; TODO 一覧のグループ見出し。具体的な配色はテーマ側で指定する。
-(defface my/org-agenda-group-overdue
-  '((t :inherit org-agenda-structure))
-  "期限切れグループの見出しに使う face。"
-  :group 'org)
-
-(defface my/org-agenda-group-due-today
-  '((t :inherit org-agenda-structure))
-  "今日が期限のグループ見出しに使う face。"
-  :group 'org)
-
-(defface my/org-agenda-group-upcoming
-  '((t :inherit org-agenda-structure))
-  "未来の期限グループの見出しに使う face。"
-  :group 'org)
-
-(defface my/org-agenda-group-scheduled
-  '((t :inherit org-agenda-structure))
-  "予定済みグループの見出しに使う face。"
-  :group 'org)
-
-(defface my/org-agenda-group-backlog
-  '((t :inherit org-agenda-structure))
-  "未予定グループの見出しに使う face。"
-  :group 'org)
 
 (defvar my/org-agenda-todo-groups
   '((:name "Overdue" :deadline past)
@@ -45,38 +18,6 @@
     (:name "Scheduled" :scheduled t)
     (:name "Backlog" :anything t))
   "TODO 一覧のグループ。先に一致した条件を優先する。")
-
-(defconst my/org-agenda-todo-group-faces
-  '(("Overdue" . my/org-agenda-group-overdue)
-    ("Due Today" . my/org-agenda-group-due-today)
-    ("Upcoming" . my/org-agenda-group-upcoming)
-    ("Scheduled" . my/org-agenda-group-scheduled)
-    ("Backlog" . my/org-agenda-group-backlog))
-  "TODO 一覧のグループ名と見出し face の対応。")
-
-(defun my/org-agenda-group-header-name (beg end)
-  "グループ見出しの BEG から END までを名前だけの文字列にする。"
-  (string-remove-prefix
-   "┃ "
-   (string-trim (buffer-substring-no-properties beg end))))
-
-(defun my/org-agenda-style-todo-group-headers ()
-  "TODO 一覧のグループ見出しを、状態に応じた face で表示する。"
-  (when (derived-mode-p 'org-agenda-mode)
-    (save-excursion
-      (goto-char (point-min))
-      (while (< (point) (point-max))
-        (let ((beg (line-beginning-position))
-              (end (line-end-position)))
-          (when (get-text-property beg 'org-super-agenda-header)
-            (when-let* ((face
-                         (alist-get
-                          (my/org-agenda-group-header-name beg end)
-                          my/org-agenda-todo-group-faces
-                          nil nil #'string=)))
-              (let ((inhibit-read-only t))
-                (put-text-property beg end 'face face)))))
-        (forward-line 1)))))
 
 ;; 日別では行動の優先順位を優先し、カテゴリは各項目に表示する。
 ;; 期限を持つタスクが SCHED にも出る場合は、最初の一致先にまとめる。
