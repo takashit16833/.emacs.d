@@ -18,7 +18,7 @@
 
 (defun my/org-agenda-layout--metadata (prefix raw-tags width)
   "PREFIX と RAW-TAGS から、幅 WIDTH の補助情報行を作る。
-戻り値の末尾には改行とタイトル行のインデントを付ける。"
+戻り値の末尾には改行と6列のタイトル行インデントを付ける。"
   (let* ((prefix (string-trim-right prefix))
          (tags (my/org-agenda-layout--tags (or raw-tags "")))
          (spaces (if (string-empty-p tags)
@@ -28,7 +28,7 @@
                               (string-width prefix)
                               (string-width tags)))
                     ?\s))))
-    (concat prefix spaces tags "\n  ")))
+    (concat prefix spaces tags "\n      ")))
 
 (defun my/org-agenda-layout-setup ()
   "Agenda の長いタイトルを端末幅に合わせて折り返す。"
