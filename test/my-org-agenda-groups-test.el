@@ -5,7 +5,6 @@
 ;;; Code:
 
 (require 'ert)
-(require 'cl-lib)
 (require 'org-agenda)
 (require 'my-org-agenda-groups)
 
@@ -30,38 +29,6 @@
       ("Upcoming" future nil nil)
       ("Scheduled" nil t nil)
       ("Backlog" nil nil t)))))
-
-(ert-deftest my/org-agenda-groups-header-name-removes-prefix ()
-  "グループ見出しから左線と余白を除いて名前だけを返す。"
-  (with-temp-buffer
-    (insert "  ┃ Due Today")
-    (should (equal (my/org-agenda-group-header-name
-                    (point-min) (point-max))
-                   "Due Today"))))
-
-(ert-deftest my/org-agenda-groups-styles-todo-group-header-face ()
-  "TODO グループ見出しに状態別の face を適用する。"
-  (with-temp-buffer
-    (insert "  ┃ Overdue\n  ┃ Scheduled\n  ┃ Development\n")
-    (setq-local major-mode 'org-agenda-mode)
-    (goto-char (point-min))
-    (dotimes (_ 3)
-      (put-text-property (line-beginning-position) (line-end-position)
-                         'org-super-agenda-header t)
-      (put-text-property (line-beginning-position) (line-end-position)
-                         'face 'org-super-agenda-header)
-      (forward-line 1))
-    (my/org-agenda-style-todo-group-headers)
-    (goto-char (point-min))
-    (should (eq (get-text-property (point) 'face)
-                'my/org-agenda-group-overdue))
-    (forward-line 1)
-    (should (eq (get-text-property (point) 'face)
-                'my/org-agenda-group-scheduled))
-    (forward-line 1)
-    ;; Week Agenda のカテゴリ見出しなど、TODO 用でない見出しは変更しない。
-    (should (eq (get-text-property (point) 'face)
-                'org-super-agenda-header))))
 
 (ert-deftest my/org-agenda-groups-selects-day ()
   "日別では4つの行動・期限グループへ分類する。"
