@@ -8,6 +8,12 @@
 (require 'org-agenda)
 (require 'my-org-agenda-groups)
 
+;; org-super-agenda を直接ロードせずにテストするため、
+;; 設定変数を動的に束縛できるよう宣言しておく。
+(defvar org-super-agenda-groups)
+(defvar org-super-agenda-header-prefix)
+(defvar org-super-agenda-header-separator)
+
 (ert-deftest my/org-agenda-groups-selects-day ()
   "日別では4つの行動・期限グループへ分類する。"
   (should
