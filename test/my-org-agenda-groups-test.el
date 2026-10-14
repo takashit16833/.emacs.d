@@ -5,6 +5,7 @@
 ;;; Code:
 
 (require 'ert)
+(require 'cl-lib)
 (require 'org-agenda)
 (require 'my-org-agenda-groups)
 
