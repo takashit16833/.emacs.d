@@ -110,4 +110,47 @@
     (my/org-agenda-layout-finalize)
     (should-not (overlays-in (point-min) (point-max)))))
 
+(ert-deftest my/org-agenda-layout-extends-date-background ()
+  "Agenda の日付の face を改行にも付け、他の行には付けない。"
+  (with-temp-buffer
+    (insert "2026/10/14 (水)\n  Development\n    SCHED\n")
+    (setq-local major-mode 'org-agenda-mode)
+    (setq-local org-agenda-current-span 'week)
+    (let ((date-end (line-end-position))
+          (original (buffer-string)))
+      (put-text-property (point-min) date-end
+                         'org-agenda-date-header t)
+      (put-text-property (point-min) date-end
+                         'face 'org-agenda-date-today)
+      (should-not (get-text-property date-end 'face))
+      (my/org-agenda-layout-finalize)
+      (should (equal original (buffer-string)))
+      (should (eq (get-text-property date-end 'face)
+                  'org-agenda-date-today))
+      (forward-line 1)
+      (should-not (get-text-property (line-end-position) 'face))
+      ;; 再描画しても日付 face の適用範囲は変わらない。
+      (my/org-agenda-layout-finalize)
+      (should (eq (get-text-property date-end 'face)
+                  'org-agenda-date-today)))))
+
+(ert-deftest my/org-agenda-layout-does-not-style-ordinary-headings ()
+  "日付属性がない見出しや改行のない最終行には触れない。"
+  (with-temp-buffer
+    (insert "  Development\n2026/10/14 (水)")
+    (put-text-property (point-min) (line-end-position)
+                       'face 'org-agenda-structure)
+    (forward-line 1)
+    (let ((date-beg (line-beginning-position)))
+      (put-text-property date-beg (point-max)
+                         'org-agenda-date-header t)
+      (put-text-property date-beg (point-max)
+                         'face 'org-agenda-date)
+      (my/org-agenda-layout--extend-date-background)
+      (goto-char (point-min))
+      (should-not (get-text-property (line-end-position) 'face))
+      (forward-line 1)
+      (should (eq (get-text-property (line-beginning-position) 'face)
+                  'org-agenda-date)))))
+
 ;;; my-org-agenda-layout-test.el ends here
