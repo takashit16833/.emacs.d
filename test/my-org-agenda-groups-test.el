@@ -134,6 +134,21 @@
              (lambda (&rest _args) org-super-agenda-groups))
             org-super-agenda-groups))))
 
+(ert-deftest my/org-agenda-groups-styles-todo-headers ()
+  "TODO 一覧でも日・週 Agenda と同じグループ見出しを使う。"
+  (let ((org-agenda-current-span nil)
+        (org-super-agenda-header-prefix "ORIGINAL")
+        (org-super-agenda-header-separator "ORIGINAL"))
+    (should
+     (equal
+      (my/org-agenda-groups-around-finalize
+       (lambda (&rest _args)
+         (list org-super-agenda-header-prefix
+               org-super-agenda-header-separator)))
+      '("  ┃ " "\n")))
+    (should (equal org-super-agenda-header-prefix "ORIGINAL"))
+    (should (equal org-super-agenda-header-separator "ORIGINAL"))))
+
 (ert-deftest my/org-agenda-groups-restore-after-error ()
   "分類中にエラーが発生しても設定が漏れない。"
   (let ((org-agenda-current-span 'day)
