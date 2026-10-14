@@ -147,8 +147,20 @@
         (org-super-agenda-groups '((:name "Original" :anything t))))
     (should
      (equal (my/org-agenda-groups-around-finalize
-             (lambda (&rest _args) org-super-agenda-groups))
+             (lambda (&rest _args) org-super-agenda-groups)
+             '("entry") 'todo)
             org-super-agenda-groups))))
+
+(ert-deftest my/org-agenda-groups-combined-view-keeps-todo-groups ()
+  "複合表示で週 Agenda の後でも TODO 一覧は TODO 用分類を使う。"
+  (let ((org-agenda-current-span 'week)
+        (org-super-agenda-groups my/org-agenda-todo-groups))
+    (should
+     (equal
+      (my/org-agenda-groups-around-finalize
+       (lambda (&rest _args) org-super-agenda-groups)
+       '("entry") 'todo)
+      my/org-agenda-todo-groups))))
 
 (ert-deftest my/org-agenda-groups-styles-todo-headers ()
   "TODO 一覧でも日・週 Agenda と同じグループ見出しを使う。"

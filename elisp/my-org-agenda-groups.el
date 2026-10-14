@@ -46,10 +46,12 @@
 
 (defun my/org-agenda-groups-around-finalize (original &rest args)
   "ORIGINAL を ARGS で呼び、Agenda の表示期間に応じてグループ化する。
-org-agenda-finalize-entries の呼び出し時には表示期間が確定している。
-日別・週別では分類条件を切り替え、すべてのグループ見出しを同じ
-スタイルで表示する。"
-  (let ((groups (my/org-agenda-groups-for-span org-agenda-current-span))
+org-agenda-finalize-entries の第2引数が agenda の場合だけ、日別・週別の
+分類条件へ切り替える。TODO 一覧などは表示期間の値が残っていても、
+元のグループ設定をそのまま使う。"
+  (let ((groups (and (eq (nth 1 args) 'agenda)
+                     (my/org-agenda-groups-for-span
+                      org-agenda-current-span)))
         ;; Org のアウトライン見出しと同じ感覚で、左に縦線を置く。
         (org-super-agenda-header-prefix "  ┃ ")
         ;; グループ同士に1行の余白を残す。
