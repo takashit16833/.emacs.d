@@ -9,23 +9,13 @@
 (require 'my-org-agenda-groups)
 
 (ert-deftest my/org-agenda-groups-selects-day ()
-  "日別は状態とカテゴリの複合条件でグループ化する。"
-  (let ((groups (my/org-agenda-groups-for-span 'day)))
-    (should (equal
-             (car groups)
-             '(:name "Overdue / Development"
-               :and (:deadline past :category "Development"))))
-    (should (member
-             '(:name "Due Today / Personal"
-               :and (:deadline today :category "Personal"))
-             groups))
-    (should (member
-             '(:name "Scheduled / Development"
-               :and (:scheduled t :category "Development"))
-             groups))
-    ;; 未登録カテゴリも捨てずに Other として残す。
-    (should (equal (car (last groups))
-                   '(:name "Other" :anything t)))))
+  "日別では4つの行動・期限グループへ分類する。"
+  (should
+   (equal (my/org-agenda-groups-for-span 'day)
+          '((:name "Overdue" :deadline past)
+            (:name "Due Today" :deadline today)
+            (:name "Scheduled" :scheduled t)
+            (:name "Other" :anything t)))))
 
 (ert-deftest my/org-agenda-groups-selects-week ()
   "週別表示ではカテゴリ名だけを見出しにする。"
@@ -57,20 +47,20 @@
     (should (eq 'week (my/org-agenda-groups--effective-span 7 nil)))))
 
 (ert-deftest my/org-agenda-groups-compact-prefix-day-and-week ()
-  "日別・週別の項目から重複カテゴリを省き、既存書式を復元する。"
+  "日別だけカテゴリを残し、週別では省略する。"
   (let ((org-agenda-prefix-format
          '((agenda . "ORIGINAL") (todo . "TODO ORIGINAL")))
-        (org-agenda-overriding-arguments nil)
-        (org-agenda-span 'day))
-    (dolist (span '(day week))
-      (let ((org-agenda-span span))
+        (org-agenda-overriding-arguments nil))
+    (dolist (case '((day . "    %-14:c%-13s%-12t")
+                    (week . "    %-13s%-12t")))
+      (let ((org-agenda-span (car case)))
         (should
          (equal
           (my/org-agenda-groups-around-list
            (lambda (&rest _args)
              (list (alist-get 'agenda org-agenda-prefix-format)
                    (alist-get 'todo org-agenda-prefix-format))))
-          '("    %-13s%-12t" "TODO ORIGINAL")))))
+          (list (cdr case) "TODO ORIGINAL")))))
     (should (equal (alist-get 'agenda org-agenda-prefix-format)
                    "ORIGINAL"))))
 
@@ -146,5 +136,27 @@
        (lambda (&rest _args) org-super-agenda-header-prefix))
       "  "))
     (should (equal org-super-agenda-header-prefix " "))))
+
+(ert-deftest my/org-agenda-groups-week-removes-header-gap ()
+  "週別だけグループ見出し前の空行をなくす。"
+  (let ((org-agenda-current-span 'week)
+        (org-super-agenda-header-separator "\n"))
+    (should
+     (equal
+      (my/org-agenda-groups-around-finalize
+       (lambda (&rest _args) org-super-agenda-header-separator))
+      ""))
+    (should (equal org-super-agenda-header-separator "\n"))))
+
+(ert-deftest my/org-agenda-groups-day-retains-header-gap ()
+  "日別ではグループ見出し間の余白を残す。"
+  (let ((org-agenda-current-span 'day)
+        (org-super-agenda-header-separator "CUSTOM"))
+    (should
+     (equal
+      (my/org-agenda-groups-around-finalize
+       (lambda (&rest _args) org-super-agenda-header-separator))
+      "\n"))
+    (should (equal org-super-agenda-header-separator "CUSTOM"))))
 
 ;;; my-org-agenda-groups-test.el ends here
