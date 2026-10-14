@@ -14,6 +14,40 @@
 (defvar org-super-agenda-header-prefix)
 (defvar org-super-agenda-header-separator)
 
+(ert-deftest my/org-agenda-groups-todo-groups-by-state ()
+  "TODO 一覧は期限の緊急度と予定状態の順に分類する。"
+  (should
+   (equal
+    (mapcar (lambda (group)
+              (list (substring-no-properties (plist-get group :name))
+                    (plist-get group :deadline)
+                    (plist-get group :scheduled)
+                    (plist-get group :anything)))
+            my/org-agenda-todo-groups)
+    '(("Overdue" past nil nil)
+      ("Due Today" today nil nil)
+      ("Upcoming" future nil nil)
+      ("Scheduled" nil t nil)
+      ("Backlog" nil nil t)))))
+
+(ert-deftest my/org-agenda-groups-todo-group-header-faces ()
+  "TODO グループ名には状態別の見出し face を付ける。"
+  (dolist (case
+           '(("Overdue" . my/org-agenda-group-overdue)
+             ("Due Today" . my/org-agenda-group-due-today)
+             ("Upcoming" . my/org-agenda-group-upcoming)
+             ("Scheduled" . my/org-agenda-group-scheduled)
+             ("Backlog" . my/org-agenda-group-backlog)))
+    (let* ((group
+            (cl-find-if
+             (lambda (candidate)
+               (equal (substring-no-properties (plist-get candidate :name))
+                      (car case)))
+             my/org-agenda-todo-groups))
+           (name (plist-get group :name)))
+      (should group)
+      (should (eq (get-text-property 0 'face name) (cdr case))))))
+
 (ert-deftest my/org-agenda-groups-selects-day ()
   "日別では4つの行動・期限グループへ分類する。"
   (should
