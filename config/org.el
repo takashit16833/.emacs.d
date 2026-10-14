@@ -13,6 +13,7 @@
 (use-package org
   :ensure nil
   :hook ((org-mode . org-indent-mode)
+         (org-mode . visual-line-mode)
 	 (org-agenda-finalize . org-modern-agenda))
   :custom
   ;; *bold* や /italic/ の記号を通常時は隠す。
