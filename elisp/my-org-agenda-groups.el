@@ -11,6 +11,54 @@
 (defvar org-super-agenda-header-prefix)
 (defvar org-super-agenda-header-separator)
 
+;; TODO 一覧のグループ見出し。具体的な配色はテーマ側で指定する。
+(defface my/org-agenda-group-overdue
+  '((t :inherit org-agenda-structure))
+  "期限切れグループの見出しに使う face。"
+  :group 'org)
+
+(defface my/org-agenda-group-due-today
+  '((t :inherit org-agenda-structure))
+  "今日が期限のグループ見出しに使う face。"
+  :group 'org)
+
+(defface my/org-agenda-group-upcoming
+  '((t :inherit org-agenda-structure))
+  "未来の期限グループの見出しに使う face。"
+  :group 'org)
+
+(defface my/org-agenda-group-scheduled
+  '((t :inherit org-agenda-structure))
+  "予定済みグループの見出しに使う face。"
+  :group 'org)
+
+(defface my/org-agenda-group-backlog
+  '((t :inherit org-agenda-structure))
+  "未予定グループの見出しに使う face。"
+  :group 'org)
+
+(defun my/org-agenda-group-name (name face)
+  "グループ名 NAME に見出し用 FACE を付けて返す。"
+  (propertize name 'face face))
+
+(defvar my/org-agenda-todo-groups
+  `((:name ,(my/org-agenda-group-name
+             "Overdue" 'my/org-agenda-group-overdue)
+     :deadline past)
+    (:name ,(my/org-agenda-group-name
+             "Due Today" 'my/org-agenda-group-due-today)
+     :deadline today)
+    (:name ,(my/org-agenda-group-name
+             "Upcoming" 'my/org-agenda-group-upcoming)
+     :deadline future)
+    (:name ,(my/org-agenda-group-name
+             "Scheduled" 'my/org-agenda-group-scheduled)
+     :scheduled t)
+    (:name ,(my/org-agenda-group-name
+             "Backlog" 'my/org-agenda-group-backlog)
+     :anything t))
+  "TODO 一覧のグループ。先に一致した条件を優先する。")
+
 ;; 日別では行動の優先順位を優先し、カテゴリは各項目に表示する。
 ;; 期限を持つタスクが SCHED にも出る場合は、最初の一致先にまとめる。
 (defvar my/org-agenda-day-groups
