@@ -214,7 +214,9 @@
   ;; CLIではピクセル単位の枠線を表現できないため無効化。
   (org-modern-label-border nil)
 
-  :hook (org-mode . org-modern-mode))
+  :hook
+  ((org-mode . org-modern-mode)
+   (org-agenda-finalize . org-modern-agenda)))
 
 
 ;; Agenda の日付は日本語ロケールで YYYY/MM/DD (曜日) と表示する。
@@ -225,8 +227,8 @@
 ;; 時刻指定のある予定は表示したまま、時刻ごとの補助線は表示しない。
 (setq org-agenda-use-time-grid nil)
 
-;; カテゴリ → 状態 → 時刻 → タスクの順にし、それぞれの欄の幅を確保する。
-;; 時刻がない行も空欄を残すことで、TODO・タスクの開始位置を揃える。
+;; 補助情報行にカテゴリ → 状態 → 時刻を並べ、欄の幅を確保する。
+;; タイトル行には TODO・優先度・件名を表示する。
 ;; TODO・タグ検索など、Agenda 以外の一覧は標準の表示形式を維持する。
 (setq org-agenda-prefix-format
       '((agenda . " %-15:c%-13s%-12t")
@@ -254,6 +256,14 @@
 ;; 予定・期限の状態を短い英語で表示する。%d は回数または日数。
 (setq org-agenda-scheduled-leaders '("SCHED " "SCHED %dx "))
 (setq org-agenda-deadline-leaders '("DUE " "DUE IN %dD " "%dD OVERDUE "))
+
+;; Agenda の1項目を、画面上で補助情報行とタイトル行に分ける。
+;; 元のバッファは1項目1行のまま保ち、通常の Agenda 操作を維持する。
+(autoload 'my/org-agenda-layout-setup "my-org-agenda-layout")
+(autoload 'my/org-agenda-layout-finalize "my-org-agenda-layout")
+(add-hook 'org-agenda-mode-hook #'my/org-agenda-layout-setup)
+;; org-modern によるバッジ装飾が終わってから2行の表示を作る。
+(add-hook 'org-agenda-finalize-hook #'my/org-agenda-layout-finalize t)
 
 
 
