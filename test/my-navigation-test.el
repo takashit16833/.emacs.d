@@ -24,9 +24,11 @@
     (goto-char 2)
 
     (let (pushed-locations)
-      (cl-letf (((symbol-function 'make-browsing-history-location)
-                 (lambda (&rest properties)
-                   properties))
+      (cl-letf (((symbol-function 'browsing-history-location-at-point)
+                 (lambda ()
+                   (list :buffer (current-buffer)
+                         :file buffer-file-name
+                         :position (point))))
                 ((symbol-function 'browsing-history-ensure-current)
                  (lambda () 'history))
                 ((symbol-function 'browsing-history-push)
@@ -42,11 +44,35 @@
         (should (equal (plist-get (nth 0 pushed-locations) :file)
                        "/tmp/navigation-test.el"))
         (should (= (plist-get (nth 0 pushed-locations) :position) 2))
-        (should (= (plist-get (nth 1 pushed-locations) :position) 5))
+        (should (= (plist-get (nth 1 pushed-locations) :position) 5))))))
 
-        ;; テストで作った marker をバッファから切り離す。
-        (dolist (location pushed-locations)
-          (set-marker (plist-get location :marker) nil))))))
+(ert-deftest my/navigation--track-records-non-file-buffer ()
+  "非ファイルバッファ内の移動も履歴に記録すること。"
+  (with-temp-buffer
+    (insert "abcdef")
+    (goto-char 2)
+
+    (let (pushed-locations)
+      (cl-letf (((symbol-function 'browsing-history-location-at-point)
+                 (lambda ()
+                   (list :buffer (current-buffer)
+                         :file buffer-file-name
+                         :position (point))))
+                ((symbol-function 'browsing-history-ensure-current)
+                 (lambda () 'history))
+                ((symbol-function 'browsing-history-push)
+                 (lambda (_history location)
+                   (setq pushed-locations
+                         (append pushed-locations (list location))))))
+        (my/navigation--track
+         (lambda ()
+           (goto-char 5)))
+
+        (should (= (length pushed-locations) 2))
+        (should-not (plist-get (nth 0 pushed-locations) :file))
+        (should (= (plist-get (nth 0 pushed-locations) :position) 2))
+        (should (= (plist-get (nth 1 pushed-locations) :position) 5))))))
+
 
 
 (ert-deftest my/navigation--track-does-not-record-without-movement ()
@@ -82,6 +108,17 @@
          (lambda ()
            (goto-char 5)))
         (should-not called-p)))))
+
+
+(ert-deftest my/navigation-setup-tracks-org-agenda-switch-to ()
+  "Org Agenda の RET による移動を履歴記録対象にすること。"
+  (require 'org-agenda)
+  (let (commands)
+    (cl-letf (((symbol-function 'my/navigation--advise)
+               (lambda (command)
+                 (push command commands))))
+      (my/navigation-setup)
+      (should (memq 'org-agenda-switch-to commands)))))
 
 
 ;;; my-navigation-test.el ends here
