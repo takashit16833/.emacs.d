@@ -9,33 +9,16 @@
 
 (defvar org-super-agenda-groups)
 (defvar org-super-agenda-header-prefix)
+(defvar org-super-agenda-header-separator)
 
-;; 標準セレクタの :and で状態とカテゴリを組み合わせる。
-;; カテゴリが増えたらこの一覧へ追加する。未登録カテゴリは Other に残す。
+;; 日別では行動の優先順位を優先し、カテゴリは各項目に表示する。
+;; 期限を持つタスクが SCHED にも出る場合は、最初の一致先にまとめる。
 (defvar my/org-agenda-day-groups
-  '((:name "Overdue / Development"
-     :and (:deadline past :category "Development"))
-    (:name "Overdue / Personal"
-     :and (:deadline past :category "Personal"))
-    (:name "Overdue / Events"
-     :and (:deadline past :category "Events"))
-    (:name "Due Today / Development"
-     :and (:deadline today :category "Development"))
-    (:name "Due Today / Personal"
-     :and (:deadline today :category "Personal"))
-    (:name "Due Today / Events"
-     :and (:deadline today :category "Events"))
-    (:name "Scheduled / Development"
-     :and (:scheduled t :category "Development"))
-    (:name "Scheduled / Personal"
-     :and (:scheduled t :category "Personal"))
-    (:name "Scheduled / Events"
-     :and (:scheduled t :category "Events"))
-    (:name "Other / Development" :category "Development")
-    (:name "Other / Personal" :category "Personal")
-    (:name "Other / Events" :category "Events")
+  '((:name "Overdue" :deadline past)
+    (:name "Due Today" :deadline today)
+    (:name "Scheduled" :scheduled t)
     (:name "Other" :anything t))
-  "日別 Agenda の複合グループ。先に一致した条件を優先する。")
+  "日別 Agenda のグループ。先に一致した条件を優先する。")
 
 (defun my/org-agenda-category-header (_item)
   "org-super-agenda の分類対象項目のカテゴリ名を返す。
@@ -60,7 +43,10 @@ org-agenda-finalize-entries の呼び出し時には表示期間が確定して�
   (let ((groups (my/org-agenda-groups-for-span org-agenda-current-span)))
     (if groups
         (let ((org-super-agenda-groups groups)
-              (org-super-agenda-header-prefix "  "))
+              (org-super-agenda-header-prefix "  ")
+              ;; 週表示は見出し数が多いので、見出し直前の空行を省く。
+              (org-super-agenda-header-separator
+               (if (eq org-agenda-current-span 'week) "" "\n")))
           (apply original args))
       (apply original args))))
 
@@ -78,14 +64,17 @@ d/w の再表示時は org-agenda-overriding-arguments を優先する。"
       raw)))
 
 (defun my/org-agenda-groups-around-list (original &rest args)
-  "ORIGINAL で Agenda を生成し、日・週だけカテゴリの重複表示を省く。
-グループ見出しにカテゴリがあるため、項目には状態と時刻だけを残す。
+  "ORIGINAL で Agenda を生成し、日・週別に項目の表示書式を調整する。
+日別はカテゴリを各項目に残し、週別だけ重複するカテゴリを省く。
 ほかの表示期間や TODO 一覧の書式は変更しない。"
   (let ((span (my/org-agenda-groups--effective-span
                (nth 0 args) (nth 2 args))))
     (if (memq span '(day week))
         (let ((org-agenda-prefix-format
-               (cons '(agenda . "    %-13s%-12t")
+               (cons (cons 'agenda
+                           (if (eq span 'day)
+                               "    %-14:c%-13s%-12t"
+                             "    %-13s%-12t"))
                      (assq-delete-all 'agenda
                                       (copy-tree org-agenda-prefix-format)))))
           (apply original args))
