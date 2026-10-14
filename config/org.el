@@ -283,6 +283,8 @@
 (autoload 'my/org-agenda-layout-setup "my-org-agenda-layout")
 (autoload 'my/org-agenda-layout-finalize "my-org-agenda-layout")
 (add-hook 'org-agenda-mode-hook #'my/org-agenda-layout-setup)
+;; org-modern の後で TODO グループ見出しの状態別配色を適用する。
+(add-hook 'org-agenda-finalize-hook #'my/org-agenda-style-todo-group-headers t)
 ;; org-modern によるバッジ装飾が終わってから2行の表示を作る。
 (add-hook 'org-agenda-finalize-hook #'my/org-agenda-layout-finalize t)
 
