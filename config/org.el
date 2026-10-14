@@ -24,10 +24,21 @@
 
   (org-tag-alist
    '(("emacs" . ?e)
-     ("rag_lab" . ?r)))
+     ("ai_support_desk" . ?a)))
+
+  (org-capture-templates
+   `(("i" "Inbox" entry
+      (file+headline ,org-default-notes-file "Inbox")
+      "* TODO %?\n  CREATED: %U"
+      :empty-lines 1)
+     ("d" "開発" entry
+      (file+headline ,org-default-notes-file "開発")
+      "* TODO %? %^g\n  CREATED: %U"
+      :empty-lines 1)))
+  
   :bind
-  (("C-c o c" . org-capture)
-   ("C-c o o" . org-agenda)))
+  (("<f13>" . org-capture)
+   ("<f14>" . org-agenda)))
 
 
 ;; Org のブロック種類別配色（標準ブロック描画の後に適用）。
