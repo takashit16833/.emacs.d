@@ -132,15 +132,15 @@
                    '((:name "Original" :anything t))))))
 
 
-(ert-deftest my/org-agenda-groups-indents-group-headers ()
-  "グループの見出しは2列インデントする。"
+(ert-deftest my/org-agenda-groups-styles-group-headers ()
+  "グループ見出しは2列下げ、Org 見出しと同じ左線を付ける。"
   (let ((org-agenda-current-span 'week)
         (org-super-agenda-header-prefix " "))
     (should
      (equal
       (my/org-agenda-groups-around-finalize
        (lambda (&rest _args) org-super-agenda-header-prefix))
-      "  "))
+      "  ┃ "))
     (should (equal org-super-agenda-header-prefix " "))))
 
 (ert-deftest my/org-agenda-groups-week-retains-header-gap ()
