@@ -83,7 +83,9 @@
     (goto-char 2)
 
     (let ((called-p nil))
-      (cl-letf (((symbol-function 'browsing-history-ensure-current)
+      (cl-letf (((symbol-function 'browsing-history-location-at-point)
+                 (lambda () 'location))
+                ((symbol-function 'browsing-history-ensure-current)
                  (lambda ()
                    (setq called-p t)
                    'history)))
