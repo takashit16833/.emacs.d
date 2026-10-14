@@ -68,6 +68,12 @@
      (:name "Scheduled" :scheduled t)
      (:name "Other" :anything t)))
   :config
+  ;; Agenda の表示期間が確定した後、日別・週別の分類に切り替える。
+  ;; org-super-agenda の分類処理を包み、ほかの一覧は従来の設定を使う。
+  (autoload 'my/org-agenda-groups-around-finalize "my-org-agenda-groups")
+  (advice-add 'org-agenda-finalize-entries
+              :around #'my/org-agenda-groups-around-finalize
+              '((depth . -50)))
   (org-super-agenda-mode 1))
 
 
