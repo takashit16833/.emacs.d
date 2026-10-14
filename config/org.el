@@ -58,6 +58,19 @@
   :group 'org)
 
 
+;; 複合表示 n の大見出しを、左の縦線と細い横線で統一する。
+;; 2番目のブロックでは Org 標準の長い区切り線を表示しない。
+(autoload 'my/org-agenda-section-header "my-org-agenda-groups")
+(setq org-agenda-custom-commands
+      '(("n" "Agenda and all TODOs"
+         ((agenda ""
+                  ((org-agenda-overriding-header
+                    (my/org-agenda-section-header "Agenda"))))
+          (alltodo ""
+                   ((org-agenda-block-separator nil)
+                    (org-agenda-overriding-header
+                     (my/org-agenda-section-header "All TODOs"))))))))
+
 ;; Agenda の項目を予定・期限などでグループ化する。
 (use-package org-super-agenda
   :ensure t

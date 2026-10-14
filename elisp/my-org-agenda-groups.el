@@ -7,6 +7,14 @@
 
 (require 'org-agenda)
 
+(defun my/org-agenda-section-header (title)
+  "TITLE の左に縦線を付け、ウィンドウ幅まで細い横線を伸ばす。"
+  (let* ((prefix (concat "│ " title " "))
+         ;; 右端に1列残して、端末で意図しない折り返しを防ぐ。
+         (length (max 0 (- (window-max-chars-per-line)
+                           (string-width prefix) 1))))
+    (concat prefix (make-string length ?─))))
+
 (defvar org-super-agenda-groups)
 (defvar org-super-agenda-header-prefix)
 (defvar org-super-agenda-header-separator)
@@ -79,7 +87,8 @@ d/w の再表示時は org-agenda-overriding-arguments を優先する。"
   (let ((span (my/org-agenda-groups--effective-span
                (nth 0 args) (nth 2 args))))
     (if (memq span '(day week))
-        (let ((org-agenda-overriding-header "")
+        (let ((org-agenda-overriding-header
+               (or org-agenda-overriding-header ""))
               (org-agenda-prefix-format
                (cons (cons 'agenda
                            (if (eq span 'day)
