@@ -43,7 +43,7 @@
 
 
 (defun my/navigation-setup ()
-  "バッファ切り替えと明示的なジャンプの履歴記録を設定する."
+  "バッファ切り替えと明示的なジャンプの履歴記録を設定する。"
   ;; Emacs 標準の移動。
   (dolist (command '(find-file switch-to-buffer goto-line))
     (my/navigation--advise command))
