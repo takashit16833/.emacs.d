@@ -33,7 +33,7 @@
             (browsing-history-push
              history
              (browsing-history-location-at-point))))
-        result)))
+        result))))
 
 
 (defun my/navigation--advise (command)
