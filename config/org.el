@@ -36,7 +36,10 @@
   :bind
   (("M-t" . my/org-capture-inbox)
    ("M-d" . my/org-home-toggle)
-   ("<f14>" . org-agenda)))
+   ("<f14>" . org-agenda)
+
+   :map org-mode-map
+   ("M-s-<return>" . my/org-insert-child-task)))
 
 
 ;; Org のブロック種類別配色（標準ブロック描画の後に適用）。
