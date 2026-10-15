@@ -16,6 +16,10 @@
   :hook ((org-mode . org-indent-mode)
          (org-mode . visual-line-mode)
 	 (org-agenda-finalize . org-modern-agenda))
+  :config
+  ;; Orgリンク先のファイルを現在のウィンドウで開く。
+  (setf (alist-get 'file org-link-frame-setup) 'find-file)
+
   :custom
   ;; *bold* や /italic/ の記号を通常時は隠す。
   (org-hide-emphasis-markers t)
