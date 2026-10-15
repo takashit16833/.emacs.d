@@ -48,7 +48,7 @@
   (interactive)
   (save-excursion
     (org-end-of-meta-data)
-    (if (looking-at-p "[ \\t]*CREATED:[ \\t]")
+    (if (looking-at-p "[ \t]*CREATED:[ \t]")
         (user-error "CREATED は既に設定されています")
       (insert "  CREATED: ")
       ;; C-u C-u 相当で、日時選択を開かず現在日時を挿入する。
