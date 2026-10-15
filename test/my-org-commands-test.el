@@ -7,6 +7,7 @@
 
 (require 'cl-lib)
 (require 'ert)
+(require 'org)
 (require 'my-org-commands)
 
 
@@ -53,6 +54,49 @@
                  (setq arguments args))))
       (my/org-capture-inbox)
       (should (equal arguments '(nil "i"))))))
+
+
+(ert-deftest my-org-insert-created-inserts-after-org-metadata ()
+  "カーソル位置に関係なく、Org メタ情報の直後へ CREATED を追加すること。"
+  (with-temp-buffer
+    (org-mode)
+    (insert "* TODO Task\n"
+            "SCHEDULED: <2026-10-16 Fri>\n"
+            ":PROPERTIES:\n"
+            ":CATEGORY: Test\n"
+            ":END:\n"
+            "本文\n"
+            "** TODO Child\n")
+    ;; 見出し行ではなく本文上から実行する。
+    (goto-char (point-min))
+    (search-forward "本文")
+    (cl-letf (((symbol-function 'org-timestamp-inactive)
+               (lambda (arg)
+                 (should (equal arg '(16)))
+                 (insert "[NOW]"))))
+      (my/org-insert-created))
+    (should
+     (equal
+      (buffer-string)
+      (concat "* TODO Task\n"
+              "SCHEDULED: <2026-10-16 Fri>\n"
+              ":PROPERTIES:\n"
+              ":CATEGORY: Test\n"
+              ":END:\n"
+              "  CREATED: [NOW]\n"
+              "本文\n"
+              "** TODO Child\n")))))
+
+
+(ert-deftest my-org-insert-created-rejects-duplicate ()
+  "現在の見出しに CREATED が既にあれば重複して追加しないこと。"
+  (with-temp-buffer
+    (org-mode)
+    (insert "* TODO Task\n"
+            "  CREATED: [2026-10-15 Thu 10:30]\n"
+            "本文\n")
+    (goto-char (point-max))
+    (should-error (my/org-insert-created) :type 'user-error)))
 
 
 (ert-deftest my-org-insert-child-task-inserts-todo-subheading ()

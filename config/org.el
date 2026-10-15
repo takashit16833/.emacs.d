@@ -39,6 +39,7 @@
    ("<f14>" . org-agenda)
 
    :map org-mode-map
+   ("s-," . my/org-insert-created)
    ("M-s-<return>" . my/org-insert-child-task)))
 
 

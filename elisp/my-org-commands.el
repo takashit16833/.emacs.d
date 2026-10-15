@@ -8,7 +8,9 @@
 (defvar org-default-notes-file)
 
 (declare-function org-capture "org-capture" (&optional goto keys))
+(declare-function org-end-of-meta-data "org" (&optional full))
 (declare-function org-insert-todo-subheading "org" (arg))
+(declare-function org-timestamp-inactive "org" (&optional arg))
 
 
 (defvar my/org-home--return-buffer nil
@@ -39,6 +41,19 @@
   "Inbox 用テンプレートで Org Capture を開始する。"
   (interactive)
   (org-capture nil "i"))
+
+
+(defun my/org-insert-created ()
+  "現在の見出しのメタ情報直後に CREATED と現在時刻を追加する。"
+  (interactive)
+  (save-excursion
+    (org-end-of-meta-data)
+    (if (looking-at-p "[ \\t]*CREATED:[ \\t]")
+        (user-error "CREATED は既に設定されています")
+      (insert "  CREATED: ")
+      ;; C-u C-u 相当で、日時選択を開かず現在日時を挿入する。
+      (org-timestamp-inactive '(16))
+      (insert "\n"))))
 
 
 (defun my/org-insert-child-task ()
