@@ -34,7 +34,7 @@
       :empty-lines 1)))
   
   :bind
-  (("M-t" . my/org-capture-inbox)
+  (("<f13>" . my/org-capture-inbox)
    ("M-d" . my/org-home-toggle)
    ("<f14>" . org-agenda)
 
