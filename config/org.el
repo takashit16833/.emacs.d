@@ -9,7 +9,7 @@
 (setq org-default-notes-file
       (expand-file-name "notes.org" org-directory))
 
-(require 'my-org-home)
+(require 'my-org-commands)
 
 (use-package org
   :ensure nil
@@ -34,9 +34,7 @@
       :empty-lines 1)))
   
   :bind
-  (("M-t" . (lambda ()
-		(interactive)
-		(org-capture nil "i")))
+  (("M-t" . my/org-capture-inbox)
    ("M-d" . my/org-home-toggle)
    ("<f14>" . org-agenda)))
 
