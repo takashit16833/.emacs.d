@@ -312,10 +312,7 @@
 ;; org-modern などの装飾が済んでから区切り線を縦分割線と同じ色にする。
 (add-hook 'org-agenda-finalize-hook #'my/org-agenda-layout-style-block-separators t)
 
-
-
 (setq org-agenda-files
       (list org-default-notes-file))
-
 
 ;;; org.el ends here
