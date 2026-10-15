@@ -40,6 +40,7 @@
 
    :map org-mode-map
    ("s-," . my/org-insert-created)
+   ("M-S-<return>" . org-insert-todo-heading-respect-content)
    ("M-s-<return>" . my/org-insert-child-task)))
 
 

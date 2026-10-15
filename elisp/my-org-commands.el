@@ -57,9 +57,10 @@
 
 
 (defun my/org-insert-child-task ()
-  "現在の見出しの子タスクとして TODO を追加する。"
+  "現在の見出しの末尾に子タスクを追加する。"
   (interactive)
-  (org-insert-todo-subheading nil))
+  (let ((org-insert-heading-respect-content t))
+    (org-insert-todo-subheading nil)))
 
 
 (provide 'my-org-commands)
