@@ -9,6 +9,7 @@
 (setq org-default-notes-file
       (expand-file-name "notes.org" org-directory))
 
+(require 'my-org-home)
 
 (use-package org
   :ensure nil
@@ -36,9 +37,7 @@
   (("M-t" . (lambda ()
 		(interactive)
 		(org-capture nil "i")))
-   ("M-d" . (lambda ()
-	      (interactive)
-	      (find-file org-default-notes-file)))
+   ("M-d" . my/org-home-toggle)
    ("<f14>" . org-agenda)))
 
 
