@@ -30,14 +30,15 @@
    `(("i" "Inbox" entry
       (file+headline ,org-default-notes-file "Inbox")
       "* TODO %?\n  CREATED: %U"
-      :empty-lines 1)
-     ("d" "開発" entry
-      (file+headline ,org-default-notes-file "開発")
-      "* TODO %? %^g\n  CREATED: %U"
       :empty-lines 1)))
   
   :bind
-  (("<f13>" . org-capture)
+  (("M-t" . (lambda ()
+		(interactive)
+		(org-capture nil "i")))
+   ("M-d" . (lambda ()
+	      (interactive)
+	      (find-file org-default-notes-file)))
    ("<f14>" . org-agenda)))
 
 
