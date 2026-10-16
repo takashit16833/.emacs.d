@@ -71,6 +71,7 @@
   ;; ファイル一覧そのものにも情報を多めに表示する。
   (dirvish-attributes
    '(nerd-icons
+     collapse
      file-modes
      file-time
      file-size))
