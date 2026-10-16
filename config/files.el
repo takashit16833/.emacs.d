@@ -74,6 +74,12 @@
      file-time
      file-size))
 
+  :config
+  ;; Dirvishにはプレビュー位置の設定項目がないため、
+  ;; 内部の表示処理だけ差し替えて下側へ配置する。
+  (require 'my-files)
+  (advice-add 'dirvish--display-buffer :around #'my/dirvish-preview-below)
+
   :bind
   (("C-x d" . dirvish)
    :map dirvish-mode-map
