@@ -19,7 +19,7 @@
   :ensure nil
   :defer t
   :custom
-  (dired-listing-switches "-Al"))
+  (dired-listing-switches "-Al --group-directories-first"))
 
 
 ;; Diredを拡張したファイルマネージャ。
