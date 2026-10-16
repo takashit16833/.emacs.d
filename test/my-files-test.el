@@ -5,8 +5,8 @@
 (require 'my-files)
 
 
-(ert-deftest my/dirvish-preview-below-moves-preview-window-below ()
-  "Dirvishのプレビューを下側40%へ配置する。"
+(ert-deftest my/dirvish-preview-below-uses-layout-preview-ratio ()
+  "レイアウトのプレビュー幅を下側プレビューの高さとして使う。"
   (let ((buffer (get-buffer-create "*dirvish-preview@test*"))
         (args '((side . right) (window-width . 0.6)))
         received)
@@ -18,7 +18,7 @@
              (setq received alist))
            buffer args)
           (should (eq (alist-get 'side received) 'below))
-          (should (= (alist-get 'window-height received) -40))
+          (should (= (alist-get 'window-height received) -60))
           ;; 呼び出し元の引数は変更しない。
           (should (eq (alist-get 'side args) 'right)))
       (kill-buffer buffer))))
