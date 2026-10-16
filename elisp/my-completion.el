@@ -84,5 +84,17 @@
                  #'my/eglot-dabbrev-capf t)))
 
 
+(defun my/vertico-sort-project-files (candidates)
+  "親ディレクトリ順、次にファイル名順で候補を並べる。"
+  (sort candidates
+        (lambda (a b)
+          (let ((dir-a (or (file-name-directory a) ""))
+                (dir-b (or (file-name-directory b) "")))
+            (if (string= dir-a dir-b)
+                (string-lessp (file-name-nondirectory a)
+                              (file-name-nondirectory b))
+              (string-lessp dir-a dir-b))))))
+
+
 (provide 'my-completion)
 ;;; my-completion.el ends here

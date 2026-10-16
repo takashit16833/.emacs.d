@@ -4,6 +4,7 @@
 
 ;;; Code:
 
+(require 'my-completion)
 
 ;; ミニバッファの入力履歴をEmacs終了後も保存する。
 (use-package savehist
@@ -17,8 +18,18 @@
   :ensure t
   :custom
   (vertico-count 20)
+  (vertico-multiform-commands
+   '((project-find-file
+      (vertico-sort-override-function . my/vertico-sort-project-files))
+     (my/project-find-file
+      (vertico-sort-override-function . my/vertico-sort-project-files))))
   :init
-  (vertico-mode))
+  (vertico-mode)
+  (vertico-multiform-mode)
+  :bind
+  (:map vertico-map
+        ("<prior>" . vertico-scroll-down)
+        ("<next>" . vertico-scroll-up)))
 
 
 ;; 空白で区切った複数の条件を、順序に関係なく候補へ一致させる。
@@ -130,7 +141,6 @@
 
 
 ;; コード補完の末尾にバッファ内の単語を追加する。
-(require 'my-completion)
 (add-hook 'prog-mode-hook #'my/dabbrev-completion-setup)
 
 
