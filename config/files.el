@@ -35,7 +35,8 @@
   ;; 起動時は単一ペインにする。
   ;; `dirvish-layout-toggle' で親ディレクトリとプレビューを表示できる。
   ;; 下側プレビューの高さには、有効なレイアウトの3番目の値を使う。
-  (dirvish-default-layout '(1 0.8 0.5))
+  ;; (dirvish-default-layout '(0 0 0.5))
+  (dirvish-default-layout nil)
 
   ;; フルレイアウト時はヘッダーを全ペインにまたがって表示する。
   (dirvish-use-header-line 'global)
