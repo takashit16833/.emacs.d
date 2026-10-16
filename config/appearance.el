@@ -18,10 +18,10 @@
 (setq truncate-partial-width-windows nil)
 
 
-;; 折り返し位置の「\」を空白に置き換える。
+;; 折り返し位置の「\」「$」を空白に置き換える。
 (require 'disp-table)
 (set-display-table-slot standard-display-table 'wrap ?\s)
-
+(set-display-table-slot standard-display-table 'truncation ?\s)
 
 ;; 行番号がある場合はウィンドウの境界線を隠す。
 (set-display-table-slot standard-display-table 'vertical-border ?│)
