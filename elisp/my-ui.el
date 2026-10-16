@@ -58,7 +58,12 @@ jq Playgroundは通常のバッファと同様に表示する。")
 
 (defface my/tab-line-tab-vc-modified
   '((t ()))
-  "Git差分があるtab-lineのタブに使うface。"
+  "Git差分があるアクティブなtab-lineのタブに使うface。"
+  :group 'tab-line-faces)
+
+(defface my/tab-line-tab-vc-modified-inactive
+  '((t ()))
+  "Git差分がある非アクティブなtab-lineのタブに使うface。"
   :group 'tab-line-faces)
 
 
@@ -106,14 +111,16 @@ jq Playgroundは通常のバッファと同様に表示する。")
 
 
 (defun my/tab-line-tab-face-vc-modified
-    (tab _tabs face buffer-p _selected-p)
-  "TAB に保存済みのGit差分があれば専用faceを追加する。"
+    (tab _tabs face buffer-p selected-p)
+  "TAB に保存済みのGit差分があれば選択状態に応じたfaceを追加する。"
   (let ((buffer (if buffer-p
                     tab
                   (cdr (assq 'buffer tab)))))
     (if (and (buffer-live-p buffer)
              (my/tab-line--git-modified-p buffer))
-        `(:inherit (my/tab-line-tab-vc-modified ,face))
+        (if selected-p
+            `(:inherit (my/tab-line-tab-vc-modified ,face))
+          `(:inherit (my/tab-line-tab-vc-modified-inactive ,face)))
       face)))
 
 
