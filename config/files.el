@@ -1,3 +1,4 @@
+
 ;;; files.el --- File management configuration -*- lexical-binding: t; -*-
 ;;; Commentary:
 ;; ファイルとディレクトリの管理に関する設定を置く。
@@ -34,7 +35,7 @@
   :custom
   ;; 起動時は単一ペインにする。
   ;; `dirvish-layout-toggle' で親ディレクトリとプレビューを表示できる。
-  (dirvish-default-layout nil)
+  (dirvish-default-layout '(0 0.4 0.6))
 
   ;; フルレイアウト時はヘッダーを全ペインにまたがって表示する。
   (dirvish-use-header-line 'global)
@@ -70,7 +71,6 @@
   (dirvish-attributes
    '(subtree-state
      nerd-icons
-     collapse
      file-modes
      file-time
      file-size))
