@@ -17,7 +17,7 @@
 (use-package vertico
   :ensure t
   :custom
-  (vertico-count 20)
+  (vertico-count 30)
   (vertico-multiform-commands
    '((project-find-file
       (vertico-sort-override-function . my/vertico-sort-project-files))
