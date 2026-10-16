@@ -34,7 +34,8 @@
   :custom
   ;; 起動時は単一ペインにする。
   ;; `dirvish-layout-toggle' で親ディレクトリとプレビューを表示できる。
-  (dirvish-default-layout '(0 0.4 0.6))
+  ;; (dirvish-default-layout '(0 0.4 0.6))
+  (dirvish-default-layout nil)
 
   ;; フルレイアウト時はヘッダーを全ペインにまたがって表示する。
   (dirvish-use-header-line 'global)
@@ -68,8 +69,7 @@
 
   ;; ファイル一覧そのものにも情報を多めに表示する。
   (dirvish-attributes
-   '(subtree-state
-     nerd-icons
+   '(nerd-icons
      file-modes
      file-time
      file-size))
