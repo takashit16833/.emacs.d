@@ -85,20 +85,20 @@
   :bind
   (("C-x d" . dirvish)
    :map dirvish-mode-map
-        ;; 上の階層へ移動する。
-        ("<left>" . dired-up-directory)
+   ;; 上の階層へ移動する。
+   ("<left>" . dired-up-directory)
 
-        ;; RETと同じく、ファイルを開く / ディレクトリへ入る。
-        ("<right>" . dired-find-file)
+   ;; RETと同じく、ファイルを開く / ディレクトリへ入る。
+   ("<right>" . dired-find-file)
 
-        ;; ディレクトリをその場でツリー展開する。
-        ("TAB" . dirvish-subtree-toggle)
+   ;; ディレクトリをその場でツリー展開する。
+   ("TAB" . dirvish-subtree-toggle)
 
-        ;; 空ファイルを作成する（次の行への移動は C-n または下矢印）。
-        ("n" . dired-create-empty-file)
+   ;; 空ファイルを作成する（次の行への移動は C-n または下矢印）。
+   ("n" . dired-create-empty-file)
 
-        ;; Dirvishの機能一覧を開く。
-        ("?" . dirvish-dispatch)))
+   ;; Dirvishの機能一覧を開く。
+   ("?" . dirvish-dispatch)))
 
 
 ;;; files.el ends here
