@@ -140,5 +140,55 @@
     (should (my/org-block-colors-test--has-face
              "#+END_QUOTE" 'my/org-block-quote-delimiter))))
 
+(ert-deftest my/org-block-colors-org-modern-keyword-order ()
+  "org-modern で標準と自作のブロック色付けを二重実行しない。"
+  (should
+   (equal
+    (my/org-block-colors--modern-keywords
+     '((before)
+       (my/org-fontify-colored-block)
+       (other)
+       (org-fontify-meta-lines-and-blocks)
+       (after)))
+    '((before) (other) (my/org-fontify-colored-block) (after))))
+  ;; 標準規則がなければ元の登録を変更しない。
+  (let ((keywords '((before) (my/org-fontify-colored-block) (after))))
+    (should (equal (my/org-block-colors--modern-keywords keywords)
+                   keywords))))
+
+(ert-deftest my/org-block-colors-org-modern-fontifies-delimiters ()
+  "org-modern を有効にしても引用・コメントの開始・終了行を色分けする。"
+  (skip-unless (require 'org-modern nil t))
+  (with-temp-buffer
+    (insert "#+begin_quote\n引用文\n#+end_quote\n"
+            "#+begin_comment\nコメント文\n#+end_comment\n"
+            "#+begin_export html\nExport text\n#+end_export\n")
+    (org-mode)
+    (org-modern-mode 1)
+    (font-lock-mode 1)
+    (font-lock-ensure)
+    (should-not (member '(org-fontify-meta-lines-and-blocks)
+                        org-modern--font-lock-keywords))
+    (should (= 1
+               (length (seq-filter
+                        (lambda (rule)
+                          (equal rule '(my/org-fontify-colored-block)))
+                        org-modern--font-lock-keywords))))
+    (dolist (case '(("quote" "引用文" my/org-block-quote
+                     my/org-block-quote-delimiter)
+                    ("comment" "コメント文" my/org-block-comment
+                     my/org-block-comment-delimiter)
+                    ("export" "Export text" my/org-block-export
+                     my/org-block-export-delimiter)))
+      (let ((kind (nth 0 case))
+            (body (nth 1 case))
+            (body-face (nth 2 case))
+            (edge-face (nth 3 case)))
+        (should (my/org-block-colors-test--has-face
+                 (concat "#+begin_" kind) edge-face))
+        (should (my/org-block-colors-test--has-face body body-face))
+        (should (my/org-block-colors-test--has-face
+                 (concat "#+end_" kind) edge-face))))))
+
 (provide 'my-org-block-colors-test)
 ;;; my-org-block-colors-test.el ends here
