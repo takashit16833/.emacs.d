@@ -18,6 +18,16 @@
       :directory nil)))
 
 
+(defun my/route-markdown (file)
+  "Markdown ファイル FILE を md Tab へルーティングする。"
+  (when (string-equal
+         (downcase (or (file-name-extension file) ""))
+         "md")
+    '(:id md
+      :name "Markdown"
+      :directory nil)))
+
+
 (defun my/route-project (file)
   "FILE が属する Project の Tab へルーティングする。"
   (when-let* ((project
