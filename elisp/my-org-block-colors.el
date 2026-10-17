@@ -110,5 +110,30 @@
 (with-eval-after-load 'org
   (add-hook 'org-font-lock-set-keywords-hook #'my/org-block-colors-setup))
 
+(defun my/org-block-colors--modern-keywords (keywords)
+  "org-modern のブロック色付け規則を自作処理1つにまとめる。"
+  (if (member '(org-fontify-meta-lines-and-blocks) keywords)
+      (mapcar (lambda (rule)
+                (if (equal rule '(org-fontify-meta-lines-and-blocks))
+                    '(my/org-fontify-colored-block)
+                  rule))
+              (remove '(my/org-fontify-colored-block) keywords))
+    keywords))
+
+(defun my/org-block-colors-setup-org-modern ()
+  "org-modern が追加する標準のブロック色付けを自作処理に置き換える。"
+  (when org-modern-mode
+    ;; org-modern は標準の色付けを後から追加するため、先行する自作規則を
+    ;; 取り除き、その位置で1回だけ実行する。ほかの装飾順序は変更しない。
+    (let* ((original org-modern--font-lock-keywords)
+           (updated (my/org-block-colors--modern-keywords original)))
+      (unless (equal original updated)
+        (font-lock-remove-keywords nil original)
+        (setq-local org-modern--font-lock-keywords updated)
+        (font-lock-add-keywords nil updated)))))
+
+(with-eval-after-load 'org-modern
+  (add-hook 'org-modern-mode-hook #'my/org-block-colors-setup-org-modern))
+
 (provide 'my-org-block-colors)
 ;;; my-org-block-colors.el ends here
