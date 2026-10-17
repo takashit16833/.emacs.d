@@ -34,6 +34,10 @@ emacs -nw
 
 初回起動時は、設定内の `use-package` が必要なEmacsパッケージを取得するため、ネットワーク接続が必要。
 
+## 既知の問題・調査記録
+
+- [macOS / Emacs 31.1 TTYでOrgファイル指定起動時に発生したSegmentation fault](docs/tty-org-startup-segfault.md) — 再現条件、切り分け結果、タブバー関連の回避策と未解明の点。
+
 ## Tree-sitter文法
 
 **文法はEmacs本体を実行しているOSにインストールする。** macOSのEmacsからTRAMPでDocker内のファイルを開く場合も、文法はmacOS側に必要。Docker内で `emacs -nw` を実行する場合はDocker側に必要。

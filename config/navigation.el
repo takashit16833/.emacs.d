@@ -46,7 +46,14 @@
    '(my/tab-bar-tab-name-padding
      tab-bar-tab-name-format-face
      tab-bar-tab-name-format-mouse-face))
-  (tab-bar-mode 1))
+  (tab-bar-mode 1)
+
+  ;; Emacs 31.1/TTY: 起動時に default-frame-alist の tab-bar-lines=0 を
+  ;; 再適用すると、Orgファイルを引数にした起動でSegmentation faultを起こす。
+  ;; 現在のフレームは変更せず、問題のある既定値だけを除外する。
+  ;; 調査結果・再現手順・未確認事項: docs/tty-org-startup-segfault.md
+  (setq default-frame-alist
+        (assq-delete-all 'tab-bar-lines default-frame-alist)))
 
 
 (use-package tab-line
