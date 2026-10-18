@@ -38,7 +38,8 @@
    '((retro-hacker-blue-theme :url
 			      "https://github.com/takashit16833/emacs-retro-hacker-blue-theme.git")))
  '(safe-local-variable-directories
-   '("/Users/suzukitakashi/ai-support-desk/"
+   '("/Users/suzukitakashi/hands-on-llm/"
+     "/Users/suzukitakashi/ai-support-desk/"
      "/Users/suzukitakashi/rag-lab/")))
 (custom-set-faces
  ;; custom-set-faces was added by Custom.
