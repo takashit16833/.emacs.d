@@ -5,7 +5,7 @@
 HomebrewとXcode Command Line Toolsを用意する。Cコンパイラがなければ `xcode-select --install` を実行する。
 
 ```sh
-brew install emacs git ripgrep jq cmake libvterm
+brew install emacs git ripgrep jq cmake libvterm coreutil
 emacs --version
 ```
 
