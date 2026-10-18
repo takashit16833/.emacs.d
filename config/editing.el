@@ -35,6 +35,7 @@
 ;; Command+Aでバッファ全体を選択する。
 (keymap-global-set "s-a" #'mark-whole-buffer)
 
+
 ;; Command+Xで選択範囲をOSのクリップボードへ切り取る。
 (keymap-global-set "s-x" #'my/cut-region-to-clipboard)
 
