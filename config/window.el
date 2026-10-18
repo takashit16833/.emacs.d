@@ -25,10 +25,10 @@
 (use-package windmove
   :ensure nil
   :bind
-  (("C-c <left>"  . windmove-display-left)
-   ("C-c <right>" . windmove-display-right)
-   ("C-c <up>"    . windmove-display-up)
-   ("C-c <down>"  . windmove-display-down)))
+  (("C-x <left>"  . windmove-display-left)
+   ("C-x <right>" . windmove-display-right)
+   ("C-x <up>"    . windmove-display-up)
+   ("C-x <down>"  . windmove-display-down)))
 
 
 ;;; window.el ends here
