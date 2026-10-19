@@ -32,9 +32,9 @@ Other backends and terminals retain the upstream deletion behavior."
 ;; WezTermはChafa経由だとPNGの透明部分を維持したSixelを描画できる。
 ;; Kittyなど他のバックエンドでは従来のエンコーダーを使う。
 (defvar kitty-graphics-sixel-encoder-timeout)
-(defvar kitty-graphics--cell-pixel-width)
-(defvar kitty-graphics--cell-pixel-height)
-(defvar kitty-graphics--target-terminal)
+(defvar kitty-graphics--cell-pixel-width nil)
+(defvar kitty-graphics--cell-pixel-height nil)
+(defvar kitty-graphics--target-terminal nil)
 
 ;; Chafa defaults to 10x20 pixels per cell without a terminal pixel-size probe.
 ;; Emacs may use a different (e.g. 16x32) cell size on a Retina display.
