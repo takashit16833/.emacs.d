@@ -48,6 +48,30 @@
    ("M-s-<return>" . my/org-insert-child-task)))
 
 
+;; Mermaidの画像生成は標準のob-mermaidに任せる。
+;; mmdc 11系を利用し、独自のBabel実行関数は定義しない。
+(use-package ob-mermaid
+  :ensure t
+  :after org
+  :demand t
+  :config
+  (add-to-list 'org-babel-load-languages '(mermaid . t))
+  (org-babel-do-load-languages 'org-babel-load-languages
+                               org-babel-load-languages)
+  (require 'my-org-mermaid))
+
+;; 端末への画像描画はkitty-graphics.elに任せる。
+;; WezTermでは画像スクロール時の異常終了が報告されているため、
+;; 安定性を確認できたKittyのTTYでのみ自動的に有効化する。
+(use-package kitty-graphics
+  :vc (:url "https://github.com/cashmeredev/kitty-graphics.el")
+  :if (and (not (display-graphic-p)) (getenv "KITTY_PID"))
+  :after org
+  :demand t
+  :config
+  (kitty-graphics-setup))
+
+
 ;; Org のブロック種類別配色（標準ブロック描画の後に適用）。
 (require 'my-org-block-colors)
 
