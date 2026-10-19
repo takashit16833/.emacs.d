@@ -9,7 +9,7 @@ flowchart LR
 #+end_src
 
 #+RESULTS:
-[[file:/Users/suzukitakashi/images/mermaid/diagram-93a9e3835751c03621583b2d.png]]
+[[file:/Users/suzukitakashi/images/mermaid/diagram-e62637df90a46797dbbd0862.png]]
 
 #+begin_src mermaid :scale 2
 flowchart TB
@@ -44,7 +44,7 @@ flowchart TB
 #+end_src
 
 #+RESULTS:
-[[file:/Users/suzukitakashi/images/mermaid/diagram-722959aaf61146d8a8ec6358.png]]
+[[file:/Users/suzukitakashi/images/mermaid/diagram-434dba1b9282414883df579a.png]]
 
 
 * Level 1 Heading                                                 :emacs:org:
