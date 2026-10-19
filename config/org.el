@@ -75,6 +75,11 @@
   :demand t
   :config
   (require 'my-kitty-graphics)
+  ;; Orgのインライン画像はウィンドウ幅まで広げ、縦長のMermaid図も
+  ;; 最大50行で表示する。画像そのものの再生成は必要ない。
+  (setq kitty-graphics-max-height 80
+        kitty-graphics-org-image-fit-height 50
+        kitty-graphics-org-image-fit-width 1.0)
   (when (my/kitty-graphics-wezterm-p)
     (setq kitty-graphics-preferred-protocol 'sixel)
     ;; 重複してadviceを登録しない。Kitty等は本来の削除処理を使う。
