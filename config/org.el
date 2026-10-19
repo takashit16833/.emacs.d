@@ -60,15 +60,28 @@
                                org-babel-load-languages)
   (require 'my-org-mermaid))
 
-;; 端末への画像描画はkitty-graphics.elに任せる。
-;; WezTermでは画像スクロール時の異常終了が報告されているため、
-;; 安定性を確認できたKittyのTTYでのみ自動的に有効化する。
+;; 端末での画像配置はkitty-graphics.elに任せる。
+;; WezTermではKittyプロトコルではなくSixelを使う。
+;; Sixelの画像削除は文字まで消すことがあるため、削除だけ抑止する。
+;; 古い画像が残ることはあるが、Org本文を欠損表示するより安全。
+;; xterm-mouse-modeの設定は変更しない（マウスホバーは別問題）。
 (use-package kitty-graphics
   :vc (:url "https://github.com/cashmeredev/kitty-graphics.el")
-  :if (and (not (display-graphic-p)) (getenv "KITTY_PID"))
+  :if (and (not (display-graphic-p))
+           (or (getenv "KITTY_PID")
+               (getenv "WEZTERM_PANE")
+               (equal (getenv "TERM_PROGRAM") "WezTerm")))
   :after org
   :demand t
   :config
+  (require 'my-kitty-graphics)
+  (when (my/kitty-graphics-wezterm-p)
+    (setq kitty-graphics-preferred-protocol 'sixel)
+    ;; 重複してadviceを登録しない。Kitty等は本来の削除処理を使う。
+    (unless (advice-member-p #'my/kitty-graphics-sixel-delete-safely
+                             'kitty-graphics--sixel-delete)
+      (advice-add 'kitty-graphics--sixel-delete
+                  :around #'my/kitty-graphics-sixel-delete-safely)))
   (kitty-graphics-setup))
 
 
