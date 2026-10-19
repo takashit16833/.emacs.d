@@ -31,7 +31,7 @@ Other backends and terminals retain the upstream deletion behavior."
 
 ;; WezTermはChafa経由だとPNGの透明部分を維持したSixelを描画できる。
 ;; Kittyなど他のバックエンドでは従来のエンコーダーを使う。
-(defvar kitty-graphics-sixel-encoder-timeout)
+(defvar kitty-graphics-sixel-encoder-timeout nil)
 (defvar kitty-graphics--cell-pixel-width nil)
 (defvar kitty-graphics--cell-pixel-height nil)
 (defvar kitty-graphics--target-terminal nil)
