@@ -3,6 +3,14 @@
 #+DATE: 2026-10-13
 #+TAGS: emacs org theme
 
+#+begin_src mermaid
+flowchart LR
+    A[設計] --> B[実装] --> C[評価]
+#+end_src
+
+#+RESULTS:
+[[file:/Users/suzukitakashi/images/mermaid/diagram-93a9e3835751c03621583b2d.png]]
+
 * Level 1 Heading                                                 :emacs:org:
 
 通常の本文です。 *太字* /斜体/ _下線_ +取り消し線+ を確認します。
