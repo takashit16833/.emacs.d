@@ -1,50 +1,222 @@
-#+TITLE: Org Theme Color Test
+#+TITLE: Org Mode Showcase
+#+SUBTITLE: 表示・タスク管理・文書機能のサンプル
 #+AUTHOR: Takashi Suzuki
-#+DATE: 2026-10-13
-#+TAGS: emacs org theme
+#+CATEGORY: OrgSample
+#+FILETAGS: :org_sample:
+#+TODO: TODO NEXT WAIT | DONE CANCELLED
+#+PRIORITIES: A C B
+#+COLUMNS: %40ITEM(Task) %TODO %PRIORITY %TAGS %8EFFORT(Estimate) %8CLOCKSUM(Actual)
 
-* Level 1 Heading                                                 :emacs:org:
+* はじめに
 
-通常の本文です。 *太字* /斜体/ _下線_ +取り消し線+ を確認します。
-コード =init.el= と verbatim ~M-x org-mode~ も確認します。
-リンク: [[https://orgmode.org/][Org mode]]
+このファイルは、Org mode の主要機能とテーマの見た目をまとめて確認するためのサンプルです。
+日付・タスク・作業記録は説明用で、実際の予定ではありません。
 
-** Level 2 Heading                                                :work:org:
+- =TAB= :: 見出しやブロックを開閉する
+- =C-c C-q= :: 見出しのタグを編集する
+- =C-c C-s= / =C-c C-d= :: 予定日 / 期限を設定する
+- =C-c C-c= :: チェックボックスや表を更新する
+- [[file:README.md][README.md]] :: Emacs 環境の説明
 
-日付: <2026-10-13 Tue> [2026-10-13 Tue]
-時刻: <2026-10-13 Tue 10:00-11:00>
+* 01 / Mermaid — タスクの流れ
 
-*** Level 3 Heading
+Inbox に集めた項目を整理し、実行・完了するまでを表した図です。
+
+=mermaid= のソースブロックだけ、Org ファイルを開いたときに自動で折りたたまれます。
+外部プレビューは *図のコード本体を選択* し、Hammerspoon の =Hyper+L= で表示します。
+Emacs バッファ内への画像埋め込みは行いません。
+
+#+begin_src mermaid
+flowchart LR
+    subgraph CAPTURE["01 / 収集"]
+        A["思いつき・依頼"] --> B["Inbox"]
+    end
+
+    subgraph PLAN["02 / 整理"]
+        C{"今、着手できる？"}
+        C -->|YES| D["NEXT"]
+        C -->|NO| E["WAIT / Backlog"]
+        D --> F{"日付の指定は必要？"}
+        F -->|YES| G["SCHEDULED / DEADLINE"]
+        F -->|NO| H["日付なしの TODO"]
+    end
+
+    subgraph ACTION["03 / 実行"]
+        I["Agenda / TODO 一覧"] --> J["作業・CLOCK 記録"]
+        J --> K["DONE"]
+        K --> L["Archive"]
+    end
+
+    B --> C
+    E -. 見直し .-> C
+    G --> I
+    H --> I
+
+    classDef focus fill:#123652,stroke:#59B6FF,color:#E1F0FF,stroke-width:2px
+    classDef decision fill:#382B44,stroke:#C89CF1,color:#F7EBFF,stroke-width:2px
+    classDef finished fill:#12433E,stroke:#75D7AD,color:#EAFFF6,stroke-width:2px
+    class B,I focus
+    class C,F decision
+    class K,L finished
+#+end_src
+
+* 02 / 見出し・文字装飾
+
+** 第2レベルの見出し                                             :emacs:theme:
+*** 第3レベルの見出し
 :PROPERTIES:
-:ID: org-theme-test
-:CUSTOM_ID: level-3
+:CUSTOM_ID: typography
 :END:
 
-プロパティと見出しの色を確認します。
+普通の文章、*太字*、/斜体/、_下線_、+取り消し線+ を見比べます。
+コード =init.el=、verbatim ~M-x org-mode~、[[https://orgmode.org/][外部リンク]]、[[#typography][見出しへのリンク]]。
 
-* TODO [#A] 未完了タスク                                         :task:org:
-DEADLINE: <2026-10-20 Tue>
+日付: <2026-10-20 Tue>、記録用日時: [2026-10-20 Tue]
+時刻: <2026-10-20 Tue 10:00-11:00>
 
-TODO と期限の色を確認します。
+インライン数式: \( x^2 + y^2 = z^2 \)
 
-* DONE [#C] 完了済みタスク
-CLOSED: [2026-10-13 Tue 09:30]
+-----
 
-DONE と完了日時の色を確認します。
+脚注も使用できます。[fn:showcase]
 
-* リストとチェックボックス
+* 03 / TODO・タグ・プロパティ
 
-- 通常の項目
-  - ネストした項目
-- [ ] 未完了
-- [-] 一部完了
-- [X] 完了
+** Development
+:PROPERTIES:
+:CATEGORY: Development
+:END:
 
-1. 番号付き項目
-2. 番号付き項目
+*** NEXT [#A] Agenda の表示を調整する                            :emacs:coding:
+SCHEDULED: <2026-10-20 Tue>
+DEADLINE: <2026-10-23 Fri>
+:PROPERTIES:
+:EFFORT:   1:30
+:OWNER:    Sample
+:END:
 
+=NEXT= は次に取り組む作業、=SCHEDULED= は取り組む予定日、
+=DEADLINE= は終了期限、=EFFORT= は作業時間の見積もりです。
 
-* コードブロック
+CLOCK: [2026-10-19 Mon 09:00]--[2026-10-19 Mon 09:45] =>  0:45
+
+*** WAIT [#B] 仕様の確認を待つ                                 :emacs:research:
+:PROPERTIES:
+:EFFORT:   0:30
+:END:
+
+=WAIT= は自分だけでは進められない作業の例です。
+
+*** TODO [#B] 検索の評価指標を調べる                         :rag_lab:research:
+:PROPERTIES:
+:EFFORT:   1:00
+:END:
+
+=:research:= を使えば、Emacs と RAG の調査を横断して検索できます。
+例えば Agenda のタグ検索では =emacs+research= は両方のタグを持つ項目を表します。
+
+*** DONE [#C] README を更新する                                   :emacs:
+CLOSED: [2026-10-19 Mon 18:30]
+:PROPERTIES:
+:EFFORT:   0:30
+:END:
+CLOCK: [2026-10-19 Mon 18:00]--[2026-10-19 Mon 18:25] =>  0:25
+
+** 日付のない Backlog
+
+*** TODO いつか試したい Org の機能
+*** TODO キーボード操作を見直す                                    :emacs:
+
+日付のない TODO は、まだ実施日が決まっていない作業を残す場合に使えます。
+
+** プロパティと Column View
+
+*** TODO 小さな機能を作る
+:PROPERTIES:
+:EFFORT:   0:45
+:PROJECT:  Emacs
+:CONTEXT:  Home
+:END:
+
+タグは「当てはまるか」、プロパティは「名前と値」のある情報に向いています。
+=#+COLUMNS:= に従い、Column View では見出し・状態・見積もりなどを表形式で確認できます。
+
+* 04 / 日付・繰り返し・作業時間
+
+** TODO 作業を開始する
+SCHEDULED: <2026-10-21 Wed>
+
+** TODO 成果物を提出する
+DEADLINE: <2026-10-23 Fri>
+
+=SCHEDULED= は着手予定、=DEADLINE= は期限です。両方指定することもできます。
+
+** TODO 毎週の振り返り                                               :review:
+SCHEDULED: <2026-10-23 Fri +1w>
+
+=+1w= は週ごとの繰り返し指定です（この見出しでは =DONE= にせず表示例として残します）。
+
+** チームミーティング                                               :meeting:
+<2026-10-22 Thu 10:00-11:00>
+
+TODO でなくても、active timestamp は予定として扱えます。
+一方、[2026-10-22 Thu] のような inactive timestamp は記録用です。
+
+** Clock 集計
+
+=EFFORT= は見積もり、=CLOCK= は作業実績です。
+以下の動的ブロックの =#+BEGIN:= 行で =C-c C-c= を実行すると集計できます。
+
+#+BEGIN: clocktable :scope file :maxlevel 3
+#+END:
+
+* 05 / リスト・チェックボックス・表
+
+** リストと進捗 [1/4]
+
+- 箇条書き
+  - 子項目
+    - さらに深い項目
+- [X] 対象を確認する
+- [ ] テストする
+- [ ] README を更新する
+- [ ] 完了を記録する
+
+1. 番号付きの項目
+2. 次の項目
+
+見出しの =[1/4]= はチェックボックスの完了数を表す進捗表示です。
+
+** 表と計算式
+
+#+CAPTION: 見積もりと作業実績（分）
+#+NAME: work-sample
+| Task          | Estimate | Actual |
+|---------------+----------+--------|
+| Agenda        |       90 |     75 |
+| Theme         |      120 |    105 |
+| Documentation |       30 |     20 |
+|---------------+----------+--------|
+| Total         |          |        |
+#+TBLFM: @>$2=vsum(@2..@-1);@>$3=vsum(@2..@-1)
+
+表の中で =C-c C-c= を実行すると、最終行の合計を再計算できます。
+
+* 06 / コード・ブロック
+
+** Org Babel
+
+#+begin_src emacs-lisp :results value
+(+ 20 22)
+#+end_src
+
+#+RESULTS:
+: 42
+
+Org Babel はコードの実行結果を文書に記録できます。
+上の Emacs Lisp ブロックでは =C-c C-c= で =42= を返します。
+
+** ソースコードの色分け
 
 #+begin_src emacs-lisp
 (defun hello ()
@@ -52,36 +224,30 @@ DONE と完了日時の色を確認します。
   (message "Hello, world!"))
 #+end_src
 
-* 表
-
-#+CAPTION: Org テーマ確認用の表
-#+NAME: theme-table
-| Name     | Type       | Status |
-|----------+------------+--------|
-| Emacs    | Editor     | Active |
-| Org mode | Major mode | Active |
-
-* ブロック
+** Example
 
 #+begin_example
-Example block の文字色と背景色。
+Example は編集・実行せず、そのまま見せたい文字列に使えます。
 #+end_example
 
+** Quote
+
 #+begin_quote
-Quote block の表示を確認します。
+複雑な構成より、理解しやすく安定して使える構成を選ぶ。
 #+end_quote
 
+** Comment
+
 #+begin_comment
-Comment block の表示を確認します。
+このブロックは Org のエクスポート時には出力されません。
 #+end_comment
 
-* その他
+* 07 / Archive
 
-インライン数式: \( x^2 + y^2 = z^2 \)
+** DONE 完了した作業の例
+CLOSED: [2026-10-19 Mon 12:00]
 
------
-水平線の表示を確認します。
+Archive は削除ではなく、完了した見出しを普段の一覧から退避する機能です。
+この見出しは操作例なので、まだ Archive していません。
 
-脚注の確認です。[fn:1]
-
-[fn:1] 脚注の本文です。
+[fn:showcase] このファイルは表示と機能の確認を目的としています。
