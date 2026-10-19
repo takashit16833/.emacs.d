@@ -228,7 +228,8 @@ Org Babelの画像生成には [ob-mermaid](https://github.com/arnm/ob-mermaid) 
 
 - 画像生成には `mmdc`（Mermaid CLI 11系）を使用する。バージョンを `mmdc --version` で確認する
 - `ob-mermaid` はOrgを開いた際に自動導入・読み込みする。初回はネットワーク接続が必要
-- 端末の画像描画はKitty上の `emacs -nw` でのみ自動有効化する。WezTermは画像スクロール中の異常終了が未解決のため、自動有効化しない
+- 端末の画像描画はKittyとWezTermの `emacs -nw` で自動有効化する。KittyではKitty Graphics Protocol、WezTermではSixelを選択する
+- WezTermでのSixel画像には `img2sixel`（`brew install libsixel`）を推奨する。バックエンドは `M-x kitty-graphics-doctor` で確認できる
 
 Mermaidのソースブロックを作り、ブロックの中で `M-x my/org-mermaid-preview` を実行する。
 
@@ -248,7 +249,19 @@ flowchart LR
 
 通常のOrg Babel実行（`C-c C-c`）で画像生成することもできる。その場合は`ob-mermaid`の仕様どおり、`#+begin_src mermaid :file example.png` のように `:file` を指定する。プレビュー用コマンドとは異なり、出力先はブロックに記載したパスとなる。
 
-現段階での自動テストは画像生成指示とファイル管理まで。**実際のKitty上でのスクロール・画面分割・再起動時の安定性は、実機で検証する必要がある。**
+### WezTerm + Sixelの表示制約
+
+WezTermでSixelを使うと、スクロール中の画像表示は動く一方、`kitty-graphics.el` が古い画像領域を空白で消去すると、周辺の本文まで消える現象が確認された。そのため **WezTerm + Sixelのときだけ `kitty-graphics--sixel-delete` の実行を抑止**する。Kittyなど他の環境の削除処理は変更しない。
+
+- **利点:** スクロール時にOrg本文が欠ける現象を回避する
+- **制約:** ページ送り、バッファ切り替え、画面分割、プレビュー解除などで画像の残像が残る場合がある。表示が乱れたら `M-x redraw-display` を試す
+- **マウス:** `xterm-mouse-mode` は従来どおり有効のまま。マウスホバー時に画像が消える現象は別問題のため、画像の上へのホバーを避ける
+- **切り替え:** `M-: (list kitty-graphics-mode kitty-graphics--active-backend)` の結果が `(t sixel)` ならSixelが有効
+- **初回適用:** 以前 `M-:` から手動で登録した `advice-add ... :override #'ignore` を残さないため、Git更新後にEmacsを再起動する
+
+この回避策は端末への画像配置を根本修正するものではない。文字の消失を避けることを優先した暫定対応であり、実機での長時間利用・画面分割・再起動後の安定性は継続確認する。
+
+単体ERTではプレビュー用画像生成指示・キャッシュと、WezTerm + Sixelに限定した画像消去の抑止を検証する。実際の画像描画・スクロールは実機での確認が必要。
 
 ## テスト
 
