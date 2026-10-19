@@ -8,9 +8,6 @@ flowchart LR
     A[設計] --> B[実装] --> C[評価]
 #+end_src
 
-#+RESULTS:
-[[file:/Users/suzukitakashi/images/mermaid/diagram-e62637df90a46797dbbd0862.png]]
-
 #+begin_src mermaid :scale 2
 flowchart TB
     U[User] --> W[Web App]
@@ -42,10 +39,6 @@ flowchart TB
         N1 --> M1[Mail Service]
     end
 #+end_src
-
-#+RESULTS:
-[[file:/Users/suzukitakashi/images/mermaid/diagram-434dba1b9282414883df579a.png]]
-
 
 * Level 1 Heading                                                 :emacs:org:
 
