@@ -5,6 +5,9 @@
 (require 'org)
 (require 'my-org-mermaid)
 
+;; Emulate terminal inline-preview availability without loading the backend.
+(defvar kitty-graphics-mode)
+
 (ert-deftest my-org-mermaid-output-file-is-content-addressed ()
   "Source and output-affecting headers determine a persistent path."
   (let* ((my/org-mermaid-image-directory "/tmp/example-mermaid/")
@@ -34,6 +37,8 @@
   (let ((dir (make-temp-file "my-org-mermaid-test-" t))
         (runs 0)
         (insertions 0)
+        (display-calls 0)
+        (kitty-graphics-mode t)
         (my/org-mermaid-image-directory nil))
     (unwind-protect
         (progn
@@ -51,7 +56,11 @@
                       ((symbol-function 'org-babel-insert-result)
                        (lambda (&rest _) (setq insertions (1+ insertions))))
                       ((symbol-function 'org-display-inline-images)
-                       (lambda (&rest _) nil)))
+                       (lambda (&rest args)
+                         ;; TTY advice maps the second argument to BEG, so
+                         ;; legacy (t t) calls crash when it expects a pos.
+                         (should-not args)
+                         (setq display-calls (1+ display-calls)))))
               (let ((first (my/org-mermaid-preview)))
                 (should (file-exists-p first))
                 (should (= runs 1))
@@ -63,7 +72,8 @@
                 (replace-match "A-->C")
                 (goto-char (point-min))
                 (should-not (equal first (my/org-mermaid-preview)))
-                (should (= runs 2))))))
+                (should (= runs 2))
+                (should (= display-calls 3))))))
       (delete-directory dir t))))
 
 (ert-deftest my-org-mermaid-preview-rejects-other-blocks ()
