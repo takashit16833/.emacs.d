@@ -59,7 +59,10 @@ Image placement is handled by Org and kitty-graphics.el, not here."
     (let* ((output (my/org-mermaid--output-file info))
            (cached (my/org-mermaid--valid-png-p output))
            (params (list (cons :file output)
-                         (cons :results "file graphics replace"))))
+                         (cons :results "file graphics replace")
+                         ;; The preview manages its own file cache.  If an
+                         ;; image is deleted, Babel must regenerate it.
+                         (cons :cache "no"))))
       (when (file-remote-p output)
         (user-error "リモートのMermaid画像出力は未対応です"))
       (unless (equal (downcase (or (file-name-extension output) "")) "png")
