@@ -90,7 +90,10 @@ Image placement is handled by Org and kitty-graphics.el, not here."
       (when (and (fboundp 'org-display-inline-images)
                  (or (display-graphic-p)
                      (bound-and-true-p kitty-graphics-mode)))
-        (org-display-inline-images t t))
+        ;; kitty-graphics.el's TTY advice expects optional BEG/END in the
+        ;; second/third positions, unlike Org's INCLUDE-LINKED/REFRESH.
+        ;; Positional t t would be misread as BEG=t and signal a type error.
+        (org-display-inline-images))
       output)))
 
 (provide 'my-org-mermaid)
