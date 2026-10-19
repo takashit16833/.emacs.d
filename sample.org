@@ -27,7 +27,7 @@ Inbox に集めた項目を整理し、実行・完了するまでを表した�
 Emacs バッファ内への画像埋め込みは行いません。
 
 #+begin_src mermaid
-flowchart LR
+flowchart TD
     subgraph CAPTURE["01 / 収集"]
         A["思いつき・依頼"] --> B["Inbox"]
     end
