@@ -226,10 +226,28 @@ bash scripts/debian-test.sh rebuild
 Org Babelの画像生成には [ob-mermaid](https://github.com/arnm/ob-mermaid) を使用する。
 端末への画像表示には [kitty-graphics.el](https://github.com/cashmeredev/kitty-graphics.el) を使用し、画像の配置処理は独自実装しない。
 
-- 画像生成には `mmdc`（Mermaid CLI 11系）を使用する。バージョンを `mmdc --version` で確認する
-- `ob-mermaid` はOrgを開いた際に自動導入・読み込みする。初回はネットワーク接続が必要
-- 端末の画像描画はKittyとWezTermの `emacs -nw` で自動有効化する。KittyではKitty Graphics Protocol、WezTermではSixelを選択する
-- WezTermでは透過PNGを扱えるChafa（`brew install chafa`）を優先してSixelを生成する。Chafaがない場合は従来どおり `img2sixel` / ImageMagickへフォールバックする。バックエンドは `M-x kitty-graphics-doctor` で確認できる
+### 依存関係
+
+macOSのWezTermでMermaidを透過表示するために、別途必要なコマンドは **`mmdc` と `chafa`**。加えて、`mmdc` のインストールにはNode.js/npmが必要。
+
+```sh
+# Mermaid CLIのインストールに必要なNode.jsと、透過Sixel変換用のChafa
+brew install node chafa
+
+# MermaidをPNGへ変換するCLI
+npm install --global @mermaid-js/mermaid-cli@11
+
+# インストール確認
+mmdc --version
+chafa --version
+```
+
+- **`mmdc`**：MermaidのソースコードからPNGを生成する（Mermaid CLI 11系）。
+- **`chafa`**：WezTermで透過PNGをSixelに変換する。Kitty Graphics Protocolで表示するKittyでは不要。
+- **Emacsパッケージ**：`ob-mermaid` と `kitty-graphics.el` は設定から自動導入する。初回はネットワーク接続が必要。
+- **任意の代替エンコーダー**：Chafaがない場合は `img2sixel`（`brew install libsixel`）またはImageMagickへフォールバックする。ただし、透過背景の表示にはChafaを使用する。
+
+端末の画像描画はKittyとWezTermの `emacs -nw` で自動有効化する。KittyではKitty Graphics Protocol、WezTermではSixelを選択する。バックエンドは `M-x kitty-graphics-doctor` で確認できる。
 
 Mermaidのソースブロックを作り、ブロックの中で `M-x my/org-mermaid-preview` を実行する。
 
