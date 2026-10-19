@@ -73,6 +73,14 @@
   (add-to-list 'org-babel-load-languages '(mermaid . t))
   (org-babel-do-load-languages 'org-babel-load-languages
                                org-babel-load-languages)
+  ;; Mermaidの配色は共通JSONで管理し、PNGは透過背景で高解像度にする。
+  ;; 各ソースブロックで指定したヘッダ引数は引き続き優先される。
+  (setq ob-mermaid-default-config-file
+        (expand-file-name "config/mermaid.json" user-emacs-directory))
+  (setf (alist-get :background-color org-babel-default-header-args:mermaid)
+        "transparent"
+        (alist-get :scale org-babel-default-header-args:mermaid)
+        2)
   (require 'my-org-mermaid))
 
 ;; 端末での画像配置はkitty-graphics.elに任せる。

@@ -18,6 +18,19 @@
   :type 'directory
   :group 'my/org-mermaid)
 
+(defun my/org-mermaid--config-fingerprint (params)
+  "Return effective Mermaid config path and content hash for PARAMS.
+Including the file contents prevents stale cached PNGs after theme edits."
+  (let ((file (or (cdr (assq :mermaid-config-file params))
+                  (and (boundp 'ob-mermaid-default-config-file)
+                       ob-mermaid-default-config-file))))
+    (when (stringp file)
+      (list file
+            (when (file-readable-p file)
+              (with-temp-buffer
+                (insert-file-contents-literally file)
+                (secure-hash 'sha256 (current-buffer))))))))
+
 (defun my/org-mermaid--output-file (info)
   "Return a stable, content-dependent PNG filename for Babel INFO.
 Changing the source or its header arguments creates a different filename,
@@ -31,8 +44,7 @@ so a terminal never has to replace an image stored under the same path."
                            (lambda (a b)
                              (string< (symbol-name (car a))
                                       (symbol-name (car b)))))
-                     (and (boundp 'ob-mermaid-default-config-file)
-                          ob-mermaid-default-config-file))))
+                     (my/org-mermaid--config-fingerprint params))))
          (digest (substring (secure-hash 'sha256 key) 0 24)))
     (expand-file-name (concat "diagram-" digest ".png")
                       my/org-mermaid-image-directory)))

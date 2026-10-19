@@ -32,6 +32,35 @@
                                  (:results . "file"))))
     (should (equal original (my/org-mermaid--output-file info)))))
 
+(defvar ob-mermaid-default-config-file)
+
+(ert-deftest my-org-mermaid-output-file-tracks-config-edits ()
+  "Editing the shared Mermaid theme invalidates the cached PNG path."
+  (let ((config (make-temp-file "my-org-mermaid-theme-" nil ".json")))
+    (unwind-protect
+        (let ((ob-mermaid-default-config-file config)
+              (info '("mermaid" "flowchart LR\nA-->B"
+                      ((:background-color . "transparent") (:scale . 2)))))
+          (with-temp-file config
+            (insert "{\"theme\":\"base\"}"))
+          (let ((before (my/org-mermaid--output-file info)))
+            (should (equal before (my/org-mermaid--output-file info)))
+            (with-temp-file config
+              (insert "{\"theme\":\"dark\"}"))
+            (should-not (equal before (my/org-mermaid--output-file info)))))
+      (delete-file config))))
+
+(ert-deftest my-org-mermaid-output-file-tracks-background-and-scale ()
+  "PNG defaults affect the cached output filename."
+  (let* ((info '("mermaid" "flowchart LR\nA-->B"
+                 ((:background-color . "white") (:scale . 1))))
+         (before (my/org-mermaid--output-file info)))
+    (setcdr (assq :background-color (nth 2 info)) "transparent")
+    (should-not (equal before (my/org-mermaid--output-file info)))
+    (setcdr (assq :background-color (nth 2 info)) "white")
+    (setcdr (assq :scale (nth 2 info)) 2)
+    (should-not (equal before (my/org-mermaid--output-file info)))))
+
 (ert-deftest my-org-mermaid-preview-reuses-output ()
   "Mermaid is executed on the first request, not on an unchanged repeat."
   (let ((dir (make-temp-file "my-org-mermaid-test-" t))
