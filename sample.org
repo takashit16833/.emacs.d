@@ -11,6 +11,42 @@ flowchart LR
 #+RESULTS:
 [[file:/Users/suzukitakashi/images/mermaid/diagram-93a9e3835751c03621583b2d.png]]
 
+#+begin_src mermaid :scale 2
+flowchart TB
+    U[User] --> W[Web App]
+    W --> G[API Gateway]
+
+    subgraph AUTH[Authentication]
+        G --> A1[Login API]
+        A1 --> A2[Token Service]
+        A2 --> A3[(User DB)]
+    end
+
+    subgraph ORDER[Order Processing]
+        G --> O1[Order API]
+        O1 --> O2[Validation]
+        O2 --> O3{Inventory OK?}
+        O3 -->|Yes| O4[Reserve Stock]
+        O3 -->|No| O5[Return Error]
+        O4 --> O6[Create Order]
+        O6 --> O7[(Order DB)]
+        O6 --> O8[Publish Event]
+    end
+
+    subgraph ASYNC[Async Workers]
+        O8 --> Q[(Message Queue)]
+        Q --> B1[Billing Worker]
+        Q --> N1[Notification Worker]
+        B1 --> P1[Payment Gateway]
+        B1 --> P2[(Billing DB)]
+        N1 --> M1[Mail Service]
+    end
+#+end_src
+
+#+RESULTS:
+[[file:/Users/suzukitakashi/images/mermaid/diagram-722959aaf61146d8a8ec6358.png]]
+
+
 * Level 1 Heading                                                 :emacs:org:
 
 通常の本文です。 *太字* /斜体/ _下線_ +取り消し線+ を確認します。
