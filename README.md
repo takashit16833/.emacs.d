@@ -221,6 +221,35 @@ bash scripts/debian-test.sh rebuild
 
 検証用Dockerイメージには各言語のTree-sitter文法とLanguage Serverを用意している。ホスト上のEmacsからDockerへTRAMP接続する場合は、上記「Tree-sitter文法」の手順をホスト側でも実行する。
 
+## OrgでのMermaidプレビュー（端末版）
+
+Org Babelの画像生成には [ob-mermaid](https://github.com/arnm/ob-mermaid) を使用する。
+端末への画像表示には [kitty-graphics.el](https://github.com/cashmeredev/kitty-graphics.el) を使用し、画像の配置処理は独自実装しない。
+
+- 画像生成には `mmdc`（Mermaid CLI 11系）を使用する。バージョンを `mmdc --version` で確認する
+- `ob-mermaid` はOrgを開いた際に自動導入・読み込みする。初回はネットワーク接続が必要
+- 端末の画像描画はKitty上の `emacs -nw` でのみ自動有効化する。WezTermは画像スクロール中の異常終了が未解決のため、自動有効化しない
+
+Mermaidのソースブロックを作り、ブロックの中で `M-x my/org-mermaid-preview` を実行する。
+
+```org
+#+begin_src mermaid
+flowchart LR
+    A[設計] --> B[実装] --> C[評価]
+#+end_src
+```
+
+- `:file` を書かなくてもよい。プレビュー用PNGを `~/images/mermaid/` に生成し、標準の `#+RESULTS:` 画像リンクを挿入する
+- 同じソースと描画設定なら生成済みPNGを再利用し、`mmdc` を再実行しない
+- ソースを変更すると別のPNG名になるため、端末内の古い画像キャッシュと衝突しにくい
+- 出力画像はGit管理外のホームディレクトリに保持する。Org文書を別のPCに移した場合、再度プレビューコマンドを実行する
+- Orgファイルを開き直して画像が非表示なら `C-c C-x C-v` で標準の画像表示を切り替える
+- コードをたたむ場合はOrg標準の折りたたみ機能を使う
+
+通常のOrg Babel実行（`C-c C-c`）で画像生成することもできる。その場合は`ob-mermaid`の仕様どおり、`#+begin_src mermaid :file example.png` のように `:file` を指定する。プレビュー用コマンドとは異なり、出力先はブロックに記載したパスとなる。
+
+現段階での自動テストは画像生成指示とファイル管理まで。**実際のKitty上でのスクロール・画面分割・再起動時の安定性は、実機で検証する必要がある。**
+
 ## テスト
 
 リポジトリ直下で単体ERTと結合ERTをまとめて実行する。
