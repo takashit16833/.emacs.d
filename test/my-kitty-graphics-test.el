@@ -74,6 +74,8 @@
 (ert-deftest my-kitty-graphics-chafa-encodes-wezterm-sixel ()
   "Run Chafa with explicit size and return one raw Sixel sequence."
   (let ((kitty-graphics--active-backend 'sixel)
+        (kitty-graphics--cell-pixel-width 16)
+        (kitty-graphics--cell-pixel-height 32)
         (kitty-graphics-sixel-encoder-timeout 5.0)
         (recorded nil)
         (called-original nil))
@@ -96,7 +98,9 @@
       (should-not called-original)
       (should (equal (nth 0 recorded) "/opt/homebrew/bin/chafa"))
       (should (member "--stretch" (nth 2 recorded)))
-      (should (member "50x30" (nth 2 recorded)))
+      ;; Emacs allocates 50x30 terminal cells (16x32 actual pixels).
+      ;; Chafa uses a 10x20 virtual cell, so match 800x960 physical pixels.
+      (should (member "80x48" (nth 2 recorded)))
       (should (equal (car (last (nth 2 recorded))) "/some/diagram.png")))))
 
 (ert-deftest my-kitty-graphics-chafa-leaves-kitty-backend-unchanged ()
@@ -139,7 +143,7 @@
                  (when (equal program "chafa") "/opt/homebrew/bin/chafa"))))
       (let ((result (my/kitty-graphics-sixel-cache-path-with-chafa
                      (lambda (&rest _) "old.six") "image.png" 30 20)))
-        (should (string-match-p "kitty-graphics-chafa-v1-" result))
+        (should (string-match-p "kitty-graphics-chafa-v2-" result))
         (should-not (equal result "old.six"))
         (should (equal result
                        (my/kitty-graphics-sixel-cache-path-with-chafa
@@ -151,5 +155,57 @@
                (my/kitty-graphics-sixel-cache-path-with-chafa
                 (lambda (&rest _) "old.six") "image.png" 30 20)
                "old.six")))))
+
+(ert-deftest my-kitty-graphics-chafa-matches-measured-cell-geometry ()
+  "Scale Chafa's virtual cells to the actual terminal pixel dimensions."
+  (let ((kitty-graphics--cell-pixel-width 16)
+        (kitty-graphics--cell-pixel-height 32))
+    (should (equal (my/kitty-graphics--chafa-output-size 50 30)
+                   "80x48"))
+    (should (equal (my/kitty-graphics--chafa-output-size 54 50)
+                   "86x80"))))
+
+(ert-deftest my-kitty-graphics-chafa-uses-per-terminal-measurements ()
+  "Read per-terminal sizes even if the global cell dimensions are nil."
+  (let ((kitty-graphics--cell-pixel-width nil)
+        (kitty-graphics--cell-pixel-height nil)
+        (kitty-graphics--target-terminal nil))
+    (cl-letf (((symbol-function 'terminal-parameter)
+               (lambda (_terminal key)
+                 (pcase key
+                   ('kitty-graphics-cell-w 16)
+                   ('kitty-graphics-cell-h 32)))))
+      (should (equal (my/kitty-graphics--chafa-output-size 50 30)
+                     "80x48")))))
+
+(ert-deftest my-kitty-graphics-chafa-uses-upstream-cell-fallback ()
+  "Match kitty-graphics' 8x16 fallback without terminal size data."
+  (let ((kitty-graphics--cell-pixel-width nil)
+        (kitty-graphics--cell-pixel-height nil)
+        (kitty-graphics--target-terminal nil))
+    (cl-letf (((symbol-function 'terminal-parameter)
+               (lambda (&rest _) nil)))
+      (should (equal (my/kitty-graphics--chafa-output-size 50 30)
+                     "40x24")))))
+
+(ert-deftest my-kitty-graphics-chafa-cache-changes-with-cell-size ()
+  "Pixel size changes must not reuse prior Sixel output."
+  (let ((kitty-graphics--active-backend 'sixel)
+        (kitty-graphics--cell-pixel-width 16)
+        (kitty-graphics--cell-pixel-height 32))
+    (cl-letf (((symbol-function 'my/kitty-graphics-wezterm-p)
+               (lambda () t))
+              ((symbol-function 'executable-find)
+               (lambda (program)
+                 (when (equal program "chafa")
+                   "/opt/homebrew/bin/chafa"))))
+      (let ((a (my/kitty-graphics-sixel-cache-path-with-chafa
+                (lambda (&rest _) "old.six") "diagram.png" 54 50)))
+        (let ((kitty-graphics--cell-pixel-width 20)
+              (kitty-graphics--cell-pixel-height 40))
+          (should-not
+           (equal a (my/kitty-graphics-sixel-cache-path-with-chafa
+                     (lambda (&rest _) "old.six")
+                     "diagram.png" 54 50))))))))
 
 ;;; my-kitty-graphics-test.el ends here

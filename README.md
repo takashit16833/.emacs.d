@@ -254,6 +254,8 @@ flowchart LR
 WezTermではSixelへの変換にChafaを優先し、透過PNGを背景画像の上に重ねて表示する（`brew install chafa`）。
 Chafaの出力から画像用Sixel DCSだけを取り出すことで、端末のカーソル位置・行送りをEmacs本体に任せる。
 エンコーダーごとにキャッシュファイル名を分け、以前の`img2sixel`出力が再利用されないようにする。
+Chafaは端末照会を無効にした状態で仮想セルを10×20pxとして計算するため、`kitty-graphics.el`が測定した端末セルの実ピクセル寸法（例: 16×32px）から出力セル数を換算する。これにより、Emacsが確保する表示領域とChafaのSixel画像の大きさを合わせる。取得できなければkitty-graphics標準の8×16pxを使う。
+セルのピクセル寸法が変わった場合はSixelキャッシュも別名になる。
 表示は**Emacs再起動後**に確認する。Kittyと非WezTermでは従来のエンコーダーを維持する。
 
 ### WezTerm + Sixelの表示制約

@@ -32,6 +32,39 @@ Other backends and terminals retain the upstream deletion behavior."
 ;; WezTermはChafa経由だとPNGの透明部分を維持したSixelを描画できる。
 ;; Kittyなど他のバックエンドでは従来のエンコーダーを使う。
 (defvar kitty-graphics-sixel-encoder-timeout)
+(defvar kitty-graphics--cell-pixel-width)
+(defvar kitty-graphics--cell-pixel-height)
+(defvar kitty-graphics--target-terminal)
+
+;; Chafa defaults to 10x20 pixels per cell without a terminal pixel-size probe.
+;; Emacs may use a different (e.g. 16x32) cell size on a Retina display.
+(defconst my/kitty-graphics--chafa-cell-width 10)
+(defconst my/kitty-graphics--chafa-cell-height 20)
+
+(defun my/kitty-graphics--effective-cell-size ()
+  "Return pixel cell dimensions used by kitty-graphics for this terminal.
+Prefer the dynamically bound values from the active rendering context,
+then the per-terminal measurements, and finally upstream's 8x16 fallback.
+Do not query the terminal during rendering: that may consume input."
+  (let ((term (or kitty-graphics--target-terminal
+                  (frame-terminal (selected-frame)))))
+    (cons (or kitty-graphics--cell-pixel-width
+              (terminal-parameter term 'kitty-graphics-cell-w)
+              8)
+          (or kitty-graphics--cell-pixel-height
+              (terminal-parameter term 'kitty-graphics-cell-h)
+              16))))
+
+(defun my/kitty-graphics--chafa-output-size (cols rows)
+  "Compute Chafa cell extent matching COLS x ROWS actual terminal cells.
+Chafa uses 10x20 virtual pixel cells when run without terminal probing,
+so convert the allocated Emacs extent to an equivalent Chafa extent."
+  (let ((actual (my/kitty-graphics--effective-cell-size)))
+    (format "%dx%d"
+            (max 1 (round (/ (* cols (car actual))
+                             (float my/kitty-graphics--chafa-cell-width))))
+            (max 1 (round (/ (* rows (cdr actual))
+                             (float my/kitty-graphics--chafa-cell-height)))))))
 
 (defun my/kitty-graphics--chafa-program ()
   "Return Chafa executable when WezTerm's Sixel backend should use it."
@@ -58,7 +91,7 @@ to a single Sixel sequence to avoid moving the Emacs cursor."
   (if-let* ((chafa (my/kitty-graphics--chafa-program)))
       (with-temp-buffer
         (set-buffer-multibyte nil)
-        (let ((size (format "%dx%d" cols rows)))
+        (let ((size (my/kitty-graphics--chafa-output-size cols rows)))
           (when (kitty-graphics--sixel-run-encoder
                  chafa kitty-graphics-sixel-encoder-timeout (current-buffer)
                  (list "--format" "sixels"
@@ -79,8 +112,9 @@ to a single Sixel sequence to avoid moving the Emacs cursor."
 Previously generated img2sixel files must not mask Chafa's transparency."
   (if (my/kitty-graphics--chafa-program)
       (expand-file-name
-       (format "kitty-graphics-chafa-v1-%s.six"
-               (md5 (format "%s:%dx%d" file cols rows)))
+       (format "kitty-graphics-chafa-v2-%s.six"
+               (md5 (format "%s:%dx%d:%s" file cols rows
+                            (my/kitty-graphics--effective-cell-size))))
        temporary-file-directory)
     (funcall original file cols rows)))
 
