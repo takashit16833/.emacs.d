@@ -105,6 +105,16 @@
         kitty-graphics-org-image-fit-width 1.0)
   (when (my/kitty-graphics-wezterm-p)
     (setq kitty-graphics-preferred-protocol 'sixel)
+    ;; WezTermだけChafaで透過Sixelを生成する。元の画像配置処理は維持。
+    ;; 古いimg2sixelキャッシュを再利用しないようにパスも分離する。
+    (unless (advice-member-p #'my/kitty-graphics-sixel-encode-with-chafa
+                             'kitty-graphics--sixel-encode)
+      (advice-add 'kitty-graphics--sixel-encode
+                  :around #'my/kitty-graphics-sixel-encode-with-chafa))
+    (unless (advice-member-p #'my/kitty-graphics-sixel-cache-path-with-chafa
+                             'kitty-graphics--sixel-cache-path)
+      (advice-add 'kitty-graphics--sixel-cache-path
+                  :around #'my/kitty-graphics-sixel-cache-path-with-chafa))
     ;; 重複してadviceを登録しない。Kitty等は本来の削除処理を使う。
     (unless (advice-member-p #'my/kitty-graphics-sixel-delete-safely
                              'kitty-graphics--sixel-delete)

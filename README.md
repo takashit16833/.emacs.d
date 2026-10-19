@@ -229,7 +229,7 @@ Org Babelの画像生成には [ob-mermaid](https://github.com/arnm/ob-mermaid) 
 - 画像生成には `mmdc`（Mermaid CLI 11系）を使用する。バージョンを `mmdc --version` で確認する
 - `ob-mermaid` はOrgを開いた際に自動導入・読み込みする。初回はネットワーク接続が必要
 - 端末の画像描画はKittyとWezTermの `emacs -nw` で自動有効化する。KittyではKitty Graphics Protocol、WezTermではSixelを選択する
-- WezTermでのSixel画像には `img2sixel`（`brew install libsixel`）を推奨する。バックエンドは `M-x kitty-graphics-doctor` で確認できる
+- WezTermでは透過PNGを扱えるChafa（`brew install chafa`）を優先してSixelを生成する。Chafaがない場合は従来どおり `img2sixel` / ImageMagickへフォールバックする。バックエンドは `M-x kitty-graphics-doctor` で確認できる
 
 Mermaidのソースブロックを作り、ブロックの中で `M-x my/org-mermaid-preview` を実行する。
 
@@ -248,6 +248,13 @@ flowchart LR
 - コードをたたむ場合はOrg標準の折りたたみ機能を使う
 
 通常のOrg Babel実行（`C-c C-c`）で画像生成することもできる。その場合は`ob-mermaid`の仕様どおり、`#+begin_src mermaid :file example.png` のように `:file` を指定する。プレビュー用コマンドとは異なり、出力先はブロックに記載したパスとなる。
+
+### WezTermの透過PNG表示
+
+WezTermではSixelへの変換にChafaを優先し、透過PNGを背景画像の上に重ねて表示する（`brew install chafa`）。
+Chafaの出力から画像用Sixel DCSだけを取り出すことで、端末のカーソル位置・行送りをEmacs本体に任せる。
+エンコーダーごとにキャッシュファイル名を分け、以前の`img2sixel`出力が再利用されないようにする。
+表示は**Emacs再起動後**に確認する。Kittyと非WezTermでは従来のエンコーダーを維持する。
 
 ### WezTerm + Sixelの表示制約
 
