@@ -6,6 +6,8 @@
 ;; Prefer occasional image ghosts over deleting actual text on screen.
 ;;; Code:
 
+(require 'subr-x)
+
 ;; Declared by kitty-graphics.el.  The guard below also allows these
 ;; helpers to be unit-tested without loading a terminal backend.
 (defvar kitty-graphics--active-backend)
