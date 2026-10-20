@@ -72,7 +72,10 @@
            (prompt (plist-get options :prompt))
            (candidates (plist-get options :candidates)))
       (when prompt
-        (let ((input (completing-read prompt candidates nil nil)))
+        (let ((input (completing-read
+                      prompt
+                      (if (functionp candidates) (funcall candidates) candidates)
+                      nil nil)))
           (when (equal input "")
             (user-error "入力が空です"))
           (setq command
@@ -120,8 +123,9 @@
 	      (stringp (plist-get body :prompt)))
 	  (or (not (plist-member body :candidates))
 	      (let ((candidates (plist-get body :candidates)))
-		(and (listp candidates)
-		     (seq-every-p #'stringp candidates))))))))
+		(or (functionp candidates)
+		    (and (listp candidates)
+		         (seq-every-p #'stringp candidates)))))))))
     commands)))
 
 
