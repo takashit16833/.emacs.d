@@ -5,9 +5,6 @@
 ;;; Code:
 
 
-(require 'my-development)
-
-
 ;; Tree-sitterの色分けを最大レベル（４が最大）。
 (setq treesit-font-lock-level 3)
 
@@ -58,6 +55,9 @@
 
 ;;; Haskell ---------------------------------------------------------
 
+(autoload 'my/haskell-ghci-complete "my-haskell-ghci" nil t)
+(autoload 'my/haskell-ghci-completion-setup "my-haskell-ghci")
+
 ;; Haskell REPLのキーマップはhaskell-ts-repl読込後に定義されるため、
 ;; 読み込みが完了してからTABの割り当てを追加する。
 (with-eval-after-load 'haskell-ts-repl
@@ -104,6 +104,8 @@
 
 
 ;;; Eglot -----------------------------------------------------------
+
+(autoload 'my/eglot-python-server "my-python")
 
 ;; Language Serverとの通信はEmacs標準のEglotに任せる。
 ;; 補完・診断・定義ジャンプはCorfu・Flymake・Xrefと連携する。
@@ -248,6 +250,8 @@
 
 
 ;;; JSON / jq -------------------------------------------------------
+
+(autoload 'my/jq-playground "my-jq" nil t)
 
 ;; jqスクリプトの編集と、JSONに対するjqの対話的実行。
 (use-package jq-mode
