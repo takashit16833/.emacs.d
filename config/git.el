@@ -5,7 +5,7 @@
 ;;; Code:
 
 (require 'my-tab-context)
-(require 'my-ui)
+(require 'my-tab-line)
 
 (declare-function magit-file-status "magit-git" (&rest args))
 (declare-function magit-toplevel "magit-git" (&optional directory))
