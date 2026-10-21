@@ -5,6 +5,8 @@
 
 ;;; Code:
 
+(require 'my-tab-line)
+
 
 ;; タブを切り替える。
 (keymap-global-set "C-<prior>" #'tab-bar-switch-to-prev-tab)
