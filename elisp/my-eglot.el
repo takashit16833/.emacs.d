@@ -46,6 +46,7 @@
 
 ;;; Code:
 
+(require 'cl-lib)
 
 ;; Eglot 31.1は現在位置に提示した候補が1件だけの場合、
 ;; eglot-code-actionsの対話的実行でも選択を省いて即時実行する。
@@ -64,6 +65,14 @@
 
 (declare-function eglot-current-server "eglot" ())
 (declare-function eglot-execute "eglot" (server action))
+(declare-function eglot-server-capable-or-lose "eglot" (&rest features))
+(declare-function eglot--current-server-or-lose "eglot" ())
+(declare-function eglot--pos-to-lsp-position "eglot" (&optional position))
+(declare-function eglot-region-range "eglot" (from to))
+(declare-function eglot--request "eglot" (server method params &rest options))
+(declare-function eglot--TextDocumentIdentifier "eglot" ())
+(declare-function eglot--apply-text-edits "eglot"
+                  (edits &optional version silent))
 
 (defun my/eglot-haskell-completion-command (capf)
   "Haskellの補完確定後にHLSの追加コマンドを実行する。

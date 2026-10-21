@@ -9,6 +9,11 @@
 (require 'vc-hooks)
 (require 'my-ui)
 
+(declare-function tab-line-force-update "tab-line" (all))
+(declare-function tab-line-cache-key-default "tab-line" (tabs))
+(declare-function tab-line-tab-name-format-default "tab-line" (tab tabs))
+(declare-function tab-line-tabs-non-excluded "tab-line" (buffers))
+(declare-function bufferlo-buffer-list "bufferlo" (&rest options))
 
 (defconst my/tab-line-exclude-condition
   '(or (and "^\\*.*\\*$"

@@ -28,6 +28,7 @@
 (declare-function cape-wrap-predicate "cape" (capf predicate))
 (declare-function cape-wrap-properties "cape" (capf &rest properties))
 (declare-function eglot-managed-p "eglot" ())
+(declare-function eglot-completion-at-point "eglot" ())
 
 (defun my/eglot-dabbrev--track-candidates (capf names)
   "CAPFの候補名をNAMESへ記録し、元の補完結果は変更せず返す。"

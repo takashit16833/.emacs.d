@@ -5,6 +5,9 @@
 
 ;;; Code:
 
+(defvar nerd-icons-color-icons)
+(declare-function nerd-icons-icon-for-file "nerd-icons" (file &rest options))
+
 ;;; Nerd Font
 
 (defvar-local my/file-icon-cache nil

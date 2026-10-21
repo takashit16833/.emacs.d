@@ -5,6 +5,9 @@
 
 ;;; Code:
 
+(defvar org-modern-mode)
+(defvar org-modern--font-lock-keywords)
+
 ;; テーマから配色する独自 face は、名前だけでなく face 自体の定義が必要。
 ;; Retro Hacker Blue 以外のテーマでは Org 標準のブロック色を継承する。
 (defface my/org-block-quote

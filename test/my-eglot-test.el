@@ -35,7 +35,17 @@
            (last-nonmenu-event ?a)
            (requested nil)
            (prompted nil)
-           (executed nil))
+           (executed nil)
+           ;; Emacs 31のnative-comp済みEglotから呼ばれても差し替えが効くよう、
+           ;; completing-readの関数定義ではなく公式の委譲先変数を使う。
+           (completing-read-function
+            (lambda (_prompt collection &rest _args)
+              (should requested)
+              (should-not executed)
+              (should (equal (mapcar #'car collection)
+                             '("Convert EvaluationSummary to GADT syntax")))
+              (setq prompted t)
+              "Convert EvaluationSummary to GADT syntax")))
       (unwind-protect
           (progn
             (overlay-put proposal 'eglot--actions (vector action))
@@ -53,14 +63,6 @@
                          (should (eq method :textDocument/codeAction))
                          (setq requested t)
                          (vector action)))
-                      ((symbol-function 'completing-read)
-                       (lambda (_prompt collection &rest _args)
-                         (should requested)
-                         (should-not executed)
-                         (should (equal (mapcar #'car collection)
-                                        '("Convert EvaluationSummary to GADT syntax")))
-                         (setq prompted t)
-                         "Convert EvaluationSummary to GADT syntax"))
                       ((symbol-function 'eglot-execute)
                        (lambda (server chosen)
                          (should (eq server 'test-server))

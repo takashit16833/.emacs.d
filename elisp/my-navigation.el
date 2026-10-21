@@ -7,6 +7,12 @@
 
 (require 'browsing-history)
 
+(declare-function browsing-history-location-at-point "browsing-history" ())
+(declare-function browsing-history-ensure-current "browsing-history" ())
+(declare-function browsing-history-push "browsing-history" (history location))
+(declare-function browsing-history-current "browsing-history" ())
+(declare-function browsing-history-back "browsing-history" (history))
+(declare-function browsing-history-forward "browsing-history" (history))
 
 (defvar my/navigation--tracking nil
   "Browsing History の記録処理中は非nil。")
