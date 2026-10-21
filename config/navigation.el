@@ -41,8 +41,6 @@
    tab-bar-tab-hints nil
    ;; 閉じるボタンを表示しない。
    tab-bar-close-button-show nil
-   ;; 新規タブボタンを表示しない。
-   tab-bar-new-button-show nil
    ;; タブ名に余白とfaceを適用する。
    tab-bar-tab-name-format-functions
    '(my/tab-bar-tab-name-padding
