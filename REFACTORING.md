@@ -70,7 +70,7 @@
 | 3 | `my-development.el` を GHCi、jq、Python、Flymake の責務へ分離 | 完了 |
 | 4 | `my-project.el` からDB接続処理を `my-project-database.el` へ分離 | 完了 |
 | 5 | `config/org.el` を基本・表示・Agenda・Pomodoroへ整理 | 完了 |
-| 6 | `config/development.el` の言語別設定と共通設定を整理 | 未着手 |
+| 6 | `config/development.el` の言語別設定と共通設定を整理 | 完了 |
 | 7 | セクション見出し・コメント・空行を統一 | 未着手 |
 | 8 | 全参照、全テスト、起動、差分の最終確認 | 未着手 |
 
@@ -204,6 +204,18 @@ byte compileで生成される `.elc` はコミットしない。
 - org-pomodoro本体の変数定義と再生処理を確認し、再生コマンドがない場合はnilで
   外部再生を行わないことを確認した。
 - 全参照と読み込み順を確認し、`git diff --check` は通過した。Emacsがないため ERT は未実施。
+
+### 2026-10-21: 段階6完了
+
+- `config/development.el` はTree-sitterの表示、EditorConfig、Flymake、Eglot、ElDocという
+  複数言語に共通する110行の設定へ整理した。
+- 言語モードと補助コマンドを `config/languages.el`、Apheleiaを
+  `config/formatting.el`、DBパッケージを `config/database.el` へ分離した。
+- `init.el` の読み込み順を共通開発設定、言語設定、整形、DB、プロジェクトの順にした。
+- EglotとApheleiaのhookはmajor modeの読み込み前後に依存せず、EditorConfigのHaskell設定は
+  `with-eval-after-load` によりEditorConfig読込済みの場合も直ちに適用されることを確認した。
+- 設定の欠落と重複がないことを `rg` で確認し、`git diff --check` は通過した。
+  Emacsがないため ERT は未実施。
 
 ## 再開手順
 
