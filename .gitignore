@@ -23,6 +23,7 @@
 /.lsp-session-v1
 /clutch
 /.cache
+/eshell
 
 # Package quickstart cache
 /package-quickstart.el
