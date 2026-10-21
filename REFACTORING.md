@@ -68,7 +68,7 @@
 | 1 | 二重定義・未定義参照・重複設定の解消 | 完了 |
 | 2 | `my-ui.el` から Tab-line 処理を `my-tab-line.el` へ分離 | 完了 |
 | 3 | `my-development.el` を GHCi、jq、Python、Flymake の責務へ分離 | 完了 |
-| 4 | `my-project.el` からDB接続処理を `my-project-database.el` へ分離 | 未着手 |
+| 4 | `my-project.el` からDB接続処理を `my-project-database.el` へ分離 | 完了 |
 | 5 | `config/org.el` を基本・表示・Agenda・Pomodoroへ整理 | 未着手 |
 | 6 | `config/development.el` の言語別設定と共通設定を整理 | 未着手 |
 | 7 | セクション見出し・コメント・空行を統一 | 未着手 |
@@ -183,6 +183,15 @@ byte compileで生成される `.elc` はコミットしない。
 - jqの既存テストを `my-jq-test.el` へ改名し、GHCi応答解析とBasedpyright選択のERTを追加した。
 - 分離後に `my-development` への参照が残っていないことを `rg` で確認した。
 - `git diff --check` は通過した。Emacsがないため ERT は未実施。
+
+### 2026-10-21: 段階4完了
+
+- DB接続変数、接続定義の検証、Clutch起動を `my-project-database.el` へ分離した。
+- `.dir-locals.el` の値を読む共通処理は `my-project.el` に残し、DBモジュールから再利用する。
+- `config/project.el` はコマンド実行用とDB用の両featureを明示的に読み込むようにした。
+- DB用ERTを `my-project-database-test.el` へ分け、コマンド実行用ERTとの責務を揃えた。
+- `my-project.el` は231行から130行になった。
+- 全参照を `rg` で確認し、`git diff --check` は通過した。Emacsがないため ERT は未実施。
 
 ## 再開手順
 
