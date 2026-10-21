@@ -11,9 +11,10 @@
   :ensure nil
   :custom
   (recentf-max-saved-items 200)
+  ;; 起動時の整理を避け、5分間操作がないときに実行する。
+  (recentf-auto-cleanup 300)
   :init
   (recentf-mode 1))
-
 
 ;; "." と ".." は表示せず、それ以外の隠しファイルは表示する。
 (use-package dired
