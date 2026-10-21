@@ -5,6 +5,7 @@
 ;;; Code:
 
 (require 'my-completion)
+(require 'my-ui)
 
 ;; ミニバッファの入力履歴をEmacs終了後も保存する。
 (use-package savehist
