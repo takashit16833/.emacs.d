@@ -10,6 +10,18 @@
 (require 'my-editing)
 
 
+(ert-deftest my/select-to-line-beginning-uses-shift-selection ()
+  "行頭移動をShift選択として呼び出す。"
+  (let (called-command
+        this-command-keys-shift-translated)
+    (cl-letf (((symbol-function 'call-interactively)
+               (lambda (command &rest _args)
+                 (setq called-command command))))
+      (my/select-to-line-beginning)
+      (should this-command-keys-shift-translated)
+      (should (eq called-command #'move-beginning-of-line)))))
+
+
 (ert-deftest my/cut-region-to-clipboard-cuts-active-region ()
   "選択範囲を削除し、キルリングとクリップボードへ保存する。"
   (with-temp-buffer
