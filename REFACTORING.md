@@ -67,7 +67,7 @@
 | 0 | 初期調査と本管理ファイルの追加 | 完了 |
 | 1 | 二重定義・未定義参照・重複設定の解消 | 完了 |
 | 2 | `my-ui.el` から Tab-line 処理を `my-tab-line.el` へ分離 | 完了 |
-| 3 | `my-development.el` を GHCi、jq、Python、Flymake の責務へ分離 | 未着手 |
+| 3 | `my-development.el` を GHCi、jq、Python、Flymake の責務へ分離 | 完了 |
 | 4 | `my-project.el` からDB接続処理を `my-project-database.el` へ分離 | 未着手 |
 | 5 | `config/org.el` を基本・表示・Agenda・Pomodoroへ整理 | 未着手 |
 | 6 | `config/development.el` の言語別設定と共通設定を整理 | 未着手 |
@@ -172,6 +172,17 @@ byte compileで生成される `.elc` はコミットしない。
 - Tab-lineのテストを `test/my-tab-line-test.el` に集約し、内容と一致しなくなった
   `test/my-ui-test.el` を削除した。
 - 全参照を `rg` で確認し、`git diff --check` は通過した。Emacsがないため ERT は未実施。
+
+### 2026-10-21: 段階3完了
+
+- GHCi補完を `my-haskell-ghci.el`、jq Playgroundを `my-jq.el`、Python用の
+  Language Server解決を `my-python.el` へ分離した。
+- `config/development.el` から各機能をautoloadし、`my-development.el` の起動時一括読み込みを廃止した。
+- 旧 `my-development.el` のFlymake表示関数2つは外部参照がなく、現行の
+  `my-flymake-problems.el` に診断分類・表示処理があるため、重複した旧実装として削除した。
+- jqの既存テストを `my-jq-test.el` へ改名し、GHCi応答解析とBasedpyright選択のERTを追加した。
+- 分離後に `my-development` への参照が残っていないことを `rg` で確認した。
+- `git diff --check` は通過した。Emacsがないため ERT は未実施。
 
 ## 再開手順
 
