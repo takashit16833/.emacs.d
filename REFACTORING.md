@@ -66,7 +66,7 @@
 |---|---|---|
 | 0 | 初期調査と本管理ファイルの追加 | 完了 |
 | 1 | 二重定義・未定義参照・重複設定の解消 | 完了 |
-| 2 | `my-ui.el` から Tab-line 処理を `my-tab-line.el` へ分離 | 未着手 |
+| 2 | `my-ui.el` から Tab-line 処理を `my-tab-line.el` へ分離 | 完了 |
 | 3 | `my-development.el` を GHCi、jq、Python、Flymake の責務へ分離 | 未着手 |
 | 4 | `my-project.el` からDB接続処理を `my-project-database.el` へ分離 | 未着手 |
 | 5 | `config/org.el` を基本・表示・Agenda・Pomodoroへ整理 | 未着手 |
@@ -162,6 +162,16 @@ byte compileで生成される `.elc` はコミットしない。
 - GHCup の TRAMP パス設定を `config/terminal.el` に一本化した。
 - `rg` で関数定義が1件、TRAMPパス設定が1件になったことを確認した。
 - `git diff --check` は通過した。Emacsがないため ERT は未実施。
+
+### 2026-10-21: 段階2完了
+
+- Tab-lineの表示、並び順、Git差分キャッシュを `elisp/my-tab-line.el` へ分離した。
+- `my-ui.el` はファイルアイコン、Mood-line、Corfuの共通表示処理だけに縮小した。
+- `config/navigation.el` と `config/git.el` は `my-tab-line` を直接読み込むようにした。
+- `config/completion.el` は利用している `my-ui` を明示的に読み込むようにした。
+- Tab-lineのテストを `test/my-tab-line-test.el` に集約し、内容と一致しなくなった
+  `test/my-ui-test.el` を削除した。
+- 全参照を `rg` で確認し、`git diff --check` は通過した。Emacsがないため ERT は未実施。
 
 ## 再開手順
 
