@@ -1,7 +1,6 @@
 ;;; my-eglot-test.el --- HLSの自動import補完対応のERT -*- lexical-binding: t; -*-
 
 ;;; Commentary:
-;;
 ;; my-eglot.elで補っているのは「補完候補の確定後にHLSのcommandを実行する」
 ;; という一点。関数名の挿入やimport文の生成はここでは実装していない。
 ;;
@@ -25,7 +24,7 @@
 (require 'my-eglot)
 
 
-;;; コードアクションの選択 -----------------------------------------
+;;; コードアクションの選択
 
 (ert-deftest my/eglot-code-actions-prompts-for-one-suggested-action ()
   "候補が1件のsuggestionでも即時実行せず、選択後に実行する。"
@@ -186,8 +185,8 @@
         (should-error (funcall (plist-get (nthcdr 3 capf) :exit-function)
                                candidate 'finished))))))
 
-;;; Haskell修飾名の補完範囲 -----------------------------------------
-;;
+;;; Haskell修飾名の補完範囲;;
+
 ;; ローカルの実測ではT.unpの候補表にunpackがあったが、
 ;; EglotのCAPF範囲がT.unpだったため照合に失敗した。
 ;; ここでは範囲補正と候補の照合を検証する。
@@ -278,7 +277,7 @@
                        '(:semanticTokensProvider)))))))
 
 
-;;; インレイヒントの確定 -------------------------------------------
+;;; インレイヒントの確定
 
 (ert-deftest my/eglot-type-inlay-hints-selects-only-target-type ()
   "末尾に付く対象の型ヒントだけを選択する。"

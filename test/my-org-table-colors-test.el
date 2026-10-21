@@ -1,4 +1,5 @@
 ;;; my-org-table-colors-test.el --- Org table color tests -*- lexical-binding: t; -*-
+
 ;;; Commentary:
 ;; Org の表で罫線・ヘッダーと通常のセルを区別できることを確認する。
 

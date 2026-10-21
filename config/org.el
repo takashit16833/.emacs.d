@@ -1,4 +1,5 @@
 ;;; org.el --- Org configuration -*- lexical-binding: t; -*-
+
 ;;; Commentary:
 ;; Org に関する設定。
 
@@ -36,7 +37,7 @@
       (file+headline ,org-default-notes-file "Inbox")
       "* TODO %?\n  CREATED: %U"
       :empty-lines 1)))
-  
+
   :bind
   (("<f13>" . my/org-capture-inbox)
    ("M-d" . my/org-home-toggle)

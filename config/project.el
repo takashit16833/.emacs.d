@@ -1,6 +1,7 @@
 ;;; project.el --- Project configuration -*- lexical-binding: t; -*-
 
 ;;; Commentary:
+;; Project.elのコマンド一覧とプロジェクト固有コマンドを設定する。
 
 ;;; Code:
 

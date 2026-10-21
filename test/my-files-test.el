@@ -1,5 +1,10 @@
 ;;; my-files-test.el --- Tests for my-files -*- lexical-binding: t; -*-
 
+;;; Commentary:
+;; Dirvishプレビューのウィンドウ選択を確認する。
+
+;;; Code:
+
 (require 'cl-lib)
 (require 'ert)
 (require 'my-files)

@@ -1,4 +1,5 @@
 ;;; my-org-table-colors.el --- Org table colors -*- lexical-binding: t; -*-
+
 ;;; Commentary:
 ;; テーブルの本文色を維持し、ヘッダーと罫線だけを個別の face で表示する。
 

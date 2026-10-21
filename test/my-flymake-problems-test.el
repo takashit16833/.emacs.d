@@ -1,4 +1,5 @@
 ;;; my-flymake-problems-test.el --- Full-text Flymake Problems ERT -*- lexical-binding: t; -*-
+
 ;;; Commentary:
 ;; Flymakeの診断オブジェクトを使用して、一覧の純粋な処理を確認する。
 ;; 実際のEglot通信や、TRAMP上のファイルオープンは対象外。

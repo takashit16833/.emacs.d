@@ -9,8 +9,7 @@
 (require 'ert)
 (require 'my-project)
 
-;;; my/project-commands-safe-p ----------------------------------------------
-
+;;; my/project-commands-safe-p
 
 (ert-deftest my/project-commands-safe-p-valid ()
   "正しい形式のプロジェクトコマンドを安全と判定すること。"
@@ -75,8 +74,7 @@
    (my/project-commands-safe-p '(("name" :command "test" :description 1)))))
 
 
-;;; my/project-command--get-project-commands -------------------------------
-
+;;; my/project-command--get-project-commands
 
 (ert-deftest my/project-command--get-project-commands-defined ()
   "ROOT に定義されたプロジェクトコマンドを返すこと。"
@@ -90,7 +88,7 @@
 			    :command "test command"
 			    :description "test description"))))))
 	     (current-buffer)))
-	    
+
 	  (let ((commands
 		 (my/project-command--get-project-commands root)))
 	    (should
@@ -146,8 +144,7 @@
       (delete-directory parent t))))
 
 
-;;; my/project-command--completion-extra-properties ------------------------
-
+;;; my/project-command--completion-extra-properties
 
 (ert-deftest my/project-command--completion-extra-properties-description ()
   "コマンド名に対応する説明を補完候補の注釈として返すこと。"
@@ -166,7 +163,6 @@
      (equal
       (funcall annotation-function "second")
       "\tsecond description"))))
-
 
 
 ;;; my-project-test.el ends here

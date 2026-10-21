@@ -1,4 +1,5 @@
 ;;; my-completion-test.el --- Tests for my-completion -*- lexical-binding: t; -*-
+
 ;;; Commentary:
 ;; dabbrevの補完位置と、既存CAPFへの影響を確認する。
 

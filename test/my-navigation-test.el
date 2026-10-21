@@ -74,7 +74,6 @@
         (should (= (plist-get (nth 1 pushed-locations) :position) 5))))))
 
 
-
 (ert-deftest my/navigation--track-does-not-record-without-movement ()
   "位置が変わらなかった場合は履歴を記録しないこと。"
   (with-temp-buffer

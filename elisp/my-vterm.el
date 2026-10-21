@@ -1,7 +1,6 @@
 ;;; my-vterm.el --- vterm utilities -*- lexical-binding: t; -*-
 
 ;;; Commentary:
-;;
 ;; 現在のタブのディレクトリに対応するvtermを管理する。
 
 ;;; Code:

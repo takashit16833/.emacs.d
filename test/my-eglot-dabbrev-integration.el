@@ -1,4 +1,5 @@
 ;;; my-eglot-dabbrev-integration.el --- Eglot/Cape補完統合の結合ERT -*- lexical-binding: t; -*-
+
 ;;; Commentary:
 ;; HLS実機なしでCapeによる候補統合と候補に付いた編集情報を確認する。
 ;; Eglot/HLSの通信やT.unpでの実際の補完応答は検証していない。

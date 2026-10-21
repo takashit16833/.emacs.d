@@ -10,7 +10,7 @@
 ;; `major-mode-remap-alist' への反映を管理する。
 (setopt treesit-enabled-modes '(python-ts-mode))
 
-;;; Lua -------------------------------------------------------------
+;;; Lua
 
 ;; LuaでTree-sitterを使用する。
 (use-package lua-ts-mode
@@ -18,7 +18,7 @@
   :mode ("\\.lua\\'" . lua-ts-mode))
 
 
-;;; Haskell ---------------------------------------------------------
+;;; Haskell
 
 (autoload 'my/haskell-ghci-complete "my-haskell-ghci" nil t)
 (autoload 'my/haskell-ghci-completion-setup "my-haskell-ghci")
@@ -60,7 +60,7 @@
                '(haskell-ts-mode my-haskell-simple-indent-offset)))
 
 
-;;; PHP -------------------------------------------------------------
+;;; PHP
 
 ;; PHPではEmacs標準のTree-sitter modeを使用する。
 (use-package php-ts-mode
@@ -68,7 +68,7 @@
   :commands php-ts-mode)
 
 
-;;; JSON / jq -------------------------------------------------------
+;;; JSON / jq
 
 (autoload 'my/jq-playground "my-jq" nil t)
 
@@ -83,4 +83,3 @@
 
 
 ;;; languages.el ends here
-

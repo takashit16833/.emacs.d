@@ -172,7 +172,7 @@
 	(with-current-buffer
 	    (get-buffer-create my/haskell-ghci-output-buffer)
 	  (erase-buffer))
-	
+
         ;; 例: inputが":m +R"なら :complete repl ":m +R" を送信する。
         ;; %Sは引用符やエスケープを含めて文字列を印字する。
         ;; 応答待ちはしない。nilは元のREPLへの出力反映なし、
@@ -208,4 +208,3 @@
 (provide 'my-haskell-ghci)
 
 ;;; my-haskell-ghci.el ends here
-

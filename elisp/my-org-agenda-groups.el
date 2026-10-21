@@ -1,4 +1,5 @@
 ;;; my-org-agenda-groups.el --- Span-specific Agenda groups -*- lexical-binding: t; -*-
+
 ;;; Commentary:
 ;; 日別 Agenda は締切と行動、週別 Agenda はカテゴリでグループ化する。
 ;; Agenda の生成時にだけグループ設定を切り替え、d/w/g/f/b を維持する。

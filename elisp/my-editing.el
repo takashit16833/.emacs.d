@@ -195,65 +195,52 @@
      (line-beginning-position 2))))
 
 
+(defun my/duplicate-lines--insert-copy
+    (direction begin end text ends-with-newline-p)
+  "TEXTをDIRECTION方向へ挿入し、複製側の開始位置を返す。"
+  (pcase direction
+    ('down
+     (goto-char end)
+     ;; 最終行に改行がない場合も、複製を別の行にする。
+     (unless ends-with-newline-p
+       (insert "\n"))
+     (prog1 (point)
+       (insert text)))
+    ('up
+     (goto-char begin)
+     (prog1 (point)
+       (insert text)
+       (unless ends-with-newline-p
+         (insert "\n"))))
+    (_
+     (error "Unknown duplicate direction: %S" direction))))
+
+
 (defun my/duplicate-lines (direction)
   "現在行または選択した行をDIRECTION方向へ複製する。"
-  (let* (;; コピーテキストを準備する。
-	 (bounds (my/line-block-bounds))
-	 (begin (car bounds))
-	 (end (cdr bounds))
-	 (text (buffer-substring begin end))
-	 ;; 現在の情報を取得する。
-	 (region-active-p (use-region-p))
-	 (original-point (point))
-	 (original-mark (and region-active-p (mark)))
-	 (point-offset (- original-point begin))
-         (mark-offset
-          (and region-active-p
-               (- original-mark begin)))
-	 ;; 末尾行に改行があるか調べる。
-	 (ends-with-newline-p
+  (let* ((bounds (my/line-block-bounds))
+         (begin (car bounds))
+         (end (cdr bounds))
+         (text (buffer-substring begin end))
+         (region-active-p (use-region-p))
+         (point-offset (- (point) begin))
+         (mark-offset (and region-active-p
+                           (- (mark) begin)))
+         (ends-with-newline-p
           (and (> end begin)
                (eq (char-before end) ?\n)))
-	 copy-begin)
-    
+         copy-begin)
     ;; 編集によって選択が解除されないようにする。
     (let (deactivate-mark)
       ;; 異常終了した場合、この中で行ったバッファ変更を取り消す。
       (atomic-change-group
-	(pcase direction
-	  ('down
-	   (goto-char end)
-
-	   ;; 末尾行に改行がない状態で、そのまま文字列を挿入すると
-	   ;; 「次の行」にならず、同じ行に連結されてしまう
-	   (unless ends-with-newline-p
-	     (insert "\n"))
-
-	   ;; コピー開始位置を記憶する。
-	   (setq copy-begin (point))
-
-	   ;; コピーしたいテキストを挿入する。
-	   (insert text))
-	  ('up
-	   (goto-char begin)
-	   
-	   ;; コピー開始位置を記憶する。
-	   (setq copy-begin (point))
-	   
-	   ;; コピーしたいテキストを挿入する。
-	   (insert text)
-	   
-	   ;; 末尾行に改行がない状態で、そのまま文字列を挿入すると
-	   ;; 「次の行」にならず、同じ行に連結されてしまう
-	   (unless ends-with-newline-p
-	     (insert "\n"))))
-
-	;; 複製した側でも、元と同じ相対位置へカーソルを移動する。
-	(goto-char (+ copy-begin point-offset))
-
-	;; 複製した側でも、元と同じ相対位置にmarkを設定する。
-	(when region-active-p
-	  (set-mark (+ copy-begin mark-offset)))))))
+        (setq copy-begin
+              (my/duplicate-lines--insert-copy
+               direction begin end text ends-with-newline-p))
+        ;; 複製側でも、元と同じ相対位置へpointとmarkを移す。
+        (goto-char (+ copy-begin point-offset))
+        (when region-active-p
+          (set-mark (+ copy-begin mark-offset)))))))
 
 
 (defun my/duplicate-lines-up ()

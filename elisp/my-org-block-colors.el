@@ -1,4 +1,5 @@
 ;;; my-org-block-colors.el --- Org block colors -*- lexical-binding: t; -*-
+
 ;;; Commentary:
 ;; Org 標準のブロック描画を保ちつつ、種類別に背景色と文字色を重ねる。
 

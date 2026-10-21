@@ -1,4 +1,5 @@
 ;;; packages.el --- Package management settings -*- lexical-binding: t; -*-
+
 ;;; Commentary:
 ;; パッケージ管理に関する設定を置く。
 

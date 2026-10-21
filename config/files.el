@@ -1,4 +1,5 @@
 ;;; files.el --- File management configuration -*- lexical-binding: t; -*-
+
 ;;; Commentary:
 ;; ファイルとディレクトリの管理に関する設定を置く。
 

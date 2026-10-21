@@ -1,4 +1,5 @@
 ;;; my-flymake-problems.el --- Full-text project diagnostics -*- lexical-binding: t; -*-
+
 ;;; Commentary:
 ;; 旧my/lsp-problemsの「診断メッセージを複数行のまま全文表示する」
 ;; ためのUIを、Emacs 31.1標準のFlymakeを使って復元する。

@@ -5,9 +5,6 @@
 
 ;;; Code:
 
-;;; Formatting ------------------------------------------------------
-
-
 ;; 外部フォーマッタを非同期で実行する。
 (use-package apheleia
   :ensure t
@@ -52,7 +49,7 @@
   ;; PythonのフォーマッタにはBlackではなくRuffを使用する。
   (setf (alist-get 'python-ts-mode apheleia-mode-alist)
 	'ruff)
-  
+
   ;; Pythonはプロジェクト内のRuffを優先する。
   ;; 存在しない場合はPATH上のRuffを使用する。
   (setcar (alist-get 'ruff apheleia-formatters)
@@ -77,10 +74,9 @@
   ;; Cabalファイルはcabal-gildで整形する。
   (setf (alist-get 'cabal-gild apheleia-formatters)
 	'("cabal-gild"))
-  
+
   (setf (alist-get 'haskell-cabal-mode apheleia-mode-alist)
 	'cabal-gild))
 
 
 ;;; formatting.el ends here
-

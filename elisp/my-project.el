@@ -19,15 +19,13 @@
 (require 'seq)
 
 
-;;; Variables -------------------------------------------------------
-
+;;; Variables
 
 (defvar-local my/project-commands nil
   "現在のプロジェクトで実行できるコマンド一覧。")
 
 
-;;; Common ----------------------------------------------------------
-
+;;; Common
 
 (defun my/project--get-local-variable (root variable)
   "ROOT の `.dir-locals.el' から VARIABLE の値を取得する。"
@@ -41,8 +39,7 @@
       (symbol-value variable))))
 
 
-;;; Commands --------------------------------------------------------
-
+;;; Commands
 
 (defun my/project-run-command ()
   "現在のプロジェクトに定義されたコマンドを選択して実行する。"

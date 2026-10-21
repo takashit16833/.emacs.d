@@ -10,8 +10,6 @@
 (require 'my-ui)
 
 
-;;; tab-line --------------------------------------------------------
-
 (defconst my/tab-line-exclude-condition
   '(or (and "^\\*.*\\*$"
             (not (or "^\\*jq-playground\\*$"
@@ -188,4 +186,3 @@ CURRENT-BUFFERS にないbufferは除外する。"
 (provide 'my-tab-line)
 
 ;;; my-tab-line.el ends here
-

@@ -1,4 +1,5 @@
 ;;; editing.el --- Editing configuration -*- lexical-binding: t; -*-
+
 ;;; Commentary:
 ;; テキスト編集に関する設定を置く。
 

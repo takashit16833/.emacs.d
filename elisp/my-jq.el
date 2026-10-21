@@ -38,4 +38,3 @@ JSONを編集したらC-c C-jで \`jq-interactively' を起動する。"
 (provide 'my-jq)
 
 ;;; my-jq.el ends here
-

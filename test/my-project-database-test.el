@@ -13,8 +13,7 @@
 (defvar clutch-tramp-context-policy)
 
 
-;;; my/project-database-connections-safe-p -------------------------------
-
+;;; my/project-database-connections-safe-p
 
 (ert-deftest my/project-database-connections-safe-p-valid ()
   "正しい形式のデータベース接続を安全と判定すること。"
@@ -78,8 +77,7 @@
        :tramp-default-directory 1234)))))
 
 
-;;; my/project-open-database ----------------------------------------------
-
+;;; my/project-open-database
 
 (ert-deftest my/project-open-database-opens-selected-connection ()
   "選択した接続をプロジェクトルートからClutchで開くこと。"
@@ -171,4 +169,3 @@
 
 
 ;;; my-project-database-test.el ends here
-

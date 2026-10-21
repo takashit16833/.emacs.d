@@ -1,4 +1,5 @@
 ;;; completion.el --- Completion configuration -*- lexical-binding: t; -*-
+
 ;;; Commentary:
 ;; ミニバッファと補完UIに関する設定を置く。
 

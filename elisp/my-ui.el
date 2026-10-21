@@ -5,7 +5,7 @@
 
 ;;; Code:
 
-;;; nerd font -------------------------------------------------------
+;;; Nerd Font
 
 (defvar-local my/file-icon-cache nil
   "現在のバッファのファイルアイコンをキャッシュする。")
@@ -25,14 +25,14 @@
         icon))))
 
 
-;;; mood-line -------------------------------------------------------
+;;; Mood-line
 
 (defun my/mood-line-segment-file-icon ()
   "現在のファイルに対応するアイコンを返す。"
   (my/file-icon))
 
 
-;;; corfu -----------------------------------------------------------
+;;; Corfu
 
 (defun my/corfu-offset-tty-popup (original frame x y width height)
   "TTYのCorfu候補を右へ1文字、下へ1行ずらす。"

@@ -1,4 +1,5 @@
 ;;; my-org-block-colors-test.el --- Org block color tests -*- lexical-binding: t; -*-
+
 ;;; Commentary:
 ;; Org 標準の Font Lock と組み合わせたブロックの配色を確認する。
 

@@ -1,7 +1,7 @@
-;;; my-editing-test.el --- Tests for clipboard editing -*- lexical-binding: t; -*-
+;;; my-editing-test.el --- Editing command tests -*- lexical-binding: t; -*-
 
 ;;; Commentary:
-;; 選択範囲の切り取りがキルリングとOSのクリップボードを更新することを確認する。
+;; 行の選択・複製とOSクリップボードへの切り取りを確認する。
 
 ;;; Code:
 
@@ -55,6 +55,28 @@
        (my/cut-region-to-clipboard (point-min) (point-max))
        :type 'user-error)
       (should (equal (buffer-string) "abc")))))
+
+
+(ert-deftest my/duplicate-lines-down-preserves-column-at-final-line ()
+  "改行のない最終行を下へ複製し、複製側の同じ列へ移動する。"
+  (with-temp-buffer
+    (insert "abc")
+    (goto-char 2)
+    (my/duplicate-lines-down)
+    (should (equal (buffer-string) "abc\nabc"))
+    (should (= (line-number-at-pos) 2))
+    (should (= (current-column) 1))))
+
+
+(ert-deftest my/duplicate-lines-up-preserves-column ()
+  "現在行を上へ複製し、複製側の同じ列へ移動する。"
+  (with-temp-buffer
+    (insert "first\nsecond\n")
+    (goto-char (+ (point-min) 7))
+    (my/duplicate-lines-up)
+    (should (equal (buffer-string) "first\nsecond\nsecond\n"))
+    (should (= (line-number-at-pos) 2))
+    (should (= (current-column) 1))))
 
 
 ;;; my-editing-test.el ends here

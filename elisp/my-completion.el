@@ -1,4 +1,5 @@
 ;;; my-completion.el --- Buffer word completion -*- lexical-binding: t; -*-
+
 ;;; Commentary:
 ;; 通常は既存CAPFの後段にdabbrevを置く。
 ;; Eglot管理中は両者の候補をCapeで統合し、重複時はEglot側を採用する。

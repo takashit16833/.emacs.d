@@ -71,7 +71,7 @@
 | 4 | `my-project.el` からDB接続処理を `my-project-database.el` へ分離 | 完了 |
 | 5 | `config/org.el` を基本・表示・Agenda・Pomodoroへ整理 | 完了 |
 | 6 | `config/development.el` の言語別設定と共通設定を整理 | 完了 |
-| 7 | セクション見出し・コメント・空行を統一 | 未着手 |
+| 7 | セクション見出し・コメント・空行を統一 | 完了 |
 | 8 | 全参照、全テスト、起動、差分の最終確認 | 未着手 |
 
 ## 段階ごとの完了条件
@@ -215,6 +215,21 @@ byte compileで生成される `.elc` はコミットしない。
 - EglotとApheleiaのhookはmajor modeの読み込み前後に依存せず、EditorConfigのHaskell設定は
   `with-eval-after-load` によりEditorConfig読込済みの場合も直ちに適用されることを確認した。
 - 設定の欠落と重複がないことを `rg` で確認し、`git diff --check` は通過した。
+  Emacsがないため ERT は未実施。
+
+### 2026-10-21: 段階7完了
+
+- `config/`、`elisp/`、`test/` のセクション見出しを `;;; Name` へ統一し、
+  長いハイフンと等号による装飾を削除した。
+- 行末空白、過剰な空行、ファイル末尾の空行を機械的に整理した。
+- 空だった `config/project.el` の説明と、説明区画自体がなかった
+  `test/my-files-test.el` を補完した。変更後の責務に合わせてテストの説明も修正した。
+- 長い独自関数を確認し、範囲計算・方向別挿入・選択復元が混在していた
+  `my/duplicate-lines` から方向別挿入を内部関数へ分離した。
+- 最終行の下方向複製と上方向複製で、内容とカーソル列を確認するERTを追加した。
+- `my-haskell-indent.el` は大きいが、Fourmoluを用いたインデント計算という単一責務で
+  ERTも独立しているため、この整理では分割しない判断を維持した。
+- 装飾見出しが残っていないことを `rg` で確認し、`git diff --check` は通過した。
   Emacsがないため ERT は未実施。
 
 ## 再開手順

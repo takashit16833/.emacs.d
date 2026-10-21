@@ -1,7 +1,6 @@
 ;;; my-eglot.el --- Eglotの補完・コードアクション調整 -*- lexical-binding: t; -*-
 
 ;;; Commentary:
-;;
 ;; 【現象と再現条件】
 ;; HaskellでData.Aesonをimportしていない状態で「enc」から「encode」を
 ;; 補完すると、Eglot 31.1ではencodeだけが挿入され、
@@ -149,8 +148,8 @@ eglot-completion-at-pointの戻り値（CAPF）を包む:filter-return advice。
     (apply original args)))
 
 
-;;; インレイヒントの確定 -------------------------------------------
-;; basedpyright 1.40.2は型・引数名ヒントのtextEditsを返す。
+;;; インレイヒントの確定;; basedpyright 1.40.2は型・引数名ヒントのtextEditsを返す。
+
 ;; 型注釈に必要なimportの編集情報も含まれる。
 ;; https://github.com/DetachHead/basedpyright/blob/v1.40.2/packages/pyright-internal/src/languageService/inlayHintsProvider.ts
 ;; Emacs 31.1のEglotに確定コマンドはないため、問い合わせと編集適用には
@@ -177,7 +176,7 @@ STARTはシンボルの先頭、ENDは末尾の位置。
        (pcase (plist-get hint :kind)
 	 ;; 型ヒントならENDと比較
 	 (1 (my/eglot--same-lsp-position-p position end))
-	 
+
 	 ;; 引数名ヒントならSTARTと比較
 	 (2 (my/eglot--same-lsp-position-p position start))
 

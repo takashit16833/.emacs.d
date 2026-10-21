@@ -1,4 +1,5 @@
 ;;; my-org-agenda-layout-test.el --- Two-line Agenda tests -*- lexical-binding: t; -*-
+
 ;;; Commentary:
 ;; Agenda の表示変更で原文や項目マーカーが失われないことを確認する。
 

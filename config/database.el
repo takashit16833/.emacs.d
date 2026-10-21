@@ -5,8 +5,6 @@
 
 ;;; Code:
 
-;;; Database --------------------------------------------------------
-
 ;; PostgreSQLへEmacs Lispから直接接続する。
 (use-package pgsql
   :ensure t
@@ -20,4 +18,3 @@
 
 
 ;;; database.el ends here
-

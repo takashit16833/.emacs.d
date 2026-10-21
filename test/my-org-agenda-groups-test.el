@@ -1,4 +1,5 @@
 ;;; my-org-agenda-groups-test.el --- Org Agenda grouping tests -*- lexical-binding: t; -*-
+
 ;;; Commentary:
 ;; d/w と再描画で、グループ条件が正しく選択されることを確認する。
 

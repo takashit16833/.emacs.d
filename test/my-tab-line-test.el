@@ -1,4 +1,5 @@
-;;; my-tab-line-test.el --- Tab-line face tests -*- lexical-binding: t; -*-
+;;; my-tab-line-test.el --- Tab-line tests -*- lexical-binding: t; -*-
+
 ;;; Commentary:
 ;; Tab-lineの並び順、除外条件、Git差分表示を確認する。
 

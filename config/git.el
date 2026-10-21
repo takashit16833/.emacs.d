@@ -1,4 +1,5 @@
 ;;; git.el --- Git configuration -*- lexical-binding: t; -*-
+
 ;;; Commentary:
 ;; Git と Magit に関する設定を置く。
 
@@ -39,7 +40,7 @@
 (use-package diff-hl
   :ensure t
   :demand t
-  
+
   :custom
   ;; TRAMPでは自動的なGit問い合わせを避ける。
   ;; リモートの差分表示が必要な場合はファイルごとに有効化する。

@@ -1,4 +1,5 @@
 ;;; my-org-agenda-layout.el --- Two-line Org Agenda display -*- lexical-binding: t; -*-
+
 ;;; Commentary:
 ;; Agenda の1項目を1行のまま保持し、画面上では補助情報とタイトルを分ける。
 ;; 項目は overlay で装飾し、日付行の改行には face を追加する。

@@ -1,4 +1,5 @@
 ;;; development.el --- Development configuration -*- lexical-binding: t; -*-
+
 ;;; Commentary:
 ;; 複数言語で共有する診断、補完、説明表示の設定を置く。
 
@@ -39,7 +40,7 @@
      (note "" compilation-info))))
 
 
-;;; Eglot -----------------------------------------------------------
+;;; Eglot
 
 (autoload 'my/eglot-python-server "my-python")
 
