@@ -65,7 +65,7 @@
 | 段階 | 内容 | 状態 |
 |---|---|---|
 | 0 | 初期調査と本管理ファイルの追加 | 完了 |
-| 1 | 二重定義・未定義参照・重複設定の解消 | 未着手 |
+| 1 | 二重定義・未定義参照・重複設定の解消 | 完了 |
 | 2 | `my-ui.el` から Tab-line 処理を `my-tab-line.el` へ分離 | 未着手 |
 | 3 | `my-development.el` を GHCi、jq、Python、Flymake の責務へ分離 | 未着手 |
 | 4 | `my-project.el` からDB接続処理を `my-project-database.el` へ分離 | 未着手 |
@@ -154,6 +154,14 @@ byte compileで生成される `.elc` はコミットしない。
 - ファイル行数、`require` / `provide`、主要な参照関係を静的に確認した。
 - 上記の確認済み問題と責務分離候補を確定した。
 - 作業用コンテナに Emacs がないことを確認した。
+
+### 2026-10-21: 段階1完了
+
+- `my/delete-to-line-beginning` の古い重複定義を削除し、行頭で前行と結合する現行定義へ統一した。
+- `my/select-to-line-beginning` を行末選択と対になる実装で追加し、呼び出し方法の ERT を追加した。
+- GHCup の TRAMP パス設定を `config/terminal.el` に一本化した。
+- `rg` で関数定義が1件、TRAMPパス設定が1件になったことを確認した。
+- `git diff --check` は通過した。Emacsがないため ERT は未実施。
 
 ## 再開手順
 
