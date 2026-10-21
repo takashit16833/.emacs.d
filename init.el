@@ -22,6 +22,9 @@
 (load (expand-file-name "config/navigation.el" user-emacs-directory))
 (load (expand-file-name "config/files.el" user-emacs-directory))
 (load (expand-file-name "config/org.el" user-emacs-directory))
+(load (expand-file-name "config/org-appearance.el" user-emacs-directory))
+(load (expand-file-name "config/org-agenda.el" user-emacs-directory))
+(load (expand-file-name "config/org-pomodoro.el" user-emacs-directory))
 
 ;;; init.el ends here
 (custom-set-variables
