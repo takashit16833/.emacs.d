@@ -50,6 +50,12 @@ Tabに基準ディレクトリが設定されていない場合は、
     (call-interactively #'magit-status)))
 
 
+(defun my/project-dirvish ()
+  "現在のProjectまたはTabを基準にDirvishを開く。"
+  (interactive)
+  (dirvish (my/tab-context-directory)))
+
+
 (provide 'my-tab-context)
 
 ;;; my-tab-context.el ends here

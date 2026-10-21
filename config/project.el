@@ -30,7 +30,7 @@
      (my/project-open-database "Database" ?b)
      (my/vterm-toggle "Vterm" ?j)
      (magit-project-status "Magit" ?m)
-     (dirvish "Dirvish" ?d)
+     (my/project-dirvish "Dirvish" ?d)
      (project-any-command "Other" ?o))))
 
 
