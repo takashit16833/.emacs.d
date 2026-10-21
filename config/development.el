@@ -247,12 +247,6 @@
 	'cabal-gild))
 
 
-(with-eval-after-load 'tramp
-  ;; GHCupでインストールしたコマンドをTRAMPから見つけられるようにする。
-  (add-to-list 'tramp-remote-path "/root/.ghcup/bin"))
-
-
-
 ;;; JSON / jq -------------------------------------------------------
 
 ;; jqスクリプトの編集と、JSONに対するjqの対話的実行。
