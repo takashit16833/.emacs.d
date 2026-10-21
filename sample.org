@@ -68,8 +68,8 @@ flowchart TD
 :CUSTOM_ID: typography
 :END:
 
-普通の文章、*太字*、/斜体/、_下線_、+取り消し線+ を見比べます。
-コード =init.el=、verbatim ~M-x org-mode~、[[https://orgmode.org/][外部リンク]]、[[#typography][見出しへのリンク]]。
+普通の文章、*太字* 、/斜体/、 _下線_ 、 +取り消し線+ を見比べます。
+コード =init.el= 、verbatim ~M-x org-mode~ 、[[https://orgmode.org/][外部リンク]]、[[#typography][見出しへのリンク]]。
 
 日付: <2026-10-20 Tue>、記録用日時: [2026-10-20 Tue]
 時刻: <2026-10-20 Tue 10:00-11:00>
@@ -95,8 +95,8 @@ DEADLINE: <2026-10-23 Fri>
 :OWNER:    Sample
 :END:
 
-=NEXT= は次に取り組む作業、=SCHEDULED= は取り組む予定日、
-=DEADLINE= は終了期限、=EFFORT= は作業時間の見積もりです。
+=NEXT= は次に取り組む作業、 =SCHEDULED= は取り組む予定日、
+=DEADLINE= は終了期限、 =EFFORT= は作業時間の見積もりです。
 
 CLOCK: [2026-10-19 Mon 09:00]--[2026-10-19 Mon 09:45] =>  0:45
 
@@ -149,7 +149,7 @@ SCHEDULED: <2026-10-21 Wed>
 ** TODO 成果物を提出する
 DEADLINE: <2026-10-23 Fri>
 
-=SCHEDULED= は着手予定、=DEADLINE= は期限です。両方指定することもできます。
+=SCHEDULED= は着手予定、 =DEADLINE= は期限です。両方指定することもできます。
 
 ** TODO 毎週の振り返り                                               :review:
 SCHEDULED: <2026-10-23 Fri +1w>
@@ -164,7 +164,7 @@ TODO でなくても、active timestamp は予定として扱えます。
 
 ** Clock 集計
 
-=EFFORT= は見積もり、=CLOCK= は作業実績です。
+=EFFORT= は見積もり、 =CLOCK= は作業実績です。
 以下の動的ブロックの =#+BEGIN:= 行で =C-c C-c= を実行すると集計できます。
 
 #+BEGIN: clocktable :scope file :maxlevel 3
