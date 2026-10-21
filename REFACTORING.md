@@ -69,7 +69,7 @@
 | 2 | `my-ui.el` から Tab-line 処理を `my-tab-line.el` へ分離 | 完了 |
 | 3 | `my-development.el` を GHCi、jq、Python、Flymake の責務へ分離 | 完了 |
 | 4 | `my-project.el` からDB接続処理を `my-project-database.el` へ分離 | 完了 |
-| 5 | `config/org.el` を基本・表示・Agenda・Pomodoroへ整理 | 未着手 |
+| 5 | `config/org.el` を基本・表示・Agenda・Pomodoroへ整理 | 完了 |
 | 6 | `config/development.el` の言語別設定と共通設定を整理 | 未着手 |
 | 7 | セクション見出し・コメント・空行を統一 | 未着手 |
 | 8 | 全参照、全テスト、起動、差分の最終確認 | 未着手 |
@@ -192,6 +192,18 @@ byte compileで生成される `.elc` はコミットしない。
 - DB用ERTを `my-project-database-test.el` へ分け、コマンド実行用ERTとの責務を揃えた。
 - `my-project.el` は231行から130行になった。
 - 全参照を `rg` で確認し、`git diff --check` は通過した。Emacsがないため ERT は未実施。
+
+### 2026-10-21: 段階5完了
+
+- `config/org.el` をOrg基本設定65行に縮小した。
+- 表示設定を `org-appearance.el`、Agendaを `org-agenda.el`、Pomodoroを
+  `org-pomodoro.el` へ分離し、`init.el` に読み込み順を明記した。
+- コードの実行順とフックの追加順を維持し、Agendaの2行表示がorg-modernの装飾後に動く構成を保った。
+- Pomodoroの再生コマンドはmacOSの `afplay` 固定をやめ、`afplay`、`aplay` の順に
+  利用可能なコマンドを選ぶようにしてDebian系Linuxでも動作可能にした。
+- org-pomodoro本体の変数定義と再生処理を確認し、再生コマンドがない場合はnilで
+  外部再生を行わないことを確認した。
+- 全参照と読み込み順を確認し、`git diff --check` は通過した。Emacsがないため ERT は未実施。
 
 ## 再開手順
 
