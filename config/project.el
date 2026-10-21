@@ -5,6 +5,7 @@
 ;;; Code:
 
 (require 'my-project)
+(require 'my-project-database)
 (require 'my-tab-context)
 
 ;; vterm本体とmy-vtermは、実際に使うまで読み込まない。
