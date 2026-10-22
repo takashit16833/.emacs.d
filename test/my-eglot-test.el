@@ -461,4 +461,46 @@
        (vector other wanted) start end)
       (list wanted)))))
 
+;;; TRAMPでのdiff-hl
+
+(ert-deftest my/eglot-enables-diff-hl-in-remote-buffer-after-connect ()
+  "TRAMPでEglotの管理開始後にだけdiff-hlを読み込んで有効化する。"
+  (with-temp-buffer
+    (setq-local buffer-file-name "/ssh:test:/project/main.py")
+    (let (loaded enabled)
+      (cl-letf (((symbol-function 'eglot-managed-p) (lambda () t))
+                ((symbol-function 'file-remote-p)
+                 (lambda (name &rest _)
+                   (and (string-prefix-p "/ssh:" name) "/ssh:test:")))
+                ((symbol-function 'require)
+                 (lambda (feature &rest _)
+                   (should (eq feature 'diff-hl))
+                   (setq loaded t)))
+                ((symbol-function 'diff-hl-mode)
+                 (lambda (arg)
+                   (should loaded)
+                   (setq enabled arg))))
+        (my/eglot-enable-remote-diff-hl)
+        (should loaded)
+        (should (eq enabled 1))))))
+
+(ert-deftest my/eglot-remote-diff-hl-skips-other-buffers ()
+  "ローカル・Eglot切断後・ファイルでないバッファでは何もしない。"
+  (with-temp-buffer
+    (let ((managed t)
+          (remote nil))
+      (cl-letf (((symbol-function 'eglot-managed-p) (lambda () managed))
+                ((symbol-function 'file-remote-p) (lambda (&rest _) remote))
+                ((symbol-function 'require)
+                 (lambda (&rest _) (ert-fail "Must not load diff-hl")))
+                ((symbol-function 'diff-hl-mode)
+                 (lambda (&rest _) (ert-fail "Must not enable diff-hl"))))
+        (setq-local buffer-file-name "/tmp/local.py")
+        (my/eglot-enable-remote-diff-hl)
+        (setq-local buffer-file-name "/ssh:test:/project/main.py")
+        (setq remote "/ssh:test:" managed nil)
+        (my/eglot-enable-remote-diff-hl)
+        (setq managed t buffer-file-name nil)
+        (my/eglot-enable-remote-diff-hl)))))
+
 ;;; my-eglot-test.el ends here

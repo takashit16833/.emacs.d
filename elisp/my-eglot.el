@@ -48,6 +48,19 @@
 
 (require 'cl-lib)
 
+;;; TRAMPでのdiff-hl
+
+(declare-function eglot-managed-p "eglot" ())
+(declare-function diff-hl-mode "diff-hl" (&optional arg))
+
+(defun my/eglot-enable-remote-diff-hl ()
+  "Eglot接続後、TRAMPのファイルでdiff-hlを有効にする。"
+  (when (and (eglot-managed-p)
+             buffer-file-name
+             (file-remote-p buffer-file-name))
+    (require 'diff-hl)
+    (diff-hl-mode 1)))
+
 ;; Eglot 31.1は現在位置に提示した候補が1件だけの場合、
 ;; eglot-code-actionsの対話的実行でも選択を省いて即時実行する。
 ;; このコマンドでは、呼び出し中だけその提案を無視して、

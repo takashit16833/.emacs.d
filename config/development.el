@@ -60,7 +60,9 @@
    (typescript-ts-mode . eglot-ensure)
    (tsx-ts-mode . eglot-ensure)
    ;; EglotがCAPFを設定し終わった段階で、dabbrevとの統合を切り替える。
-   (eglot-managed-mode . my/eglot-dabbrev-completion-setup))
+   (eglot-managed-mode . my/eglot-dabbrev-completion-setup)
+   ;; TRAMPではEglot接続後にdiff-hlを有効にする。
+   (eglot-managed-mode . my/eglot-enable-remote-diff-hl))
   :custom
   ;; 全言語でLSPによる色分けを使わず、各major modeの配色を優先する。
   (eglot-ignored-server-capabilities '(:semanticTokensProvider))
