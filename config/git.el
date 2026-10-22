@@ -16,7 +16,7 @@
 ;; 編集中のファイルにGitとの差分を表示する。
 (use-package diff-hl
   :ensure t
-  :defer 1
+  :defer 0.5
 
   :custom
   ;; TRAMPでは自動的なGit問い合わせを避ける。

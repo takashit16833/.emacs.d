@@ -84,6 +84,7 @@
 (use-package nerd-icons-completion
   :ensure t
   :after marginalia
+  :defer 0.1
   :config
   (nerd-icons-completion-mode)
   (add-hook 'marginalia-mode-hook
