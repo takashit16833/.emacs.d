@@ -31,6 +31,11 @@
                     ?\s))))
     (concat prefix spaces tags "\n      ")))
 
+(defun my/org-agenda-set-tags-column ()
+  "Agenda のタグの右端をウィンドウ端から6列内側に揃える。"
+  (setq-local org-agenda-tags-column
+              (- 6 (window-max-chars-per-line))))
+
 (defun my/org-agenda-layout-setup ()
   "Agenda の長いタイトルを端末幅に合わせて折り返す。"
   (setq-local truncate-lines nil)

@@ -51,15 +51,6 @@
 
 ;; Mermaidのソースコードだけを、Orgバッファを開いたときに折りたたむ。
 ;; ほかの言語のソースブロックには影響しない。
-(defun my/org-hide-mermaid-blocks ()
-  "Fold Mermaid source blocks without hiding other Org blocks."
-  (org-block-map
-   (lambda ()
-     (let ((element (org-element-at-point)))
-       (when (and (eq (org-element-type element) 'src-block)
-                  (equal (org-element-property :language element) "mermaid"))
-         (org-fold-hide-block-toggle 'hide nil element))))))
-
 (add-hook 'org-mode-hook #'my/org-hide-mermaid-blocks)
 
 ;;; org.el ends here

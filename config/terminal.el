@@ -21,11 +21,7 @@
 
 ;; WezTermのJIS配列でOption+:を正しく認識する。
 (with-eval-after-load 'kkp
-  (defun my/kkp-jis-colon (orig input)
-    "Option+:をM-:として解釈する。"
-    (if (equal (concat input) "59:58:39;3u")
-        (kbd "M-:")
-      (funcall orig input)))
+  (autoload 'my/kkp-jis-colon "my-terminal")
 
   (unless (advice-member-p #'my/kkp-jis-colon
                            'kkp--translate-terminal-input)

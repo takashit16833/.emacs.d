@@ -48,10 +48,7 @@
 
 ;; Agenda のタグは表示したまま、org-modern のバッジ用に右端の余白を確保する。
 ;; ウィンドウ幅から求めるので、横幅の広い端末でもタグを右側に配置できる。
-(defun my/org-agenda-set-tags-column ()
-  "Agenda のタグの右端をウィンドウ端から6列内側に揃える。"
-  (setq-local org-agenda-tags-column
-              (- 6 (window-max-chars-per-line))))
+(autoload 'my/org-agenda-set-tags-column "my-org-agenda-layout")
 
 (add-hook 'org-agenda-mode-hook #'my/org-agenda-set-tags-column)
 

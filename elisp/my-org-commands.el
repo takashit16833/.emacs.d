@@ -63,6 +63,22 @@
     (org-insert-todo-subheading nil)))
 
 
+;;; Mermaid blocks
+
+(declare-function org-block-map "org" (function &optional start end))
+(declare-function org-element-at-point "org-element" (&optional epom cached-only))
+(declare-function org-fold-hide-block-toggle "org-fold"
+                  (&optional force no-error element))
+
+(defun my/org-hide-mermaid-blocks ()
+  "Fold Mermaid source blocks without hiding other Org blocks."
+  (org-block-map
+   (lambda ()
+     (let ((element (org-element-at-point)))
+       (when (and (eq (org-element-type element) 'src-block)
+                  (equal (org-element-property :language element) "mermaid"))
+         (org-fold-hide-block-toggle 'hide nil element))))))
+
 (provide 'my-org-commands)
 
 ;;; my-org-commands.el ends here

@@ -28,6 +28,18 @@
         icon))))
 
 
+;;; Window borders
+
+(defvar display-line-numbers-mode)
+
+(defun my/update-vertical-border ()
+  (let ((table (copy-sequence
+                (or buffer-display-table standard-display-table))))
+    (set-display-table-slot
+     table 'vertical-border
+     (if display-line-numbers-mode ?\s ?│))
+    (setq-local buffer-display-table table)))
+
 ;;; Mood-line
 
 (defun my/mood-line-segment-file-icon ()

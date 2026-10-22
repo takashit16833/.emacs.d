@@ -26,14 +26,6 @@
 ;; 行番号がある場合はウィンドウの境界線を隠す。
 (set-display-table-slot standard-display-table 'vertical-border ?│)
 
-(defun my/update-vertical-border ()
-  (let ((table (copy-sequence
-                (or buffer-display-table standard-display-table))))
-    (set-display-table-slot
-     table 'vertical-border
-     (if display-line-numbers-mode ?\s ?│))
-    (setq-local buffer-display-table table)))
-
 (add-hook 'display-line-numbers-mode-hook #'my/update-vertical-border)
 
 

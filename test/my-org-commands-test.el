@@ -109,6 +109,22 @@
       (should-not argument))))
 
 
+(ert-deftest my-org-hide-mermaid-blocks-folds-only-mermaid-src ()
+  "Mermaidのsrcブロックだけを折りたたむ。"
+  (with-temp-buffer
+    (org-mode)
+    (insert "#+begin_src mermaid\nflowchart TD\n  A --> B\n#+end_src\n\n"
+            "#+begin_src emacs-lisp\n(message \"ok\")\n#+end_src\n\n"
+            "#+begin_example\nnot source\n#+end_example\n")
+    (let (hidden)
+      (cl-letf (((symbol-function 'org-fold-hide-block-toggle)
+                 (lambda (force no-error element)
+                   (should (eq force 'hide))
+                   (should-not no-error)
+                   (push (org-element-property :language element) hidden))))
+        (my/org-hide-mermaid-blocks))
+      (should (equal hidden '("mermaid"))))))
+
 (provide 'my-org-commands-test)
 
 ;;; my-org-commands-test.el ends here

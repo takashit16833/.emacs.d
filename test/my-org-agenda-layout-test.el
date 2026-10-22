@@ -188,4 +188,14 @@
     (forward-line 1)
     (should-not (get-text-property (point) 'face))))
 
+(ert-deftest my/org-agenda-set-tags-column-uses-window-width ()
+  "タグ右端をウィンドウ端から6列内側に配置する。"
+  (with-temp-buffer
+    (let ((org-agenda-tags-column 'auto))
+      (cl-letf (((symbol-function 'window-max-chars-per-line)
+                 (lambda (&rest _) 120)))
+        (my/org-agenda-set-tags-column))
+      (should (= org-agenda-tags-column -114))
+      (should (local-variable-p 'org-agenda-tags-column)))))
+
 ;;; my-org-agenda-layout-test.el ends here
