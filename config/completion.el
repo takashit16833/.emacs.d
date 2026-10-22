@@ -104,9 +104,6 @@
   (corfu-popupinfo-delay 1.0)
 
   :config
-  ;; TTY child frame に枠を表示する。
-  (setf (alist-get 'undecorated corfu--frame-parameters) nil)
-
   ;; RETは通常の改行にする。TABで補完する。
   (keymap-unset corfu-map "RET")
 

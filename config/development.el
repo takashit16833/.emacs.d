@@ -110,10 +110,6 @@
   :ensure t
   :bind ("C-c h" . eldoc-box-help-at-point)
   :config
-  ;; TTY child frameの角丸枠を表示する。
-  (setf (alist-get 'undecorated eldoc-box-frame-parameters)
-        nil)
-
   ;; child frame自体の背景色をCorfuと合わせる。
   (setf (alist-get 'background-color eldoc-box-frame-parameters)
         (face-attribute 'corfu-default :background nil 'default)))
