@@ -10,9 +10,6 @@
 
 (ert-deftest my/kkp-jis-colon-translates-option-colon ()
   "Option+:の入力をMeta-:へ変換する。"
-  (my/kkp-jis-colon
-   (lambda (_input) (ert-fail "Original should not run"))
-   "59:58:39;3u")
   (should (equal
            (my/kkp-jis-colon
             (lambda (_input) (ert-fail "Original should not run"))
