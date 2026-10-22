@@ -28,6 +28,9 @@
       (my/tab-line-update-git-modified-cache root modified-files))))
 
 
+;; diff-hlが定義する変数を、遅延読み込み前に宣言する。
+(defvar diff-hl-disable-on-remote)
+
 (defun my/diff-hl-magit-post-refresh ()
   "Magitの更新後にdiff-hlの表示を更新する。"
   ;; TRAMPでは起動時だけdiff-hlを抑止しているため、
@@ -39,7 +42,7 @@
 ;; 編集中のファイルにGitとの差分を表示する。
 (use-package diff-hl
   :ensure t
-  :demand t
+  :defer 1
 
   :custom
   ;; TRAMPでは自動的なGit問い合わせを避ける。
@@ -68,6 +71,9 @@
   ;; 最初の描画から端末用の表示方法を使わせる。
   (diff-hl-margin-mode 1)
   (global-diff-hl-mode 1)
+  
+  ;; diredに差分を表示する。
+  (add-hook 'dired-mode-hook #'diff-hl-dired-mode-unless-remote)
 
   ;; Magitの状態更新後に、開いているファイルの差分表示も更新する。
   ;; ここではMagit自体を読み込まない。
@@ -76,9 +82,6 @@
               #'my/diff-hl-magit-post-refresh)
     (add-hook 'magit-post-refresh-hook
               #'my/magit-refresh-tab-line-git-status)))
-
-;; diredに差分を表示する。
-(add-hook 'dired-mode-hook #'diff-hl-dired-mode-unless-remote)
 
 
 ;; Emacs内で状態確認・差分確認・コミットなどを行う。
