@@ -67,6 +67,9 @@
 
 (declare-function org-block-map "org" (function &optional start end))
 (declare-function org-element-at-point "org-element" (&optional epom cached-only))
+(declare-function org-element-type "org-element-ast" (node &optional anonymous))
+(declare-function org-element-property "org-element-ast"
+                  (property node &optional dflt force-undefer))
 (declare-function org-fold-hide-block-toggle "org-fold"
                   (&optional force no-error element))
 
