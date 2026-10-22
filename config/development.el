@@ -5,6 +5,8 @@
 
 ;;; Code:
 
+;; Tree-sitterは必要になるまで読み込まず、変数だけ宣言する。
+(defvar treesit-font-lock-level)
 
 ;; Tree-sitterの色分けを最大レベル（４が最大）。
 (setq treesit-font-lock-level 3)
@@ -41,6 +43,12 @@
 
 
 ;;; Eglot
+
+;; 遅延読み込みするライブラリの関数をコンパイラへ宣言する。
+(declare-function eglot-completion-at-point "eglot" ())
+(declare-function my/eglot-haskell-qualified-completion
+                  "my-eglot" (original &rest args))
+(declare-function my/eglot-haskell-completion-command "my-eglot" (capf))
 
 (autoload 'my/eglot-python-server "my-python")
 
