@@ -5,6 +5,12 @@
 
 ;;; Code:
 
+;; それぞれmwheel、tramp、my-terminalが定義する変数・関数。
+;; 読み込みタイミングを変えずにコンパイラへ宣言する。
+(defvar mouse-wheel-scroll-amount)
+(defvar tramp-remote-path)
+(declare-function my/kkp-jis-colon "my-terminal" (orig input))
+
 ;; ターミナル版Emacsでマウス操作を有効にする。
 (unless (display-graphic-p)
   (xterm-mouse-mode 1)

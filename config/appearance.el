@@ -5,6 +5,9 @@
 
 ;;; Code:
 
+;; テーマ本体は後から読み込むため、設定変数だけ先に宣言する。
+(defvar retro-hacker-blue-transparent-background)
+(defvar one-dark-blue-transparent-background)
 
 (require 'my-ui)
 

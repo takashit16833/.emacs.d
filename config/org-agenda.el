@@ -5,6 +5,14 @@
 
 ;;; Code:
 
+;; my-org-agenda-groupsはorg-super-agendaの設定時に読み込む。
+;; コンパイル時は参照先の変数・関数だけ宣言する。
+(defvar my/org-agenda-todo-groups)
+(declare-function my/org-agenda-groups-around-finalize
+                  "my-org-agenda-groups" (original &rest args))
+(declare-function my/org-agenda-groups-around-list
+                  "my-org-agenda-groups" (original &rest args))
+
 ;; Agenda の項目を予定・期限などでグループ化する。
 (use-package org-super-agenda
   :ensure t
