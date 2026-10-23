@@ -105,7 +105,11 @@
 
 (use-package markdown-ts-appear
   :ensure t
-  :hook (markdown-ts-mode . markdown-ts-appear-mode))
+  :hook (markdown-ts-mode . markdown-ts-appear-mode)
+  :custom
+  ;; Org と同じ縦線を見出し記号に使う。色はテーマ側の face に任せる。
+  (markdown-ts-appear-heading-bullets
+   (list (propertize "┃" 'face 'markdown-ts-delimiter))))
 
 
 (use-package markdown-indent-mode
