@@ -25,4 +25,20 @@
       (should (eq (display-table-slot buffer-display-table 'vertical-border)
                   ?│)))))
 
+(ert-deftest my/display-line-numbers-for-text-skips-org-and-markdown ()
+  "OrgとMarkdownでは本文左端の行番号を表示しない。"
+  (dolist (mode '(org-mode markdown-ts-mode))
+    (with-temp-buffer
+      ;; derived-mode-p は現在の major-mode 自体にも一致する。
+      (setq-local major-mode mode)
+      (my/display-line-numbers-for-text)
+      (should-not display-line-numbers-mode))))
+
+(ert-deftest my/display-line-numbers-for-text-enables-other-text ()
+  "通常のテキストバッファでは引き続き行番号を表示する。"
+  (with-temp-buffer
+    (text-mode)
+    (my/display-line-numbers-for-text)
+    (should display-line-numbers-mode)))
+
 ;;; my-ui-test.el ends here
