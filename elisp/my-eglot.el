@@ -86,6 +86,7 @@
 (declare-function eglot--TextDocumentIdentifier "eglot" ())
 (declare-function eglot--apply-text-edits "eglot"
                   (edits &optional version silent))
+(declare-function eglot--lsp-position-to-point "eglot" (position))
 
 (defun my/eglot-haskell-completion-command (capf)
   "Haskellの補完確定後にHLSの追加コマンドを実行する。
@@ -233,6 +234,51 @@ kindが省略された場合はどちらの位置でも候補に含める。"
            (selection (completing-read "Apply inlay hint: " choices nil t)))
       (cdr (assoc selection choices)))))
 
+(defun my/eglot--matching-inlay-hint-overlays (hint)
+  "HINTに対応するEglotの表示用overlayを返す。
+位置・種類・表示文字列を照合し、別のヒントを巻き込まない。
+複数部分からなるラベルは、全ての部分が見つかったときだけ返す。"
+  (when-let* ((position (plist-get hint :position))
+              (anchor (save-excursion
+                        (eglot--lsp-position-to-point position)))
+              (label (plist-get hint :label))
+              (parts (if (vectorp label)
+                         (mapcar (lambda (part) (plist-get part :value))
+                                 (append label nil))
+                       (list label))))
+    (let* ((type-p (eql (plist-get hint :kind) 1))
+           (property (if type-p 'before-string 'after-string))
+           (candidates
+            (cl-remove-if-not
+             (lambda (ov)
+               (and (overlay-get ov 'eglot--inlay-hint)
+                    (if type-p
+                        (= (overlay-start ov) anchor)
+                      (= (overlay-end ov) anchor))
+                    (overlay-get ov property)))
+             (overlays-in (max (point-min) (1- anchor))
+                          (min (point-max) (1+ anchor)))))
+           (found nil))
+      (catch 'missing
+        (dolist (part parts)
+          (unless (stringp part)
+            (throw 'missing nil))
+          (let ((ov (cl-find-if
+                     (lambda (item)
+                       ;; Eglotは必要に応じて左右に空白を1つ加える。
+                       (let ((text (substring-no-properties
+                                    (overlay-get item property))))
+                         (member text
+                                 (list part (concat " " part)
+                                       (concat part " ")
+                                       (concat " " part " ")))))
+                     candidates)))
+            (unless ov
+              (throw 'missing nil))
+            (push ov found)
+            (setq candidates (delq ov candidates))))
+        (nreverse found)))))
+
 (defun my/eglot-apply-inlay-hint ()
   "カーソル位置のインレイヒントの編集情報をコードへ反映する。
 編集できる候補が1件なら直接適用し、複数なら候補から選ぶ。
@@ -272,8 +318,12 @@ kindが省略された場合はどちらの位置でも候補に含める。"
         ;; 候補選択中の変更によって古くなった編集も適用しない。
         (unless (= tick (buffer-chars-modified-tick))
           (user-error "Buffer changed while selecting inlay hint"))
-        (save-excursion
-          (eglot--apply-text-edits (plist-get chosen :textEdits)))
+        ;; 編集前の位置で古い表示を特定し、編集成功後にのみ削除する。
+        ;; 編集によってoverlayの位置が移動するため、先に控えておく。
+        (let ((overlays (my/eglot--matching-inlay-hint-overlays chosen)))
+          (save-excursion
+            (eglot--apply-text-edits (plist-get chosen :textEdits)))
+          (mapc #'delete-overlay overlays))
         (message "Applied inlay hint: %s"
                  (my/eglot--inlay-hint-label chosen))))))
 

@@ -609,6 +609,128 @@
             '(:label [(:value "url") (:value "=")]))
            "url=")))
 
+
+(ert-deftest my/eglot-inlay-hint-removes-only-accepted-parameter-overlay ()
+  "url=確定後に表示だけを消し、別ヒントの表示は残す。"
+  (with-temp-buffer
+    (insert "request = Request(\n        \"http://127.0.0.1:11434/api/chat\",\n)\n")
+    (goto-char (point-min))
+    (search-forward "http")
+    (let* ((anchor (save-excursion
+                     (beginning-of-line)
+                     (+ (point) 8)))
+           (old (make-overlay (1- anchor) anchor))
+           (other (make-overlay (1- anchor) anchor))
+           (elsewhere (make-overlay (+ anchor 1) (+ anchor 2))))
+      (overlay-put old 'eglot--inlay-hint t)
+      (overlay-put old 'after-string "url=")
+      (overlay-put other 'eglot--inlay-hint t)
+      (overlay-put other 'after-string "other=")
+      (overlay-put elsewhere 'eglot--inlay-hint t)
+      (overlay-put elsewhere 'after-string "remote=")
+      (cl-letf (((symbol-function 'eglot-server-capable-or-lose)
+                 (lambda (&rest _) t))
+                ((symbol-function 'eglot--current-server-or-lose)
+                 (lambda () 'test-server))
+                ((symbol-function 'eglot--TextDocumentIdentifier)
+                 (lambda () '(:uri "file:///test.py")))
+                ((symbol-function 'eglot--lsp-position-to-point)
+                 (lambda (_position) anchor))
+                ((symbol-function 'eglot--request)
+                 (lambda (&rest _)
+                   [(:kind 2 :label "url="
+                            :position (:line 1 :character 8)
+                            :textEdits
+                            [(:newText "url="
+                                       :range (:start (:line 1 :character 8)
+                                               :end (:line 1 :character 8)))])])))
+        (my/eglot-apply-inlay-hint))
+      (should (null (overlay-buffer old)))
+      (should (overlay-buffer other))
+      (should (overlay-buffer elsewhere))
+      (should (string-match-p "url=\"http://" (buffer-string))))))
+
+(ert-deftest my/eglot-inlay-hint-preserves-overlay-on-edit-failure ()
+  "編集に失敗した場合は元のインレイヒント表示を消さない。"
+  (with-temp-buffer
+    (insert "call(7)\n")
+    (goto-char (point-min))
+    (search-forward "7")
+    (backward-char)
+    (let* ((anchor (point))
+           (old (make-overlay (1- anchor) anchor)))
+      (overlay-put old 'eglot--inlay-hint t)
+      (overlay-put old 'after-string "count=")
+      (cl-letf (((symbol-function 'eglot-server-capable-or-lose)
+                 (lambda (&rest _) t))
+                ((symbol-function 'eglot--current-server-or-lose)
+                 (lambda () 'test-server))
+                ((symbol-function 'eglot--TextDocumentIdentifier)
+                 (lambda () '(:uri "file:///test.py")))
+                ((symbol-function 'eglot--lsp-position-to-point)
+                 (lambda (_position) anchor))
+                ((symbol-function 'eglot--request)
+                 (lambda (&rest _)
+                   [(:kind 2 :label "count="
+                            :position (:line 0 :character 5)
+                            :textEdits [(:newText "count=")])]))
+                ((symbol-function 'eglot--apply-text-edits)
+                 (lambda (&rest _) (error "Edit failed"))))
+        (should-error (my/eglot-apply-inlay-hint))
+        (should (overlay-buffer old))
+        (should (equal (buffer-string) "call(7)\n"))))))
+
+(ert-deftest my/eglot-inlay-hint-removes-type-overlay-with-padding ()
+  "型ヒントのbefore-stringも空白付きラベルを正しく削除する。"
+  (with-temp-buffer
+    (insert "result = 42\n")
+    (let* ((anchor (+ (point-min) 6))
+           (old (make-overlay anchor (1+ anchor)))
+           (other (make-overlay (1- anchor) anchor))
+           (hint '(:label ": int" :kind 1
+                          :position (:line 0 :character 6))))
+      (overlay-put old 'eglot--inlay-hint t)
+      (overlay-put old 'before-string " : int")
+      (overlay-put other 'eglot--inlay-hint t)
+      (overlay-put other 'after-string "arg=")
+      (cl-letf (((symbol-function 'eglot--lsp-position-to-point)
+                 (lambda (_position) anchor)))
+        (let ((matches (my/eglot--matching-inlay-hint-overlays hint)))
+          (should (equal matches (list old)))
+          (mapc #'delete-overlay matches)))
+      (should-not (overlay-buffer old))
+      (should (overlay-buffer other)))))
+
+(ert-deftest my/eglot-inlay-hint-removes-all-composite-label-parts ()
+  "複数部品からなるヒントは全て揃う場合のみ削除対象にする。"
+  (with-temp-buffer
+    (insert "call(7)\n")
+    (let* ((anchor (+ (point-min) 5))
+           (first (make-overlay (1- anchor) anchor))
+           (second (make-overlay (1- anchor) anchor))
+           (other (make-overlay (1- anchor) anchor))
+           (hint '(:kind 2 :position (:line 0 :character 5)
+                          :label [(:value "count") (:value "=")])))
+      (dolist (ov (list first second other))
+        (overlay-put ov 'eglot--inlay-hint t))
+      (overlay-put first 'after-string "count")
+      (overlay-put second 'after-string "=")
+      (overlay-put other 'after-string "other=")
+      (cl-letf (((symbol-function 'eglot--lsp-position-to-point)
+                 (lambda (_position) anchor)))
+        (should (equal (sort (copy-sequence
+                              (my/eglot--matching-inlay-hint-overlays hint))
+                             (lambda (a b) (< (overlay-start a)
+                                               (overlay-start b))))
+                       ;; 同じ範囲のoverlay間に順序はない。
+                       (sort (list first second)
+                             (lambda (a b) (< (overlay-start a)
+                                               (overlay-start b))))))
+        (delete-overlay second)
+        (should-not (my/eglot--matching-inlay-hint-overlays hint)))
+      (should (overlay-buffer first))
+      (should (overlay-buffer other)))))
+
 ;;; TRAMPでのdiff-hl
 
 (ert-deftest my/eglot-enables-diff-hl-in-remote-buffer-after-connect ()
