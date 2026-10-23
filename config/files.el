@@ -24,6 +24,9 @@
   (dired-listing-switches "-Al --group-directories-first"))
 
 
+;; 実装はDirvishの読み込み後に使うため、コンパイル時に定義を宣言する。
+(declare-function my/dirvish-preview-below "my-files" (original buffer alist))
+
 ;; Diredを拡張したファイルマネージャ。
 (use-package dirvish
   :ensure t
