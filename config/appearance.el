@@ -34,8 +34,9 @@
 
 
 ;; 編集用バッファで行番号を表示する。
+;; Org / Markdown は本文の読みやすさを優先し、左端の行番号を省く。
 (add-hook 'prog-mode-hook #'display-line-numbers-mode)
-(add-hook 'text-mode-hook #'display-line-numbers-mode)
+(add-hook 'text-mode-hook #'my/display-line-numbers-for-text)
 (setq-default display-line-numbers-width 3)
 
 
