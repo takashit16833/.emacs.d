@@ -634,8 +634,6 @@
                  (lambda () 'test-server))
                 ((symbol-function 'eglot--TextDocumentIdentifier)
                  (lambda () '(:uri "file:///test.py")))
-                ((symbol-function 'eglot--lsp-position-to-point)
-                 (lambda (_position) anchor))
                 ((symbol-function 'eglot--request)
                  (lambda (&rest _)
                    [(:kind 2 :label "url="
