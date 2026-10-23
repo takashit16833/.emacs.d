@@ -49,6 +49,9 @@
 (declare-function my/eglot-haskell-qualified-completion
                   "my-eglot" (original &rest args))
 (declare-function my/eglot-haskell-completion-command "my-eglot" (capf))
+(declare-function jsonrpc-async-request "jsonrpc"
+                  (connection method params &rest args))
+(declare-function my/eglot--clickable-inlay-hint-request "my-eglot" (args))
 
 (autoload 'my/eglot-python-server "my-python")
 
