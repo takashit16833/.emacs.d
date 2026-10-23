@@ -183,14 +183,14 @@ eglot-completion-at-pointの戻り値（CAPF）を包む:filter-return advice。
 ;; https://github.com/DetachHead/basedpyright/blob/v1.40.2/packages/pyright-internal/src/languageService/inlayHintsProvider.ts
 
 (defun my/eglot--inlay-hint-target-bounds ()
-  "カーソル位置の式の範囲を返す。文字列では引用符を含める。"
+  "カーソル位置の文字列・シンボル・式の範囲を返す。文字列は引用符を含む。"
   (let* ((state (syntax-ppss))
          (string-start (and (nth 3 state) (nth 8 state)))
          (string-end (and string-start
                           (ignore-errors (scan-sexps string-start 1)))))
     (or (and string-end (cons string-start string-end))
-        (bounds-of-thing-at-point 'sexp)
-        (bounds-of-thing-at-point 'symbol))))
+        (bounds-of-thing-at-point 'symbol)
+        (bounds-of-thing-at-point 'sexp))))
 
 (defun my/eglot--same-lsp-position-p (a b)
   "AとBが同じLSP上の位置を表す場合は非nilを返す。"

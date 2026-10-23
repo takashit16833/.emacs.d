@@ -462,6 +462,59 @@
       (list wanted)))))
 
 
+(ert-deftest my/eglot-inlay-hint-prefers-variable-over-assignment-sexp ()
+  "代入文全体がsexpとして返されても、型ヒントの対象は変数名にする。"
+  (with-temp-buffer
+    (insert "    message_object = cast(dict[str, object], message)\n")
+    (goto-char (point-min))
+    (search-forward "message_object")
+    (let ((symbol-start (+ (point-min) 4))
+          (symbol-end (+ (point-min) 18))
+          (statement-end (line-end-position)))
+      ;; Pythonバッファで実測したsymbolとsexpの範囲の違いを再現する。
+      (cl-letf (((symbol-function 'bounds-of-thing-at-point)
+                 (lambda (thing)
+                   (pcase thing
+                     ('symbol (cons symbol-start symbol-end))
+                     ('sexp (cons symbol-start statement-end))))))
+        (should (equal (my/eglot--inlay-hint-target-bounds)
+                       (cons symbol-start symbol-end)))))))
+
+(ert-deftest my/eglot-inlay-hint-applies-type-to-assignment-variable ()
+  "Pythonの代入文で型ヒントを変数名の末尾に確定できる。"
+  (with-temp-buffer
+    (insert "    message_object = cast(dict[str, object], message)\n")
+    (goto-char (point-min))
+    (search-forward "message_object")
+    (backward-char 5)
+    (let ((symbol-start (+ (point-min) 4))
+          (symbol-end (+ (point-min) 18))
+          (statement-end (line-end-position)))
+      (cl-letf (((symbol-function 'bounds-of-thing-at-point)
+                 (lambda (thing)
+                   (pcase thing
+                     ('symbol (cons symbol-start symbol-end))
+                     ('sexp (cons symbol-start statement-end)))))
+                ((symbol-function 'eglot-server-capable-or-lose)
+                 (lambda (&rest _) t))
+                ((symbol-function 'eglot--current-server-or-lose)
+                 (lambda () 'test-server))
+                ((symbol-function 'eglot--TextDocumentIdentifier)
+                 (lambda () '(:uri "file:///test.py")))
+                ((symbol-function 'eglot--request)
+                 (lambda (_server method _params)
+                   (should (eq method :textDocument/inlayHint))
+                   [(:label ": dict[str, object]" :kind 1
+                            :position (:line 0 :character 18)
+                            :textEdits
+                            [(:newText ": dict[str, object]"
+                                       :range
+                                       (:start (:line 0 :character 18)
+                                        :end (:line 0 :character 18)))])])))
+        (my/eglot-apply-inlay-hint)))
+    (should (equal (buffer-string)
+                   "    message_object: dict[str, object] = cast(dict[str, object], message)\n"))))
+
 (ert-deftest my/eglot-inlay-hint-string-argument-uses-opening-quote ()
   "httpの上にいても、引用符の位置に付くurl=を確定できる。"
   (with-temp-buffer
