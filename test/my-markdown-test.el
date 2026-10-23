@@ -83,9 +83,11 @@
 (ert-deftest my/markdown-reading-keeps-already-enabled-renderers ()
   "起動時にhookで有効化した装飾を再初期化しない。"
   (with-temp-buffer
-    (let ((markdown-indent-mode t)
-          (markdown-ts-appear-mode t)
-          (stop-count 0))
+    ;; minor mode の状態はバッファローカル変数として設定する。
+    ;; lexical-binding 下の let では実際のモード状態を再現できない。
+    (setq-local markdown-indent-mode t
+                markdown-ts-appear-mode t)
+    (let ((stop-count 0))
       (cl-letf (((symbol-function 'markdown-indent-mode)
                  (lambda (&rest _) (ert-fail "indent reinitialized")))
                 ((symbol-function 'markdown-ts-appear-mode)
