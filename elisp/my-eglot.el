@@ -301,13 +301,18 @@ kindが省略された場合はどちらの位置でも候補に含める。"
      text)
     text))
 
-(defun my/eglot--clickable-hint (hint buffer tick)
-  "編集可能なHINTのラベルにBUFFERとTICKを紐付けたコピーを返す。"
+(defun my/eglot--clickable-hint (hint buffer)
+  "編集可能なHINTにBUFFERと位置追跡用markerを紐付けたコピーを返す。"
   (let ((edits (plist-get hint :textEdits))
-        (label (plist-get hint :label)))
-    (if (not (and edits (> (length edits) 0)))
+        (label (plist-get hint :label))
+        (position (plist-get hint :position)))
+    (if (not (and position edits (> (length edits) 0)))
         hint
-      (let* ((data (list :buffer buffer :tick tick :hint hint))
+      (let* ((data (list :buffer buffer
+                         :anchor (copy-marker
+                                  (save-excursion
+                                    (eglot--lsp-position-to-point position)))
+                         :hint hint))
              (copy (copy-sequence hint))
              (clickable
               (cond
@@ -326,10 +331,10 @@ kindが省略された場合はどちらの位置でも候補に含める。"
                (t label))))
         (plist-put copy :label clickable)))))
 
-(defun my/eglot--clickable-hints (hints buffer tick)
-  "HINTSの各ラベルをクリック可能にする。BUFFERとTICKは編集検証用。"
+(defun my/eglot--clickable-hints (hints buffer)
+  "HINTSのラベルをクリック可能にし、元のBUFFERを追跡する。"
   (let ((items (mapcar (lambda (hint)
-                         (my/eglot--clickable-hint hint buffer tick))
+                         (my/eglot--clickable-hint hint buffer))
                        (append hints nil))))
     (if (vectorp hints) (vconcat items) items)))
 
@@ -355,7 +360,8 @@ kindが省略された場合はどちらの位置でも候補に含める。"
                            (with-current-buffer buffer
                              (and (bound-and-true-p eglot-inlay-hints-mode)
                                   (= tick (buffer-chars-modified-tick)))))
-                      (my/eglot--clickable-hints hints buffer tick)
+                      (with-current-buffer buffer
+                        (my/eglot--clickable-hints hints buffer))
                     hints)))))
         (append (cl-subseq args 0 3) options))
     args))
@@ -379,21 +385,55 @@ kindが省略された場合はどちらの位置でも候補に含める。"
     (mapc #'delete-overlay overlays))
   (message "Applied inlay hint: %s" (my/eglot--inlay-hint-label hint)))
 
+(defun my/eglot--fresh-clicked-hint (data)
+  "DATAに対応する最新のLSPヒントを返す。
+元の位置をmarkerで追跡し、位置・種類・ラベルが一致した場合だけ採用する。
+古いtextEditsは使用せず、誤った位置への適用を防止する。"
+  (let* ((anchor (plist-get data :anchor))
+         (original (plist-get data :hint)))
+    (unless (and (markerp anchor)
+                 (eq (marker-buffer anchor) (current-buffer)))
+      (user-error "Inlay hint position is no longer valid"))
+    (let* ((tick (buffer-chars-modified-tick))
+           (range (save-excursion
+                    (goto-char anchor)
+                    (eglot-region-range (line-beginning-position)
+                                        (line-end-position))))
+           (hints (eglot--request
+                   (eglot--current-server-or-lose)
+                   :textDocument/inlayHint
+                   (list :textDocument (eglot--TextDocumentIdentifier)
+                         :range range)))
+           (matches
+            (cl-remove-if-not
+             (lambda (hint)
+               (let ((position (plist-get hint :position))
+                     (edits (plist-get hint :textEdits)))
+                 (and position edits (> (length edits) 0)
+                      (equal (plist-get hint :kind)
+                             (plist-get original :kind))
+                      (string= (my/eglot--inlay-hint-label hint)
+                               (my/eglot--inlay-hint-label original))
+                      (= (marker-position anchor)
+                         (save-excursion
+                           (eglot--lsp-position-to-point position))))))
+             (append hints nil))))
+      (unless (= tick (buffer-chars-modified-tick))
+        (user-error "Buffer changed while requesting inlay hints"))
+      (unless (= (length matches) 1)
+        (user-error "Inlay hint changed; refresh hints or use C-c l i"))
+      (car matches))))
+
 (defun my/eglot--apply-click-data (data)
-  "ダブルクリック時のDATAを検証してヒントを確定する。"
-  (let ((buffer (plist-get data :buffer))
-        (tick (plist-get data :tick))
-        (hint (plist-get data :hint)))
+  "ダブルクリックされたヒントの最新の編集を確定する。"
+  (let ((buffer (plist-get data :buffer)))
     (unless (buffer-live-p buffer)
       (user-error "Inlay hint buffer is no longer available"))
     (with-current-buffer buffer
-      (unless (and (bound-and-true-p eglot-inlay-hints-mode)
-                   (= tick (buffer-chars-modified-tick)))
-        (user-error "Inlay hint is stale; refresh hints before applying"))
-      (let ((edits (plist-get hint :textEdits)))
-        (unless (and edits (> (length edits) 0))
-          (user-error "Inlay hint has no text edits")))
-      (my/eglot--apply-inlay-hint-edits hint))))
+      (unless (bound-and-true-p eglot-inlay-hints-mode)
+        (user-error "Inlay hints mode is disabled"))
+      (my/eglot--apply-inlay-hint-edits
+       (my/eglot--fresh-clicked-hint data)))))
 
 (defun my/eglot-apply-clicked-inlay-hint (event)
   "マウスEVENT上のインレイヒントをダブルクリックで確定する。"
