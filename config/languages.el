@@ -5,6 +5,11 @@
 
 ;;; Code:
 
+;; 遅延読み込みするパッケージの変数をコンパイラに宣言する。
+(defvar haskell-ts-inferior-mode-map)
+(defvar editorconfig-indentation-alist)
+
+
 ;; PythonではEmacs標準のTree-sitter modeを使用する。
 ;; Emacs 31.1では `treesit-enabled-modes' が
 ;; `major-mode-remap-alist' への反映を管理する。
@@ -80,6 +85,13 @@
   :custom
   ;; Emacs標準のJSONモードで結果を色分けする。
   (jq-interactive-font-lock-mode #'js-json-mode))
+
+
+;;; Yaml
+
+(use-package yaml-ts-mode
+  :ensure nil
+  :hook (yaml-ts-mode . eglot-ensure))
 
 
 ;;; languages.el ends here
