@@ -279,6 +279,133 @@ kindが省略された場合はどちらの位置でも候補に含める。"
             (setq candidates (delq ov candidates))))
         (nreverse found)))))
 
+;; Eglot 31.1のeglot--update-hints-1は非同期応答内で表示文字列を作る。
+;; jsonrpc-async-requestの該当リクエストだけを包み、描画前のlabelへ
+;; ダブルクリック用keymapを付ける。Eglot本体や通常のマウス操作は変更しない。
+;; Eglot本体がヒント確定操作を提供した場合は、この処理を再検討する。
+(defvar my/eglot--inlay-hint-mouse-map
+  (let ((map (make-sparse-keymap)))
+    (define-key map [double-mouse-1] #'my/eglot-apply-clicked-inlay-hint)
+    map)
+  "インレイヒントの表示文字列にだけ付与するマウスキーマップ。")
+
+(defun my/eglot--clickable-label (label data)
+  "表示用文字列LABELに確定処理用のDATAを付けたコピーを返す。"
+  (let ((text (copy-sequence label)))
+    (add-text-properties
+     0 (length text)
+     (list 'keymap my/eglot--inlay-hint-mouse-map
+           'mouse-face 'highlight
+           'help-echo "Double-click to apply inlay hint"
+           'my/eglot--clickable-hint data)
+     text)
+    text))
+
+(defun my/eglot--clickable-hint (hint buffer tick)
+  "編集可能なHINTのラベルにBUFFERとTICKを紐付けたコピーを返す。"
+  (let ((edits (plist-get hint :textEdits))
+        (label (plist-get hint :label)))
+    (if (not (and edits (> (length edits) 0)))
+        hint
+      (let* ((data (list :buffer buffer :tick tick :hint hint))
+             (copy (copy-sequence hint))
+             (clickable
+              (cond
+               ((stringp label)
+                (my/eglot--clickable-label label data))
+               ((vectorp label)
+                (vconcat
+                 (mapcar
+                  (lambda (part)
+                    (let ((value (plist-get part :value)))
+                      (if (stringp value)
+                          (plist-put (copy-sequence part) :value
+                                     (my/eglot--clickable-label value data))
+                        part)))
+                  (append label nil))))
+               (t label))))
+        (plist-put copy :label clickable)))))
+
+(defun my/eglot--clickable-hints (hints buffer tick)
+  "HINTSの各ラベルをクリック可能にする。BUFFERとTICKは編集検証用。"
+  (let ((items (mapcar (lambda (hint)
+                         (my/eglot--clickable-hint hint buffer tick))
+                       (append hints nil))))
+    (if (vectorp hints) (vconcat items) items)))
+
+(defun my/eglot--clickable-inlay-hint-request (args)
+  "Eglotのインレイヒント描画リクエストARGSだけに処理を追加する。
+非同期の応答を描画する直前に、編集可能なヒントのラベルを装飾する。"
+  (if (and (eq (nth 1 args) :textDocument/inlayHint)
+           (eq (plist-get (nthcdr 3 args) :deferred)
+               'eglot--update-hints-1)
+           (bound-and-true-p eglot-inlay-hints-mode)
+           (functionp (plist-get (nthcdr 3 args) :success-fn)))
+      (let* ((buffer (current-buffer))
+             (tick (buffer-chars-modified-tick))
+             (options (copy-sequence (nthcdr 3 args)))
+             (original (plist-get options :success-fn)))
+        (setq options
+              (plist-put
+               options :success-fn
+               (lambda (hints)
+                 (funcall
+                  original
+                  (if (and (buffer-live-p buffer)
+                           (with-current-buffer buffer
+                             (and (bound-and-true-p eglot-inlay-hints-mode)
+                                  (= tick (buffer-chars-modified-tick)))))
+                      (my/eglot--clickable-hints hints buffer tick)
+                    hints)))))
+        (append (cl-subseq args 0 3) options))
+    args))
+
+(defun my/eglot--click-data-at-position (position)
+  "マウスPOSITIONでクリックされたヒントのデータを返す。"
+  (let* ((shown (posn-string position))
+         (string (car-safe shown))
+         (index (cdr-safe shown)))
+    (when (and (stringp string)
+               (integerp index)
+               (<= 0 index)
+               (< index (length string)))
+      (get-text-property index 'my/eglot--clickable-hint string))))
+
+(defun my/eglot--apply-inlay-hint-edits (hint)
+  "HINTの編集を適用し、対応する古い表示だけを削除する。"
+  (let ((overlays (my/eglot--matching-inlay-hint-overlays hint)))
+    (save-excursion
+      (eglot--apply-text-edits (plist-get hint :textEdits)))
+    (mapc #'delete-overlay overlays))
+  (message "Applied inlay hint: %s" (my/eglot--inlay-hint-label hint)))
+
+(defun my/eglot--apply-click-data (data)
+  "ダブルクリック時のDATAを検証してヒントを確定する。"
+  (let ((buffer (plist-get data :buffer))
+        (tick (plist-get data :tick))
+        (hint (plist-get data :hint)))
+    (unless (buffer-live-p buffer)
+      (user-error "Inlay hint buffer is no longer available"))
+    (with-current-buffer buffer
+      (unless (and (bound-and-true-p eglot-inlay-hints-mode)
+                   (= tick (buffer-chars-modified-tick)))
+        (user-error "Inlay hint is stale; refresh hints before applying"))
+      (let ((edits (plist-get hint :textEdits)))
+        (unless (and edits (> (length edits) 0))
+          (user-error "Inlay hint has no text edits")))
+      (my/eglot--apply-inlay-hint-edits hint))))
+
+(defun my/eglot-apply-clicked-inlay-hint (event)
+  "マウスEVENT上のインレイヒントをダブルクリックで確定する。"
+  (interactive "e")
+  (let* ((position (event-start event))
+         (window (posn-window position))
+         (data (my/eglot--click-data-at-position position)))
+    (unless (and data (window-live-p window)
+                 (eq (window-buffer window) (plist-get data :buffer)))
+      (user-error "No editable inlay hint at click position"))
+    (my/eglot--apply-click-data data)))
+
 (defun my/eglot-apply-inlay-hint ()
   "カーソル位置のインレイヒントの編集情報をコードへ反映する。
 編集できる候補が1件なら直接適用し、複数なら候補から選ぶ。
@@ -318,14 +445,7 @@ kindが省略された場合はどちらの位置でも候補に含める。"
         ;; 候補選択中の変更によって古くなった編集も適用しない。
         (unless (= tick (buffer-chars-modified-tick))
           (user-error "Buffer changed while selecting inlay hint"))
-        ;; 編集前の位置で古い表示を特定し、編集成功後にのみ削除する。
-        ;; 編集によってoverlayの位置が移動するため、先に控えておく。
-        (let ((overlays (my/eglot--matching-inlay-hint-overlays chosen)))
-          (save-excursion
-            (eglot--apply-text-edits (plist-get chosen :textEdits)))
-          (mapc #'delete-overlay overlays))
-        (message "Applied inlay hint: %s"
-                 (my/eglot--inlay-hint-label chosen))))))
+        (my/eglot--apply-inlay-hint-edits chosen)))))
 
 (provide 'my-eglot)
 

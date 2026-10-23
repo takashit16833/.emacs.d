@@ -102,7 +102,13 @@
   (unless (advice-member-p #'my/eglot-haskell-completion-command
                            #'eglot-completion-at-point)
     (advice-add #'eglot-completion-at-point :filter-return
-                #'my/eglot-haskell-completion-command)))
+                #'my/eglot-haskell-completion-command))
+  ;; Eglotが非同期で描画するヒントのラベルだけにダブルクリックを追加する。
+  ;; C-c l iや通常テキストのダブルクリックはそのまま維持する。
+  (unless (advice-member-p #'my/eglot--clickable-inlay-hint-request
+                           #'jsonrpc-async-request)
+    (advice-add #'jsonrpc-async-request :filter-args
+                #'my/eglot--clickable-inlay-hint-request)))
 
 
 ;; ElDocの説明をchild frameで表示する。
