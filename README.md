@@ -50,15 +50,16 @@ EmacsでTree-sitterを利用できるか確認する。
 
 `M-:` で評価して `t` なら利用可能。
 
-### Lua / Python / TypeScript / TSX
+### 通常の文法インストール
 
-まず利用する言語の設定を `M-:` で読み込む。
+利用する言語のモードを `M-:` で読み込む。モードの読み込みによって、文法の入手先がEmacsに登録される。
 
-| ファイル | 評価する式 |
-| --- | --- |
-| `.lua` | `(require 'lua-ts-mode)` |
-| `.py` | `(require 'python)` |
-| `.ts` / `.tsx` | `(require 'typescript-ts-mode)` |
+| ファイル | 評価する式 | 文法名 |
+| --- | --- | --- |
+| `.lua` | `(require 'lua-ts-mode)` | `lua` |
+| `.py` | `(require 'python)` | `python` |
+| `.ts` / `.tsx` | `(require 'typescript-ts-mode)` | `typescript` / `tsx` |
+| `.yaml` / `.yml` | `(require 'yaml-ts-mode)` | `yaml` |
 
 続いて、Emacsで次を実行する。
 
@@ -66,7 +67,7 @@ EmacsでTree-sitterを利用できるか確認する。
 M-x treesit-install-language-grammar
 ```
 
-`Language:` には対応する `lua`、`python`、`typescript`、`tsx` を入力する。インストール先はEnterで既定の `~/.emacs.d/tree-sitter/` を使う。
+`Language:` には上表の文法名を入力する（TypeScriptとTSXはそれぞれインストールする）。インストール先はEnterで既定の `~/.emacs.d/tree-sitter/` を使う。
 
 ビルドにはGit、Cコンパイラ、および必要に応じてC++コンパイラが必要。
 
@@ -125,24 +126,19 @@ rm -rf "$tmp"
 
 ### インストール確認
 
-Emacsの `M-:` で、利用する文法を確認する。
+Emacsの `M-:` で、利用する文法を確認する。例えばYAMLの場合は次を評価する。
 
 ```elisp
-(treesit-language-available-p 'typescript)
-(treesit-language-available-p 'tsx)
-(treesit-language-available-p 'php)
-(treesit-language-available-p 'haskell)
-(treesit-language-available-p 'lua)
-(treesit-language-available-p 'python)
+(treesit-language-available-p 'yaml)
 ```
 
-必要な文法が `t` ならOK。すでに開いているファイルは `M-x normal-mode` でメジャーモードを判定し直す。文法がなく `fundamental-mode` になる場合は、まずこの結果を確認する。
+他の言語では `yaml` を確認したい文法名に置き換える。結果が `t` ならOK。すでに開いているファイルは `M-x normal-mode` でメジャーモードを判定し直す。文法がなく `fundamental-mode` になる場合は、まずこの結果を確認する。
 
 ## Language Server・フォーマッタ
 
 Emacsパッケージとは別に、Language Serverやフォーマッタの実行ファイルが必要。実際に使用する言語のものだけ用意する。
 
-Emacs 31.1標準のEglotを使用する。Lua・Haskell・PHP・Python・TypeScript・TSXのファイルを開くと、自動的にLanguage Serverへの接続を試みる。
+Emacs 31.1標準のEglotを使用する。言語ごとの自動接続設定は `config/development.el` と `config/languages.el` で管理している。
 
 | 言語 | Language Server | フォーマッタなど |
 | --- | --- | --- |
@@ -151,12 +147,25 @@ Emacs 31.1標準のEglotを使用する。Lua・Haskell・PHP・Python・TypeScr
 | PHP | `intelephense` | `phpcbf` |
 | Python | `basedpyright-langserver` | `ruff` |
 | TypeScript / TSX | `typescript-language-server` とプロジェクト内の `typescript` | `prettier` |
+| YAML | `yaml-language-server` | なし |
 | JSON | なし | `jq` |
 
 Node.js/npmを使用するLanguage Serverは、例えば次のようにインストールできる。
 
 ```sh
 npm install --global intelephense typescript-language-server basedpyright
+```
+
+YAMLのLanguage ServerはEmacs 31.1のEglotが標準で認識するため、Emacs側の接続先設定は不要。macOSではHomebrewで導入できる。
+
+```sh
+brew install yaml-language-server
+```
+
+Debianなどでは、Node.js/npmを用意して次の方法でもインストールできる（どちらか一方でよい）。
+
+```sh
+npm install --global yaml-language-server
 ```
 
 Pythonでは、プロジェクト内の `.venv/bin/basedpyright-langserver` を優先し、見つからなければ `PATH` 上の `basedpyright-langserver` を使用する。既存の `.venv` にインストールする場合は次のコマンドを実行する。
@@ -219,7 +228,7 @@ bash scripts/debian-test.sh stop
 bash scripts/debian-test.sh rebuild
 ```
 
-検証用Dockerイメージには各言語のTree-sitter文法とLanguage Serverを用意している。ホスト上のEmacsからDockerへTRAMP接続する場合は、上記「Tree-sitter文法」の手順をホスト側でも実行する。
+検証用Dockerイメージには検証対象の言語向けにTree-sitter文法とLanguage Serverを用意している。YAML用の文法とLanguage Serverは現時点では含まれない。ホスト上のEmacsからDockerへTRAMP接続する場合は、上記「Tree-sitter文法」の手順をホスト側でも実行する。
 
 ## テスト
 
