@@ -126,7 +126,7 @@
 ;; 閲覧／編集を同じキーで切り替える。
 (with-eval-after-load 'markdown-ts-mode
   (keymap-set markdown-ts-mode-map
-              "C-c C-x C-r" #'my/markdown-toggle-mode))
+              "s-e" #'my/markdown-toggle-mode))
 
 
 ;;; languages.el ends here
