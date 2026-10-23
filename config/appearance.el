@@ -7,6 +7,7 @@
 
 ;; テーマ本体は後から読み込むため、設定変数だけ先に宣言する。
 (defvar retro-hacker-blue-transparent-background)
+(defvar retro-hacker-blue-foreground)
 (defvar one-dark-blue-transparent-background)
 
 (require 'my-ui)
@@ -58,6 +59,22 @@
   :no-require t
   :init
   (setq one-dark-blue-transparent-background nil))
+
+;; 色分けの試用設定。Retro Hacker Blue のテーマ本体は変更しない。
+(defun my/appearance-retro-syntax-faces (theme)
+  "THEME が Retro Hacker Blue なら、試用中の構文色を適用する。"
+  (when (eq theme 'retro-hacker-blue)
+    ;; 型名の紫はテーマの基本文字色へ。
+    (set-face-attribute 'font-lock-type-face nil
+                        :foreground retro-hacker-blue-foreground)
+    ;; 型宣言の関数名などは fg-pale で太字にする。
+    (set-face-attribute 'font-lock-doc-markup-face nil
+                        :foreground (face-attribute
+                                     'font-lock-string-face :foreground nil t)
+                        :weight 'bold)))
+
+(add-hook 'enable-theme-functions #'my/appearance-retro-syntax-faces)
+
 
 ;; WezTerm と共有した前回の選択を起動時に復元する。
 (require 'my-theme)
