@@ -14,6 +14,7 @@
   :hook
   ;; 保存時の整形も手動実行と同じApheleiaの設定を使用する。
   ((js-json-mode . apheleia-mode)
+   (yaml-ts-mode . apheleia-mode)
    (lua-ts-mode . apheleia-mode)
    (haskell-ts-mode . apheleia-mode)
    (haskell-cabal-mode . apheleia-mode)
