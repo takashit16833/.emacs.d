@@ -80,6 +80,24 @@
       (should buffer-read-only)
       (should-not my/markdown--reading))))
 
+(ert-deftest my/markdown-reading-keeps-already-enabled-renderers ()
+  "起動時にhookで有効化した装飾を再初期化しない。"
+  (with-temp-buffer
+    (let ((markdown-indent-mode t)
+          (markdown-ts-appear-mode t)
+          (stop-count 0))
+      (cl-letf (((symbol-function 'markdown-indent-mode)
+                 (lambda (&rest _) (ert-fail "indent reinitialized")))
+                ((symbol-function 'markdown-ts-appear-mode)
+                 (lambda (&rest _) (ert-fail "appear reinitialized")))
+                ((symbol-function 'markdown-ts-appear-stop)
+                 (lambda () (setq stop-count (1+ stop-count)))))
+        (my/markdown-enable-reading)
+        (my/markdown-enable-reading)
+        (should (= stop-count 1))
+        (should buffer-read-only)
+        (should my/markdown--reading)))))
+
 (ert-deftest my/markdown-toggle-rejects-non-markdown-buffer ()
   "Markdown以外では他のモードを変更しない。"
   (with-temp-buffer
