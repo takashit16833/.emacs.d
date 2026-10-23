@@ -8,6 +8,7 @@
 ;; 遅延読み込みするパッケージの変数をコンパイラに宣言する。
 (defvar haskell-ts-inferior-mode-map)
 (defvar editorconfig-indentation-alist)
+(defvar markdown-ts-mode-map)
 
 
 ;; PythonではEmacs標準のTree-sitter modeを使用する。
