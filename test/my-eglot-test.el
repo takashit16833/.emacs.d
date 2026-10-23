@@ -785,11 +785,14 @@
 (ert-deftest my/eglot-clickable-inlay-hint-label-keeps-original-response ()
   "文字列と複数パーツのラベルにkeymapを付け、LSP応答は変更しない。"
   (with-temp-buffer
-    (let* ((hint '(:kind 1 :label ": object" :textEdits [(:newText ": object")]))
+    (let* ((hint '(:kind 1 :label ": object"
+                           :position (:line 0 :character 0)
+                           :textEdits [(:newText ": object")]))
            (parts '(:kind 2 :label [(:value "url") (:value "=")]
+                           :position (:line 0 :character 0)
                            :textEdits [(:newText "url=")]))
            (hints (vector hint parts))
-           (converted (my/eglot--clickable-hints hints (current-buffer) 9))
+           (converted (my/eglot--clickable-hints hints (current-buffer)))
            (one (plist-get (aref converted 0) :label))
            (two (plist-get (aref converted 1) :label)))
       (should (vectorp converted))
@@ -818,7 +821,7 @@
 (ert-deftest my/eglot-clickable-inlay-hint-skips-noneditable-hints ()
   "textEditsがない表示専用ヒントにはマウス操作を付けない。"
   (let* ((hint '(:kind 1 :label ": object"))
-         (converted (my/eglot--clickable-hint hint (current-buffer) 5)))
+         (converted (my/eglot--clickable-hint hint (current-buffer))))
     (should (eq hint converted))
     (should-not (get-text-property 0 'keymap
                                    (plist-get converted :label)))))
@@ -837,6 +840,7 @@
            (converted (my/eglot--clickable-inlay-hint-request args))
            (result (plist-get (nthcdr 3 converted) :success-fn))
            (hints [(:label "url=" :kind 2
+                           :position (:line 0 :character 0)
                            :textEdits [(:newText "url=")])]))
       (should (eq (my/eglot--clickable-inlay-hint-request other) other))
       (let ((hover '(server :textDocument/hover nil)))
