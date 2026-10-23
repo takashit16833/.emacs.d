@@ -5,6 +5,13 @@
 
 ;;; Code:
 
+;; 読み込み前から呼べるよう、遅延読み込みする関数・変数を宣言する。
+(defvar markdown-ts-hide-markup)
+(declare-function markdown-ts-appear-mode "markdown-ts-appear" (&optional arg))
+(declare-function markdown-ts-appear-stop "markdown-ts-appear" ())
+(declare-function markdown-indent-mode "markdown-indent-mode" (&optional arg))
+(declare-function markdown-ts-toggle-hide-markup "markdown-ts-mode" ())
+
 (defvar-local my/markdown--reading nil
   "Non-nil when the Markdown buffer is in reading mode.")
 
