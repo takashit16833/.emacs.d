@@ -28,6 +28,14 @@
         icon))))
 
 
+;;; Line numbers
+
+(defun my/display-line-numbers-for-text ()
+  "Enable line numbers in text buffers other than Org and Markdown."
+  (unless (derived-mode-p 'org-mode 'markdown-ts-mode)
+    (display-line-numbers-mode 1)))
+
+
 ;;; Window borders
 
 (defvar display-line-numbers-mode)
