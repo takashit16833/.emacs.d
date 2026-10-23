@@ -94,4 +94,23 @@
   :hook (yaml-ts-mode . eglot-ensure))
 
 
+;;; Markdown
+
+(use-package markdown-ts-mode
+  :ensure nil
+  :mode ("\\.md\\'" . markdown-ts-mode)
+  :custom
+  (markdown-ts-hide-markup t))
+
+
+(use-package markdown-ts-appear
+  :ensure t
+  :hook (markdown-ts-mode . markdown-ts-appear-mode))
+
+
+(use-package markdown-indent-mode
+  :ensure t
+  :hook (markdown-ts-mode . markdown-indent-mode))
+
+
 ;;; languages.el ends here
