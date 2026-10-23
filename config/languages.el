@@ -96,9 +96,18 @@
 
 ;;; Markdown
 
+(defun my/markdown-ts-indent-setup ()
+  "Markdown の編集ではタブではなく 2 文字幅の空白を使用する。"
+  ;; アウトラインの見た目の字下げは markdown-indent-mode が担当する。
+  ;; コードブロック内の整形規則は各言語の major mode に任せる。
+  (setq-local tab-width 2
+              standard-indent 2
+              indent-tabs-mode nil))
+
 (use-package markdown-ts-mode
   :ensure nil
   :mode ("\\.md\\'" . markdown-ts-mode)
+  :hook (markdown-ts-mode . my/markdown-ts-indent-setup)
   :custom
   (markdown-ts-hide-markup t))
 
