@@ -7,6 +7,8 @@
 
 ;; 読み込み前から呼べるよう、遅延読み込みする関数・変数を宣言する。
 (defvar markdown-ts-hide-markup)
+(defvar markdown-ts-appear-mode)
+(defvar markdown-indent-mode)
 (declare-function markdown-ts-appear-mode "markdown-ts-appear" (&optional arg))
 (declare-function markdown-ts-appear-stop "markdown-ts-appear" ())
 (declare-function markdown-indent-mode "markdown-indent-mode" (&optional arg))
@@ -23,8 +25,10 @@
   (unless my/markdown--reading
     (setq-local my/markdown--saved-read-only buffer-read-only)
     ;; 見出しの字下げ、コード枠、表などの装飾は残す。
-    (markdown-indent-mode 1)
-    (markdown-ts-appear-mode 1)
+    (unless (bound-and-true-p markdown-indent-mode)
+      (markdown-indent-mode 1))
+    (unless (bound-and-true-p markdown-ts-appear-mode)
+      (markdown-ts-appear-mode 1))
     ;; カーソル位置で記号を再表示する追跡処理だけ止める。
     (markdown-ts-appear-stop)
     (read-only-mode 1)
