@@ -294,9 +294,9 @@
                                  :position (:line 23 :character 22))
                         wanted)))
     ;; 引数名ヒントは先頭、型ヒントは末尾と比較する。
-    (should (equal (my/eglot--inlay-hints-at-symbol hints start end)
+    (should (equal (my/eglot--inlay-hints-at-bounds hints start end)
                    (list wanted)))
-    (should-not (my/eglot--inlay-hints-at-symbol
+    (should-not (my/eglot--inlay-hints-at-bounds
                  hints '(:line 24 :character 0)
                  '(:line 24 :character 8)))))
 
@@ -307,13 +307,13 @@
                        :position (:character 8 :line 23)
                        :textEdits [(:newText ": ChatResponse")]))
         (other '(:kind 1 :position (:line 23 :character 9))))
-    (should (equal (my/eglot--inlay-hints-at-symbol
+    (should (equal (my/eglot--inlay-hints-at-bounds
                     (vector other hint)
                     '(:line 23 :character 0)
                     '(:line 23 :character 8))
                    (list hint)))
     ;; 問い合わせ側のPositionのキー順を変えても一致する。
-    (should (equal (my/eglot--inlay-hints-at-symbol
+    (should (equal (my/eglot--inlay-hints-at-bounds
                     (vector hint)
                     '(:character 0 :line 23)
                     '(:character 8 :line 23))
@@ -457,9 +457,157 @@
                         :position (:line 0 :character 20))))
     (should
      (equal
-      (my/eglot--inlay-hints-at-symbol
+      (my/eglot--inlay-hints-at-bounds
        (vector other wanted) start end)
       (list wanted)))))
+
+
+(ert-deftest my/eglot-inlay-hint-string-argument-uses-opening-quote ()
+  "httpの上にいても、引用符の位置に付くurl=を確定できる。"
+  (with-temp-buffer
+    (insert "request = Request(\n        \"http://127.0.0.1:11434/api/chat\",\n)\n")
+    (goto-char (point-min))
+    (search-forward "http")
+    (let* ((bounds (my/eglot--inlay-hint-target-bounds))
+           (hint '(:kind 2 :label "url="
+                         :position (:line 1 :character 8)
+                         :textEdits
+                         [(:newText "url="
+                                    :range (:start (:line 1 :character 8)
+                                            :end (:line 1 :character 8)))])))
+      (should (= (car bounds) (save-excursion
+                               (beginning-of-line)
+                               (+ (point) 8))))
+      (cl-letf (((symbol-function 'eglot-server-capable-or-lose)
+                 (lambda (&rest _) t))
+                ((symbol-function 'eglot--current-server-or-lose)
+                 (lambda () 'test-server))
+                ((symbol-function 'eglot--TextDocumentIdentifier)
+                 (lambda () '(:uri "file:///test.py")))
+                ((symbol-function 'eglot--request)
+                 (lambda (_server method _params)
+                   (should (eq method :textDocument/inlayHint))
+                   (vector hint))))
+        (my/eglot-apply-inlay-hint))
+      (should (string-match-p
+               "url=\"http://127.0.0.1:11434/api/chat\""
+               (buffer-string))))))
+
+(ert-deftest my/eglot-inlay-hint-numeric-argument ()
+  "数値引数でもカーソル位置に付くヒントを確定できる。"
+  (with-temp-buffer
+    (insert "call(7)\n")
+    (goto-char (point-min))
+    (search-forward "7")
+    (backward-char)
+    (cl-letf (((symbol-function 'eglot-server-capable-or-lose)
+               (lambda (&rest _) t))
+              ((symbol-function 'eglot--current-server-or-lose)
+               (lambda () 'test-server))
+              ((symbol-function 'eglot--TextDocumentIdentifier)
+               (lambda () '(:uri "file:///test.py")))
+              ((symbol-function 'eglot--request)
+               (lambda (&rest _)
+                 [(:kind 2 :label "count="
+                          :position (:line 0 :character 5)
+                          :textEdits
+                          [(:newText "count="
+                                     :range (:start (:line 0 :character 5)
+                                             :end (:line 0 :character 5)))])])))
+      (my/eglot-apply-inlay-hint))
+    (should (equal (buffer-string) "call(count=7)\n"))))
+
+(ert-deftest my/eglot-inlay-hint-omitted-kind-matches-either-edge ()
+  "LSPで省略可能なkindがなくても位置で対象を特定する。"
+  (let ((hint '(:label "hint" :position (:line 2 :character 3))))
+    (should (equal (my/eglot--inlay-hints-at-bounds
+                    (vector hint)
+                    '(:line 2 :character 3)
+                    '(:line 2 :character 8))
+                   (list hint)))))
+
+(ert-deftest my/eglot-inlay-hint-chooses-between-multiple-editable-hints ()
+  "同じ引数に複数の候補があるときだけcompleting-readで選択する。"
+  (let* ((first '(:label "left=" :textEdits [(:newText "left=")]))
+         (second '(:label "right=" :textEdits [(:newText "right=")]))
+         (prompted nil)
+         (completing-read-function
+          (lambda (_prompt candidates &rest _)
+            (setq prompted t)
+            (should (equal (mapcar #'car candidates)
+                           '("1: left=" "2: right=")))
+            "2: right=")))
+    (should (eq (my/eglot--choose-inlay-hint (list first second)) second))
+    (should prompted))
+  (let ((hint '(:label "only=")))
+    (cl-letf (((symbol-function 'completing-read)
+               (lambda (&rest _) (ert-fail "Should not prompt"))))
+      (should (eq (my/eglot--choose-inlay-hint (list hint)) hint)))))
+
+(ert-deftest my/eglot-inlay-hint-multiple-choices-apply-selected-edits ()
+  "複数候補から選択したtextEditsだけを反映する。"
+  (with-temp-buffer
+    (insert "call(7)\n")
+    (goto-char (point-min))
+    (search-forward "7")
+    (backward-char)
+    (let ((completing-read-function
+           (lambda (_prompt _candidates &rest _) "2: second=")))
+      (cl-letf (((symbol-function 'eglot-server-capable-or-lose)
+                 (lambda (&rest _) t))
+                ((symbol-function 'eglot--current-server-or-lose)
+                 (lambda () 'test-server))
+                ((symbol-function 'eglot--TextDocumentIdentifier)
+                 (lambda () '(:uri "file:///test.py")))
+                ((symbol-function 'eglot--request)
+                 (lambda (&rest _)
+                   [(:kind 2 :label "first="
+                            :position (:line 0 :character 5)
+                            :textEdits [(:newText "first="
+                                                   :range (:start (:line 0 :character 5)
+                                                           :end (:line 0 :character 5)))])
+                    (:kind 2 :label "second="
+                            :position (:line 0 :character 5)
+                            :textEdits [(:newText "second="
+                                                   :range (:start (:line 0 :character 5)
+                                                           :end (:line 0 :character 5)))])])))
+        (my/eglot-apply-inlay-hint)))
+    (should (equal (buffer-string) "call(second=7)\n"))))
+
+(ert-deftest my/eglot-inlay-hint-noneditable-candidate-is-not-offered ()
+  "編集情報を持たない表示専用ヒントは選択候補に含めない。"
+  (with-temp-buffer
+    (insert "call(7)\n")
+    (goto-char (point-min))
+    (search-forward "7")
+    (backward-char)
+    (cl-letf (((symbol-function 'eglot-server-capable-or-lose)
+               (lambda (&rest _) t))
+              ((symbol-function 'eglot--current-server-or-lose)
+               (lambda () 'test-server))
+              ((symbol-function 'eglot--TextDocumentIdentifier)
+               (lambda () '(:uri "file:///test.py")))
+              ((symbol-function 'eglot--request)
+               (lambda (&rest _)
+                 [(:kind 2 :label "display-only="
+                          :position (:line 0 :character 5))
+                  (:kind 2 :label "count="
+                          :position (:line 0 :character 5)
+                          :textEdits
+                          [(:newText "count="
+                                     :range (:start (:line 0 :character 5)
+                                             :end (:line 0 :character 5)))])]))
+              ((symbol-function 'completing-read)
+               (lambda (&rest _) (ert-fail "Should not prompt"))))
+      (my/eglot-apply-inlay-hint))
+    (should (equal (buffer-string) "call(count=7)\n"))))
+
+(ert-deftest my/eglot-inlay-hint-composite-label ()
+  "LSPのラベルが複数の部分からなる場合も候補として表示する。"
+  (should (equal
+           (my/eglot--inlay-hint-label
+            '(:label [(:value "url") (:value "=")]))
+           "url=")))
 
 ;;; TRAMPでのdiff-hl
 

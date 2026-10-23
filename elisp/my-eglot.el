@@ -170,57 +170,84 @@ eglot-completion-at-pointの戻り値（CAPF）を包む:filter-return advice。
     (apply original args)))
 
 
-;;; インレイヒントの確定;; basedpyright 1.40.2は型・引数名ヒントのtextEditsを返す。
+;;; インレイヒントの確定
 
-;; 型注釈に必要なimportの編集情報も含まれる。
-;; https://github.com/DetachHead/basedpyright/blob/v1.40.2/packages/pyright-internal/src/languageService/inlayHintsProvider.ts
-;; Emacs 31.1のEglotに確定コマンドはないため、問い合わせと編集適用には
-;; Eglot内部APIを利用する。将来のEglot更新時に再確認する。
+;; LSPのtextEditsをEglotの編集処理へ渡す。表示と違い、Eglot 31.1には
+;; ヒントを選んで確定するコマンドがないため、この部分だけ補う。
 ;; https://github.com/emacs-mirror/emacs/blob/emacs-31.1/lisp/progmodes/eglot.el
+;; 文字列内のカーソルでは、symbolの範囲ではなく引用符を含む文字列の範囲を
+;; 使う。LSPの引数名ヒントは文字列の開始位置に付くため。
+;; basedpyright 1.40.2は型・引数名ヒントのtextEditsを返し、
+;; 必要なimportの編集情報も含める。
+;; https://github.com/DetachHead/basedpyright/blob/v1.40.2/packages/pyright-internal/src/languageService/inlayHintsProvider.ts
+
+(defun my/eglot--inlay-hint-target-bounds ()
+  "カーソル位置の式の範囲を返す。文字列では引用符を含める。"
+  (let* ((state (syntax-ppss))
+         (string-start (and (nth 3 state) (nth 8 state)))
+         (string-end (and string-start
+                          (ignore-errors (scan-sexps string-start 1)))))
+    (or (and string-end (cons string-start string-end))
+        (bounds-of-thing-at-point 'sexp)
+        (bounds-of-thing-at-point 'symbol))))
 
 (defun my/eglot--same-lsp-position-p (a b)
-  "AとBがソースコード上の同じ場所を指しているか調べる。
-それぞれの行番号と、行内の文字位置を比較する。"
+  "AとBが同じLSP上の位置を表す場合は非nilを返す。"
   (and a b
-       (eql (plist-get a :line)
-	    (plist-get b :line))
-       (eql (plist-get a :character)
-	    (plist-get b :character))))
+       (eql (plist-get a :line) (plist-get b :line))
+       (eql (plist-get a :character) (plist-get b :character))))
 
-(defun my/eglot--inlay-hints-at-symbol (hints start end)
-  "HINTSから、現在のシンボルに対応するヒントだけを取り出す。
-STARTはシンボルの先頭、ENDは末尾の位置。
-型ヒントは末尾、引数名ヒントは先頭に付くため、
-ヒントの種類に応じて比較する位置を変える。"
+(defun my/eglot--inlay-hints-at-bounds (hints start end)
+  "範囲STARTからENDに付くHINTSを返す。
+型ヒントは末尾、引数名ヒントは先頭を優先する。
+kindが省略された場合はどちらの位置でも候補に含める。"
   (cl-remove-if-not
    (lambda (hint)
      (let ((position (plist-get hint :position)))
        (pcase (plist-get hint :kind)
-	 ;; 型ヒントならENDと比較
-	 (1 (my/eglot--same-lsp-position-p position end))
-
-	 ;; 引数名ヒントならSTARTと比較
-	 (2 (my/eglot--same-lsp-position-p position start))
-
-	 ;; その他は対象外
-	 (_ nil))))
+         (1 (my/eglot--same-lsp-position-p position end))
+         (2 (my/eglot--same-lsp-position-p position start))
+         (_ (or (my/eglot--same-lsp-position-p position start)
+                (my/eglot--same-lsp-position-p position end))))))
    (append hints nil)))
 
+(defun my/eglot--inlay-hint-label (hint)
+  "HINTのラベルを補完候補に表示できる文字列へ変換する。"
+  (let ((label (plist-get hint :label)))
+    (cond
+     ((stringp label) label)
+     ((vectorp label)
+      (mapconcat (lambda (part) (or (plist-get part :value) ""))
+                 label ""))
+     (t (format "%s" label)))))
+
+(defun my/eglot--choose-inlay-hint (hints)
+  "HINTSが1件なら即座に返し、複数ならcompleting-readで選択する。"
+  (if (null (cdr hints))
+      (car hints)
+    (let* ((choices (cl-loop for hint in hints
+                             for index from 1
+                             collect (cons (format "%d: %s" index
+                                                   (my/eglot--inlay-hint-label hint))
+                                           hint)))
+           (selection (completing-read "Apply inlay hint: " choices nil t)))
+      (cdr (assoc selection choices)))))
+
 (defun my/eglot-apply-inlay-hint ()
-  "カーソル位置のシンボルに付くインレイヒントをコードへ反映する。
-型ヒントはシンボル末尾、引数名ヒントは先頭を対象とする。
-サーバーが返すimport文などの編集もまとめて適用する。"
+  "カーソル位置のインレイヒントの編集情報をコードへ反映する。
+編集できる候補が1件なら直接適用し、複数なら候補から選ぶ。
+編集情報がないヒントは適用できない。"
   (interactive)
-  (let ((bounds (bounds-of-thing-at-point 'symbol)))
+  (let ((bounds (my/eglot--inlay-hint-target-bounds)))
     (unless bounds
-      (user-error "No symbol at point"))
+      (user-error "No expression at point"))
     (eglot-server-capable-or-lose :inlayHintProvider)
     (let* ((server (eglot--current-server-or-lose))
            ;; eglot--pos-to-lsp-positionはpointを動かす。
-	   (start (save-excursion
-		    (eglot--pos-to-lsp-position (car bounds))))
-	   (end (save-excursion
-		  (eglot--pos-to-lsp-position (cdr bounds))))
+           (start (save-excursion
+                    (eglot--pos-to-lsp-position (car bounds))))
+           (end (save-excursion
+                  (eglot--pos-to-lsp-position (cdr bounds))))
            (range (save-excursion
                     (eglot-region-range (line-beginning-position)
                                         (line-end-position))))
@@ -229,23 +256,26 @@ STARTはシンボルの先頭、ENDは末尾の位置。
                    server :textDocument/inlayHint
                    (list :textDocument (eglot--TextDocumentIdentifier)
                          :range range)))
-	   (matches (my/eglot--inlay-hints-at-symbol
-		     hints start end)))
+           (matches (my/eglot--inlay-hints-at-bounds hints start end))
+           (editable (cl-remove-if-not
+                      (lambda (hint)
+                        (let ((edits (plist-get hint :textEdits)))
+                          (and edits (> (length edits) 0))))
+                      matches)))
       (unless (= tick (buffer-chars-modified-tick))
         (user-error "Buffer changed while requesting inlay hints"))
-      (cond
-       ((null matches)
-        (user-error "No inlay hint for symbol at point"))
-       ((cdr matches)
-        (user-error "Multiple inlay hints for symbol at point"))
-       (t
-        (let ((edits (plist-get (car matches) :textEdits)))
-          (unless (and edits (> (length edits) 0))
-            (user-error "Inlay hint has no text edits"))
-          (save-excursion
-            (eglot--apply-text-edits edits))
-          (message "Applied inlay hint: %s"
-                   (plist-get (car matches) :label))))))))
+      (unless matches
+        (user-error "No inlay hint for expression at point"))
+      (unless editable
+        (user-error "Inlay hint has no text edits"))
+      (let ((chosen (my/eglot--choose-inlay-hint editable)))
+        ;; 候補選択中の変更によって古くなった編集も適用しない。
+        (unless (= tick (buffer-chars-modified-tick))
+          (user-error "Buffer changed while selecting inlay hint"))
+        (save-excursion
+          (eglot--apply-text-edits (plist-get chosen :textEdits)))
+        (message "Applied inlay hint: %s"
+                 (my/eglot--inlay-hint-label chosen))))))
 
 (provide 'my-eglot)
 
