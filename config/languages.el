@@ -116,5 +116,16 @@
   :ensure t
   :hook (markdown-ts-mode . markdown-indent-mode))
 
+;; 閲覧モードではカーソル移動による記号の再表示を止める。
+;; 他のMarkdown用hookが動いた後に実行する。
+(autoload 'my/markdown-enable-reading "my-markdown")
+(autoload 'my/markdown-toggle-mode "my-markdown" nil t)
+(add-hook 'markdown-ts-mode-hook #'my/markdown-enable-reading 90)
+
+;; 閲覧／編集を同じキーで切り替える。
+(with-eval-after-load 'markdown-ts-mode
+  (keymap-set markdown-ts-mode-map
+              "C-c C-x C-r" #'my/markdown-toggle-mode))
+
 
 ;;; languages.el ends here
