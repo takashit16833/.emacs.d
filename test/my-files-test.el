@@ -9,6 +9,9 @@
 (require 'ert)
 (require 'my-files)
 
+;; -QのテストでもDirvish本体を読み込まず関数をモックできるようにする。
+(autoload 'dirvish-curr "dirvish")
+
 
 (ert-deftest my/dirvish-preview-below-uses-layout-preview-ratio ()
   "レイアウトのプレビュー幅を下側プレビューの高さとして使う。"
