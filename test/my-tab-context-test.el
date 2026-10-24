@@ -49,7 +49,9 @@
                        (lambda (_target)
                          (ert-fail "Already visible file must not expand")))
                       ((symbol-function 'dirvish--redisplay)
-                       (lambda () (cl-incf redraws))))
+                       (lambda () (cl-incf redraws)))
+                      ((symbol-function 'recenter)
+                       (lambda (&rest _) nil)))
               (dolist (file (list first-file second-file))
                 (with-temp-buffer
                   (setq-local buffer-file-name file)
