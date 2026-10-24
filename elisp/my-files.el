@@ -105,62 +105,59 @@ ALIST の `window-width' は、下側プレビューの高さの割合として�
     (funcall original buffer alist)))
 
 
+(defun my/dirvish--git-ignored-paths (directory files)
+  "DIRECTORYを基準にGitで無視されるFILESの絶対パスを返す。
+判定に失敗した場合はnil、成功した場合は(t . PATHS)を返す。"
+  (with-temp-buffer
+    ;; Gitは -C に渡された "~" を展開しないので絶対パスへ統一する。
+    (dolist (file files)
+      (insert (expand-file-name file) "\0"))
+    (let ((status
+           (call-process-region
+            (point-min) (point-max) "git" t t nil
+            "-C" (expand-file-name directory)
+            "check-ignore" "-z" "--stdin")))
+      (if (memq status '(0 1))
+          (cons t (split-string (buffer-string) "\0" t))
+        (message "Dirvish: git check-ignore failed (%s): %s"
+                 status (string-trim (buffer-string)))
+        nil))))
+
+
 (defun my/dirvish-dim-ignored (&rest _args)
-  "Dirvish内のGit ignoredファイル名を暗く表示する。"
+  "Dirvishの展開済みツリーを含めignoredファイル名を暗くする。"
   (when (and (fboundp 'dirvish-curr)
              (dirvish-curr)
              (not (file-remote-p default-directory))
              (executable-find "git"))
-    (let ((root default-directory)
-          (entries nil)
-          (ignored (make-hash-table :test #'equal))
-          (color (face-attribute
-                  'tab-bar-tab-inactive :foreground nil t)))
-
-      ;; 前回適用した装飾だけを削除する。
-      (remove-overlays (point-min) (point-max)
-                       'my/dirvish-ignored t)
-
-      ;; 展開済みサブツリーを含め、表示中のファイルを収集する。
+    (let ((root (expand-file-name default-directory))
+          entries)
       (save-excursion
         (goto-char (point-min))
         (while (not (eobp))
           (when-let* ((beg (dired-move-to-filename))
                       (end (dired-move-to-end-of-filename t))
                       (file (dired-get-filename nil t)))
-            (push (list file beg end) entries))
+            (push (list (expand-file-name file) beg end) entries))
           (forward-line 1)))
-
       (when entries
-        ;; Gitへの問い合わせは全ファイルまとめて1回だけ。
-        (with-temp-buffer
-          (dolist (entry entries)
-            (insert (car entry) "\0"))
-
-          (let ((status
-                 (call-process-region
-                  (point-min) (point-max)
-                  "git" t t nil
-                  "-C" root "check-ignore" "-z" "--stdin")))
-            (when (memq status '(0 1))
-              (goto-char (point-min))
-              (let ((start (point)))
-                (while (search-forward "\0" nil t)
-                  (puthash
-                   (buffer-substring-no-properties
-                    start (1- (point)))
-                   t ignored)
-                  (setq start (point)))))))
-
-        ;; ignoredのファイル名部分だけにfaceを適用する。
-        (dolist (entry entries)
-          (pcase-let ((`(,file ,beg ,end) entry))
-            (when (gethash file ignored)
-              (let ((ov (make-overlay beg end)))
-                (overlay-put ov 'my/dirvish-ignored t)
-                (overlay-put ov 'face
-                             `(:foreground ,color))))))))))
-
+        (when-let* ((result
+                     (my/dirvish--git-ignored-paths
+                      root (mapcar #'car entries))))
+          (let ((ignored (make-hash-table :test #'equal))
+                (color (face-attribute
+                        'tab-bar-tab-inactive :foreground nil t)))
+            (dolist (file (cdr result))
+              (puthash file t ignored))
+            (remove-overlays (point-min) (point-max)
+                             'my/dirvish-ignored t)
+            (dolist (entry entries)
+              (pcase-let ((`(,file ,beg ,end) entry))
+                (when (gethash file ignored)
+                  (let ((ov (make-overlay beg end)))
+                    (overlay-put ov 'my/dirvish-ignored t)
+                    (overlay-put ov 'face
+                                 `(:foreground ,color))))))))))))
 
 (provide 'my-files)
 
