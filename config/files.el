@@ -95,6 +95,9 @@
   (require 'my-files)
   (advice-add 'dirvish--display-buffer :around #'my/dirvish-preview-below)
 
+  ;; Git ignoredの色付けはDirvish一覧が準備できた後に行う。
+  (add-hook 'dirvish-setup-hook #'my/dirvish-dim-ignored)
+
   ;; gitignoreされたファイルやディレクトリ名の文字色を再起的に暗くする
   (with-eval-after-load 'dirvish-subtree
     (advice-add 'dirvish-subtree--insert
