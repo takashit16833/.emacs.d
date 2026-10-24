@@ -72,6 +72,9 @@ FILEが非表示なら親ディレクトリを展開して移動する。"
   (if-let* ((position (my/tab-context--dirvish-visible-file file)))
       (progn (goto-char position) t)
     (goto-char (point-min))
+    ;; 表示済みのファイルへの追従ではパッケージを読み込まない。
+    (unless (fboundp 'dirvish-subtree-expand-to)
+      (require 'dirvish-subtree))
     ;; 展開関数の戻り値ではなく、最終的なカーソル位置で判定する。
     (dirvish-subtree-expand-to file)
     (equal (dired-get-filename nil t) file)))
@@ -105,7 +108,6 @@ FILEが非表示なら親ディレクトリを展開して移動する。"
               file (expand-file-name default-directory)))
         (message "Dirvish: 対象は表示ルートの外です: %s" file))
        (t
-        (require 'dirvish-subtree)
         (if (my/tab-context--dirvish-goto-file file)
             (progn
               (dirvish--redisplay)
