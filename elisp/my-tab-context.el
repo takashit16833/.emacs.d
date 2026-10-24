@@ -14,6 +14,8 @@
 (declare-function dirvish-subtree-expand-to "dirvish-subtree" (target))
 (declare-function dirvish--redisplay "dirvish" ())
 (declare-function dired-get-filename "dired" (&optional localp no-error-if-not-filep))
+(declare-function dirvish--get-session "dirvish" (&optional key val))
+(declare-function dv-index "dirvish" (session))
 
 
 (defun my/tab-context-directory ()
@@ -75,6 +77,16 @@ FILEが非表示なら親ディレクトリを展開して移動する。"
     (equal (dired-get-filename nil t) file)))
 
 
+(defun my/tab-context--dirvish-select-session ()
+  "既存Dirvishセッションの一覧バッファを選択する。"
+  (when-let* ((dv (dirvish--get-session 'type 'default))
+              (buf (cdr (dv-index dv)))
+              ((buffer-live-p buf)))
+    (if-let* ((win (get-buffer-window buf)))
+        (select-window win)
+      (switch-to-buffer buf))))
+
+
 (defun my/project-dirvish ()
   "現在のTabを基準にDirvishを開き、編集中のファイルに追従する。"
   (interactive)
@@ -83,6 +95,8 @@ FILEが非表示なら親ディレクトリを展開して移動する。"
         (root (expand-file-name
                (or (my/tab-context-directory) default-directory))))
     (dirvish root)
+    ;; 再利用時はDirvishのウィンドウが選択されないことがある。
+    (my/tab-context--dirvish-select-session)
     (when file
       (cond
        ((not (derived-mode-p 'dired-mode))
