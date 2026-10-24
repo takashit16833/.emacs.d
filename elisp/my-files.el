@@ -120,7 +120,7 @@ ALIST の `window-width' は、下側プレビューの高さの割合として�
       (if (memq status '(0 1))
           (cons t (split-string (buffer-string) "\0" t))
         (message "Dirvish: git check-ignore failed (%s): %s"
-                 status (string-trim (buffer-string)))
+                 status (buffer-string))
         nil))))
 
 
