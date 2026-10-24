@@ -50,7 +50,10 @@ Tabに基準ディレクトリが設定されていない場合は、
   (interactive)
   (if-let* ((directory (my/tab-context-directory)))
       (magit-status directory)
-    (ca(defun my/tab-context--dirvish-visible-file (file)
+    (call-interactively #'magit-status)))
+
+
+(defun my/tab-context--dirvish-visible-file (file)
   "現在のDirvishツリーに表示されているFILEの位置を返す。"
   (save-excursion
     (goto-char (point-min))
