@@ -11,6 +11,7 @@
 (declare-function tab-router-current-directory "tab-router")
 (declare-function magit-status "magit-status")
 (declare-function dirvish "dirvish" (&optional path))
+(declare-function dirvish-subtree-expand-to "dirvish-subtree" (target))
 
 
 (defun my/tab-context-directory ()
@@ -51,9 +52,24 @@ Tabに基準ディレクトリが設定されていない場合は、
 
 
 (defun my/project-dirvish ()
-  "現在のProjectまたはTabを基準にDirvishを開く。"
+  "現在のTabを基準にDirvishを開き、編集中のファイルを選択する。"
   (interactive)
-  (dirvish (my/tab-context-directory)))
+  (let ((file buffer-file-name)
+        (root (or (my/tab-context-directory) default-directory)))
+    (dirvish root)
+    (when (and file
+               (file-in-directory-p file root)
+               (derived-mode-p 'dired-mode))
+      (require 'dirvish-subtree)
+      (let ((target-position
+             (save-excursion
+               (goto-char (point-min))
+               (when (dirvish-subtree-expand-to
+                      (expand-file-name file))
+                 (point-marker)))))
+        (when target-position
+          (goto-char target-position)
+          (set-marker target-position nil))))))
 
 
 (provide 'my-tab-context)
