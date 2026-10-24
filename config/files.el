@@ -5,6 +5,8 @@
 
 ;;; Code:
 
+(autoload 'my/dirvish-dim-ignored "my-files")
+
 
 ;; 最近開いたファイルの履歴を保存する。
 (use-package recentf
@@ -93,6 +95,11 @@
   (require 'my-files)
   (advice-add 'dirvish--display-buffer :around #'my/dirvish-preview-below)
 
+  ;; gitignoreされたファイルやディレクトリ名の文字色を再起的に暗くする
+  (with-eval-after-load 'dirvish-subtree
+    (advice-add 'dirvish-subtree--insert
+		:after #'my/dirvish-dim-ignored))
+  
   :bind
   (("C-x d" . my/project-dirvish)
    :map dirvish-mode-map

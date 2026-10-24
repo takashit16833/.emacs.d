@@ -13,6 +13,9 @@
 (declare-function dirvish-subtree-toggle "dirvish-subtree")
 (declare-function dirvish-subtree-remove "dirvish-subtree")
 (declare-function project-files "project" (project &optional dirs))
+(declare-function dirvish-curr "dirvish" ())
+(declare-function dired-move-to-filename "dired" (&optional raise-error eol))
+(declare-function dired-move-to-end-of-filename "dired" (&optional no-error))
 
 
 (defun my/dirvish-collapse ()
@@ -100,6 +103,63 @@ ALIST の `window-width' は、下側プレビューの高さの割合として�
               (alist-get 'window-height args) (- height))
         (funcall original buffer args))
     (funcall original buffer alist)))
+
+
+(defun my/dirvish-dim-ignored (&rest _args)
+  "Dirvish内のGit ignoredファイル名を暗く表示する。"
+  (when (and (fboundp 'dirvish-curr)
+             (dirvish-curr)
+             (not (file-remote-p default-directory))
+             (executable-find "git"))
+    (let ((root default-directory)
+          (entries nil)
+          (ignored (make-hash-table :test #'equal))
+          (color (face-attribute
+                  'tab-bar-tab-inactive :foreground nil t)))
+
+      ;; 前回適用した装飾だけを削除する。
+      (remove-overlays (point-min) (point-max)
+                       'my/dirvish-ignored t)
+
+      ;; 展開済みサブツリーを含め、表示中のファイルを収集する。
+      (save-excursion
+        (goto-char (point-min))
+        (while (not (eobp))
+          (when-let* ((beg (dired-move-to-filename))
+                      (end (dired-move-to-end-of-filename t))
+                      (file (dired-get-filename nil t)))
+            (push (list file beg end) entries))
+          (forward-line 1)))
+
+      (when entries
+        ;; Gitへの問い合わせは全ファイルまとめて1回だけ。
+        (with-temp-buffer
+          (dolist (entry entries)
+            (insert (car entry) "\0"))
+
+          (let ((status
+                 (call-process-region
+                  (point-min) (point-max)
+                  "git" t t nil
+                  "-C" root "check-ignore" "-z" "--stdin")))
+            (when (memq status '(0 1))
+              (goto-char (point-min))
+              (let ((start (point)))
+                (while (search-forward "\0" nil t)
+                  (puthash
+                   (buffer-substring-no-properties
+                    start (1- (point)))
+                   t ignored)
+                  (setq start (point)))))))
+
+        ;; ignoredのファイル名部分だけにfaceを適用する。
+        (dolist (entry entries)
+          (pcase-let ((`(,file ,beg ,end) entry))
+            (when (gethash file ignored)
+              (let ((ov (make-overlay beg end)))
+                (overlay-put ov 'my/dirvish-ignored t)
+                (overlay-put ov 'face
+                             `(:foreground ,color))))))))))
 
 
 (provide 'my-files)
