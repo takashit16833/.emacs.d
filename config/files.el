@@ -83,6 +83,9 @@
 
   ;; 階層をガイドする罫線を消す
   (dirvish-subtree-prefix "  ")
+
+  ;; 開閉を記憶する
+  (dirvish-reuse-session t)
   
   :config
   ;; Dirvishにはプレビュー位置の設定項目がないため、
@@ -91,10 +94,14 @@
   (advice-add 'dirvish--display-buffer :around #'my/dirvish-preview-below)
 
   :bind
-  (("C-x d" . dirvish)
+  (("C-x d" . my/project-dirvish)
    :map dirvish-mode-map
+   
    ;; ディレクトリを閉じる。
    ("<left>" . my/dirvish-collapse)
+
+   ;; ファイルやディレクトリを検索する
+   ("f" . my/dirvish-find-in-tree)
 
    ;; ディレクトリは展開し、ファイルは開く。
    ("<right>" . my/dirvish-expand-or-open)
