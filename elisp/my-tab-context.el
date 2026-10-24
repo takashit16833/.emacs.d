@@ -13,7 +13,7 @@
 (declare-function dirvish "dirvish" (&optional path))
 (declare-function dirvish-subtree-expand-to "dirvish-subtree" (target))
 (declare-function dirvish--redisplay "dirvish" ())
-(declare-function dired-goto-file "dired" (file))
+(declare-function dired-get-filename "dired" (&optional localp no-error-if-not-filep))
 
 
 (defun my/tab-context-directory ()
@@ -50,19 +50,26 @@ Tabに基準ディレクトリが設定されていない場合は、
   (interactive)
   (if-let* ((directory (my/tab-context-directory)))
       (magit-status directory)
-    (call-interactively #'magit-status)))
+    (ca(defun my/tab-context--dirvish-visible-file (file)
+  "現在のDirvishツリーに表示されているFILEの位置を返す。"
+  (save-excursion
+    (goto-char (point-min))
+    (catch 'found
+      (while (not (eobp))
+        (when (equal (dired-get-filename nil t) file)
+          (throw 'found (point)))
+        (forward-line 1)))))
 
 
 (defun my/tab-context--dirvish-goto-file (file)
   "Dirvishの既存ツリーを優先してFILEに移動する。
-まだ表示されていないファイルは親ディレクトリを展開して探す。"
-  (or (dired-goto-file file)
-      (progn
-        ;; dirvish-subtree-expand-toの戻り値だけに頼らず、
-        ;; 実際にDiredのファイル行へ移動できたことを確認する。
-        (goto-char (point-min))
-        (dirvish-subtree-expand-to file)
-        (dired-goto-file file))))
+FILEが非表示なら親ディレクトリを展開して移動する。"
+  (if-let* ((position (my/tab-context--dirvish-visible-file file)))
+      (progn (goto-char position) t)
+    (goto-char (point-min))
+    ;; 展開関数の戻り値ではなく、最終的なカーソル位置で判定する。
+    (dirvish-subtree-expand-to file)
+    (equal (dired-get-filename nil t) file)))
 
 
 (defun my/project-dirvish ()
