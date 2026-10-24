@@ -12,6 +12,8 @@
 (declare-function magit-status "magit-status")
 (declare-function dirvish "dirvish" (&optional path))
 (declare-function dirvish-subtree-expand-to "dirvish-subtree" (target))
+(declare-function dirvish--redisplay "dirvish" ())
+(declare-function dired-goto-file "dired" (file))
 
 
 (defun my/tab-context-directory ()
@@ -52,25 +54,25 @@ Tabに基準ディレクトリが設定されていない場合は、
 
 
 (defun my/project-dirvish ()
-  "現在のTabを基準にDirvishを開き、編集中のファイルを選択する。"
+  "現在のTabを基準にDirvishを開き、編集中のファイルに追従する。"
   (interactive)
-  (let ((file buffer-file-name)
-        (root (or (my/tab-context-directory) default-directory)))
+  ;; Dirvishに切り替える前のバッファからファイル名を取得する。
+  (let ((file (and buffer-file-name
+                   (expand-file-name buffer-file-name)))
+        (root (expand-file-name
+               (or (my/tab-context-directory) default-directory))))
     (dirvish root)
-    (when (and file
-               (file-in-directory-p file root)
-               (derived-mode-p 'dired-mode))
+    ;; セッション再利用時にも、毎回Dirvishの一覧から探し直す。
+    (when (and file (derived-mode-p 'dired-mode)
+               (file-in-directory-p
+                file (expand-file-name default-directory)))
       (require 'dirvish-subtree)
-      (let ((target-position
-             (save-excursion
-               (goto-char (point-min))
-               (when (dirvish-subtree-expand-to
-                      (expand-file-name file))
-                 (point-marker)))))
-        (when target-position
-          (goto-char target-position)
-          (set-marker target-position nil))))))
-
+      (goto-char (point-min))
+      (if (or (dirvish-subtree-expand-to file)
+              (dired-goto-file file))
+          ;; Dirvish自身の再描画時に選択位置が戻るのを防ぐ。
+          (dirvish--redisplay)
+        (message "Dirvish: ファイルへの追従に失敗しました: %s" file)))))
 
 (provide 'my-tab-context)
 
