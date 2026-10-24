@@ -4,6 +4,31 @@
 ;; Dirvishなど、ファイル管理UIの補助処理をまとめる。
 
 ;;; Code:
+(declare-function dired-get-filename "dired" (&optional localp no-error-if-not-filep))
+(declare-function dired-find-file "dired" ())
+(declare-function dirvish-subtree--expanded-p "dirvish-subtree")
+(declare-function dirvish-subtree-toggle "dirvish-subtree")
+(declare-function dirvish-subtree-remove "dirvish-subtree")
+
+
+(defun my/dirvish-collapse ()
+  "現在のディレクトリ、または親のツリーを閉じる。"
+  (interactive)
+  (require 'dirvish-subtree)
+  (if (dirvish-subtree--expanded-p)
+      (dirvish-subtree-toggle)
+    (dirvish-subtree-remove)))
+
+
+(defun my/dirvish-expand-or-open ()
+  "ディレクトリは展開し、ファイルは開く。"
+  (interactive)
+  (require 'dirvish-subtree)
+  (when-let* ((file (dired-get-filename nil t)))
+    (if (file-directory-p file)
+        (unless (dirvish-subtree--expanded-p)
+          (dirvish-subtree-toggle))
+      (dired-find-file))))
 
 
 (defun my/dirvish-preview-below (original buffer alist)

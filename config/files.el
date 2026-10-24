@@ -76,11 +76,14 @@
   ;; ファイル一覧そのものにも情報を多めに表示する。
   (dirvish-attributes
    '(nerd-icons
-     collapse
+     ;collapse
      file-modes
      file-time
      file-size))
 
+  ;; 階層をガイドする罫線を消す
+  (dirvish-subtree-prefix "  ")
+  
   :config
   ;; Dirvishにはプレビュー位置の設定項目がないため、
   ;; 内部の表示処理だけ差し替えて下側へ配置する。
@@ -90,14 +93,11 @@
   :bind
   (("C-x d" . dirvish)
    :map dirvish-mode-map
-   ;; 上の階層へ移動する。
-   ("<left>" . dired-up-directory)
+   ;; ディレクトリを閉じる。
+   ("<left>" . my/dirvish-collapse)
 
-   ;; RETと同じく、ファイルを開く / ディレクトリへ入る。
-   ("<right>" . dired-find-file)
-
-   ;; ディレクトリをその場でツリー展開する。
-   ("TAB" . dirvish-subtree-toggle)
+   ;; ディレクトリは展開し、ファイルは開く。
+   ("<right>" . my/dirvish-expand-or-open)
 
    ;; 空ファイルを作成する（次の行への移動は C-n または下矢印）。
    ("n" . dired-create-empty-file)
