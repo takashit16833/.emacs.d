@@ -11,7 +11,6 @@
 ;; Magitの更新後に呼び出す独自処理は必要になるまで読み込まない。
 (autoload 'my/magit-refresh-tab-line-git-status "my-git")
 (autoload 'my/diff-hl-magit-post-refresh "my-git")
-(autoload 'my/dirvish-dim-ignored "my-files")
 
 
 ;; 編集中のファイルにGitとの差分を表示する。
@@ -50,9 +49,6 @@
   ;; diredに差分を表示する。
   (add-hook 'dired-mode-hook #'diff-hl-dired-mode-unless-remote)
 
-  ;; dirvishでgitignoreされたファイルやディレクトリ名の文字色を暗くする
-  (advice-add 'diff-hl-dired-highlight-items :after #'my/dirvish-dim-ignored)
-  
   ;; Magitの状態更新後に、開いているファイルの差分表示も更新する。
   ;; ここではMagit自体を読み込まない。
   (with-eval-after-load 'magit
