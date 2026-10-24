@@ -53,26 +53,44 @@ Tabに基準ディレクトリが設定されていない場合は、
     (call-interactively #'magit-status)))
 
 
+(defun my/tab-context--dirvish-goto-file (file)
+  "Dirvishの既存ツリーを優先してFILEに移動する。
+まだ表示されていないファイルは親ディレクトリを展開して探す。"
+  (or (dired-goto-file file)
+      (progn
+        ;; dirvish-subtree-expand-toの戻り値だけに頼らず、
+        ;; 実際にDiredのファイル行へ移動できたことを確認する。
+        (goto-char (point-min))
+        (dirvish-subtree-expand-to file)
+        (dired-goto-file file))))
+
+
 (defun my/project-dirvish ()
   "現在のTabを基準にDirvishを開き、編集中のファイルに追従する。"
   (interactive)
-  ;; Dirvishに切り替える前のバッファからファイル名を取得する。
   (let ((file (and buffer-file-name
                    (expand-file-name buffer-file-name)))
         (root (expand-file-name
                (or (my/tab-context-directory) default-directory))))
     (dirvish root)
-    ;; セッション再利用時にも、毎回Dirvishの一覧から探し直す。
-    (when (and file (derived-mode-p 'dired-mode)
-               (file-in-directory-p
-                file (expand-file-name default-directory)))
-      (require 'dirvish-subtree)
-      (goto-char (point-min))
-      (if (or (dirvish-subtree-expand-to file)
-              (dired-goto-file file))
-          ;; Dirvish自身の再描画時に選択位置が戻るのを防ぐ。
-          (dirvish--redisplay)
-        (message "Dirvish: ファイルへの追従に失敗しました: %s" file)))))
+    (when file
+      (cond
+       ((not (derived-mode-p 'dired-mode))
+        (message "Dirvish: ファイル一覧へ切り替わっていません"))
+       ((not (file-in-directory-p
+              file (expand-file-name default-directory)))
+        (message "Dirvish: 対象は表示ルートの外です: %s" file))
+       (t
+        (require 'dirvish-subtree)
+        (if (my/tab-context--dirvish-goto-file file)
+            (progn
+              (dirvish--redisplay)
+              ;; 再利用した一覧でも選択行を画面内へ移動する。
+              (when (eq (current-buffer) (window-buffer))
+                (recenter)))
+          (message "Dirvish: ファイルへの追従に失敗しました: %s"
+                   file)))))))
+
 
 (provide 'my-tab-context)
 
