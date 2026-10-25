@@ -20,8 +20,18 @@
            (directory-file-name directory))))
 
 
+(defun my/vterm--directed-display-p ()
+  "次のバッファ表示先がwindmoveなどで指定されているなら非nilを返す。"
+  ;; windmove-display-* は次のコマンドの間だけこの2変数を設定する。
+  ;; この指定があるときは通常の表示動作に任せ、最大化しない。
+  (and switch-to-buffer-obey-display-actions
+       (car display-buffer-overriding-action)))
+
+
 (defun my/vterm-toggle ()
-  "現在の文脈に対応するvtermを表示・非表示する。"
+  "現在の文脈に対応するvtermを表示・非表示する。
+通常はフレーム全体に表示し、再実行で元の分割を復元する。
+windmoveなどの表示先指定があれば、その指定を優先する。"
   (interactive)
   (let* ((directory
           (or project-current-directory-override
@@ -29,13 +39,35 @@
               default-directory))
          (buffer-name (my/vterm--buffer-name directory))
          (buffer (get-buffer buffer-name))
-         (window (and buffer (get-buffer-window buffer))))
-    (if window
+         (window (and buffer (get-buffer-window buffer)))
+         (tab (assq 'current-tab (tab-bar-tabs)))
+         (saved (alist-get 'my/vterm-fullscreen (cdr tab)))
+         (directed (my/vterm--directed-display-p)))
+    (cond
+     ((and window (not directed))
+      (if (and saved
+               (eq (car saved) buffer)
+               (one-window-p t)
+               (eq window (selected-window)))
+          (set-window-configuration (cdr saved))
         (with-selected-window window
-	  (previous-buffer))
-      (let ((default-directory directory)
+          (previous-buffer)))
+      (setf (alist-get 'my/vterm-fullscreen (cdr tab)) nil))
+     (t
+      ;; 分割の保存はタブ単位。異なるタブで同じvtermを使っても混同しない。
+      (setf (alist-get 'my/vterm-fullscreen (cdr tab)) nil)
+      (let ((configuration (unless directed (current-window-configuration)))
+            (default-directory directory)
             (vterm-buffer-name buffer-name))
-        (vterm)))))
+        (vterm)
+        (unless directed
+          (when-let* ((vterm-buffer (get-buffer buffer-name))
+                      (target (get-buffer-window vterm-buffer)))
+            (select-window target)
+            (unless (one-window-p t)
+              (delete-other-windows target)
+              (setf (alist-get 'my/vterm-fullscreen (cdr tab))
+                    (cons vterm-buffer configuration))))))))))
 
 
 (provide 'my-vterm)
