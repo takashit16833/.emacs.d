@@ -100,7 +100,7 @@
 (ert-deftest my/dirvish-dim-ignored-colors-file-name ()
   "文字色の変更は ignoredファイル名部分に限定する。"
   (skip-unless (executable-find "git"))
-  (let* ((root (make-temp-file "my-dirvish-dim-" t))
+  (let* ((root (file-truename (make-temp-file "my-dirvish-dim-" t)))
          (ignored-file (expand-file-name "history" root))
          (ordinary-file (expand-file-name "README.md" root))
          (buf nil))
