@@ -5,6 +5,9 @@
 
 ;;; Code:
 
+(defvar org-directory)
+(defvar org-default-notes-file)
+
 ;; Orgファイルの保存先。
 (setq org-directory (expand-file-name "~/org/"))
 (setq org-default-notes-file
@@ -40,7 +43,7 @@
 
   :bind
   (("<f13>" . my/org-capture-inbox)
-   ("M-d" . my/org-home-toggle)
+   ("M-D" . my/org-home-toggle)
    ("<f14>" . org-agenda)
 
    :map org-mode-map
