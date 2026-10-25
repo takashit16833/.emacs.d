@@ -130,15 +130,19 @@ ALIST の `window-width' は、下側プレビューの高さの割合として�
              (dirvish-curr)
              (not (file-remote-p default-directory))
              (executable-find "git"))
-    (let ((root (expand-file-name default-directory))
+    (let ((root (file-name-as-directory
+                 (expand-file-name default-directory)))
           entries)
       (save-excursion
         (goto-char (point-min))
         (while (not (eobp))
           (when-let* ((beg (dired-move-to-filename))
                       (end (dired-move-to-end-of-filename t))
-                      (file (dired-get-filename nil t)))
-            (push (list (expand-file-name file) beg end) entries))
+                      (file (dired-get-filename nil t))
+                      (path (expand-file-name file))
+                      ;; Diredの「..」など、一覧のルート外はGitに渡さない。
+                      ((string-prefix-p root path)))
+            (push (list path beg end) entries))
           (forward-line 1)))
       (when entries
         (when-let* ((result
