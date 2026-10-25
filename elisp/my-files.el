@@ -2,6 +2,7 @@
 
 ;;; Commentary:
 ;; Dirvishなど、ファイル管理UIの補助処理をまとめる。
+;; Git ignoredはdiff-hlのmargin記号ではなく、ファイル名の色で表す。
 
 ;;; Code:
 
@@ -107,9 +108,11 @@ ALIST の `window-width' は、下側プレビューの高さの割合として�
 
 (defun my/dirvish--git-ignored-paths (directory files)
   "DIRECTORYを基準にGitで無視されるFILESの絶対パスを返す。
-判定に失敗した場合はnil、成功した場合は(t . PATHS)を返す。"
+Gitの終了コード0（該当あり）・1（該当なし）はいずれも成功とし、
+(t . PATHS)を返す。実行に失敗した場合だけnilを返す。"
   (with-temp-buffer
     ;; Gitは -C に渡された "~" を展開しないので絶対パスへ統一する。
+    ;; NUL区切りで一括照会し、改行を含むファイル名も扱う。
     (dolist (file files)
       (insert (expand-file-name file) "\0"))
     (let ((status
@@ -133,6 +136,9 @@ ALIST の `window-width' は、下側プレビューの高さの割合として�
     (let ((root (file-name-as-directory
                  (expand-file-name default-directory)))
           entries)
+      ;; サブツリーは同一Diredバッファに挿入されるので全行を調べる。
+      ;; 親ディレクトリ「..」などルート外のパスはGitへ渡さない。
+      ;; 渡すとリポジトリ外エラー(128)になる場合がある。
       (save-excursion
         (goto-char (point-min))
         (while (not (eobp))
@@ -153,11 +159,13 @@ ALIST の `window-width' は、下側プレビューの高さの割合として�
                         'tab-bar-tab-inactive :foreground nil t)))
             (dolist (file (cdr result))
               (puthash file t ignored))
+            ;; 自分が作成したoverlayだけを更新し、他の装飾は残す。
             (remove-overlays (point-min) (point-max)
                              'my/dirvish-ignored t)
             (dolist (entry entries)
               (pcase-let ((`(,file ,beg ,end) entry))
                 (when (gethash file ignored)
+                  ;; 属性列を変えず、ファイル名部分のみ暗くする。
                   (let ((ov (make-overlay beg end)))
                     (overlay-put ov 'my/dirvish-ignored t)
                     (overlay-put ov 'face
