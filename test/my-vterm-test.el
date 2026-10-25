@@ -53,19 +53,25 @@
 (ert-deftest my/vterm-toggle-windmove-keeps-split ()
   "windmoveで右を指定したときは分割状態を維持する。"
   (my/vterm-test--with-buffers
-    (set-window-buffer (split-window-right) buffer-b)
-    (let ((exit (windmove-display-right)))
-      (unwind-protect
-          (progn
-            (my/vterm-toggle)
-            (should (= (length (window-list)) 2))
-            (should (eq (window-buffer (selected-window)) buffer-a))
-            (should (equal (buffer-name (window-buffer (next-window)))
-                           buffer-name)))
-        (funcall exit)))
-    (my/vterm-toggle)
-    (should (= (length (window-list)) 2))
-    (should (eq (window-buffer (selected-window)) buffer-b))))
+    (let* ((left (selected-window))
+           (right (split-window-right)))
+      (set-window-buffer right buffer-b)
+      (let ((exit (windmove-display-right)))
+        (unwind-protect
+            (progn
+              (my/vterm-toggle)
+              (should (= (length (window-list)) 2))
+              ;; pop-to-buffer は表示先の右ウィンドウを選択する。
+              ;; next-window は選択先に依存するので左右を直接検証する。
+              (should (eq (selected-window) right))
+              (should (eq (window-buffer left) buffer-a))
+              (should (eq (window-buffer right) (get-buffer buffer-name))))
+          (funcall exit)))
+      (my/vterm-toggle)
+      (should (= (length (window-list)) 2))
+      (should (eq (selected-window) right))
+      (should (eq (window-buffer left) buffer-a))
+      (should (eq (window-buffer right) buffer-b)))))
 
 
 (ert-deftest my/vterm-toggle-one-window ()
