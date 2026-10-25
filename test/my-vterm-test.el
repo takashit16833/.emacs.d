@@ -17,8 +17,10 @@
      (let* ((project-current-directory-override
              (make-temp-name (expand-file-name "vterm-test-" temporary-file-directory)))
             (buffer-name (my/vterm--buffer-name project-current-directory-override))
-            (buffer-a (generate-new-buffer " *my-vterm-a*"))
-            (buffer-b (generate-new-buffer " *my-vterm-b*")))
+            ;; `previous-buffer` は先頭が空白のバッファを履歴に記録しない。
+            ;; 復元動作を検証するため、通常のバッファ名を使用する。
+            (buffer-a (generate-new-buffer "*my-vterm-a*"))
+            (buffer-b (generate-new-buffer "*my-vterm-b*")))
        (unwind-protect
            (cl-letf (((symbol-function 'vterm)
                       (lambda (&optional _arg)
