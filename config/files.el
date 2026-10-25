@@ -86,27 +86,27 @@
   ;; 階層をガイドする罫線を消す
   (dirvish-subtree-prefix "  ")
 
-  ;; 開閉を記憶する
+  ;; 一覧バッファを保持して、subtreeの開閉状態を再利用する。
+  ;; 再開時のファイル追従はmy-tab-context.el側で補う。
   (dirvish-reuse-session t)
-  
+
   :config
   ;; Dirvishにはプレビュー位置の設定項目がないため、
   ;; 内部の表示処理だけ差し替えて下側へ配置する。
   (require 'my-files)
   (advice-add 'dirvish--display-buffer :around #'my/dirvish-preview-below)
 
-  ;; Git ignoredの色付けはDirvish一覧が準備できた後に行う。
+  ;; 初回の一覧生成とsubtreeの展開は別経路。
+  ;; 展開時はDiredの再読込hookが動かないので、両方で色を更新する。
   (add-hook 'dirvish-setup-hook #'my/dirvish-dim-ignored)
-
-  ;; gitignoreされたファイルやディレクトリ名の文字色を再起的に暗くする
   (with-eval-after-load 'dirvish-subtree
     (advice-add 'dirvish-subtree--insert
-		:after #'my/dirvish-dim-ignored))
-  
+                :after #'my/dirvish-dim-ignored))
+
   :bind
   (("C-x d" . my/project-dirvish)
    :map dirvish-mode-map
-   
+
    ;; ディレクトリを閉じる。
    ("<left>" . my/dirvish-collapse)
 
