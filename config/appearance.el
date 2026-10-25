@@ -27,10 +27,12 @@
 (set-display-table-slot standard-display-table 'wrap ?\s)
 (set-display-table-slot standard-display-table 'truncation ?\s)
 
-;; 行番号がある場合はウィンドウの境界線を隠す。
-(set-display-table-slot standard-display-table 'vertical-border ?│)
-
-(add-hook 'display-line-numbers-mode-hook #'my/update-vertical-border)
+;; 右隣の行番号を境界の代わりに使い、ない場合だけ区切り線を表示する。
+;; ウィンドウ単位にすることで、同じバッファを複数ペインに出しても独立する。
+(add-hook 'window-state-change-functions #'my/update-vertical-borders)
+(add-hook 'display-line-numbers-mode-hook
+          #'my/update-vertical-borders-for-buffer)
+(my/update-vertical-borders)
 
 
 ;; 編集用バッファで行番号を表示する。

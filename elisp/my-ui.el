@@ -5,6 +5,9 @@
 
 ;;; Code:
 
+(require 'cl-lib)
+(require 'disp-table)
+
 (defvar nerd-icons-color-icons)
 (declare-function nerd-icons-icon-for-file "nerd-icons" (file &rest options))
 
@@ -40,13 +43,70 @@
 
 (defvar display-line-numbers-mode)
 
-(defun my/update-vertical-border ()
-  (let ((table (copy-sequence
-                (or buffer-display-table standard-display-table))))
-    (set-display-table-slot
-     table 'vertical-border
-     (if display-line-numbers-mode ?\s ?│))
-    (setq-local buffer-display-table table)))
+(defun my/vertical-border--right-neighbor-p (left right)
+  "Return non-nil if RIGHT touches the right edge of LEFT."
+  (let ((a (window-edges left))
+        (b (window-edges right)))
+    (and (not (eq left right))
+         (= (nth 2 a) (car b))
+         (< (nth 1 a) (nth 3 b))
+         (< (nth 1 b) (nth 3 a)))))
+
+
+(defun my/vertical-border--glyph (window windows)
+  "Return the border character for WINDOW given WINDOWS in its frame.
+The right window's line-number gutter acts as the separator.  If
+any adjacent right window has no line numbers, draw the border."
+  (if (cl-some
+       (lambda (right)
+         (and (my/vertical-border--right-neighbor-p window right)
+              (not (buffer-local-value
+                    'display-line-numbers-mode (window-buffer right)))))
+       windows)
+      ?│
+    ?\s))
+
+
+(defun my/vertical-border--update-window (window windows)
+  "Update WINDOW's border using WINDOWS without changing buffer tables."
+  (let* ((buffer (window-buffer window))
+         (source (or (buffer-local-value 'buffer-display-table buffer)
+                     standard-display-table))
+         (current (window-display-table window))
+         ;; Track our own table to avoid reusing it after a buffer switch.
+         ;; An unrelated window display table takes precedence as the base.
+         (owned (window-parameter window 'my/vertical-border))
+         (glyph (my/vertical-border--glyph window windows)))
+    (unless (and (eq (nth 0 owned) buffer)
+                 (eq (nth 1 owned) source)
+                 (eq (nth 2 owned) current)
+                 (eq (display-table-slot current 'vertical-border) glyph))
+      (let* ((base (if (eq current (nth 2 owned))
+                       source
+                     (or current source)))
+             (table (copy-sequence (or base (make-display-table)))))
+        (set-display-table-slot table 'vertical-border glyph)
+        (set-window-display-table window table)
+        (set-window-parameter window 'my/vertical-border
+                              (list buffer source table))))))
+
+
+(defun my/update-vertical-borders (&optional frame)
+  "Update vertical borders in FRAME based on right-neighbor line numbers.
+Designed for the default value of `window-state-change-functions'."
+  (setq frame (or frame (selected-frame)))
+  (when (and (frame-live-p frame)
+             (not (display-graphic-p frame)))
+    (let ((windows (window-list frame 'no-minibuffer)))
+      (dolist (window windows)
+        (my/vertical-border--update-window window windows)))))
+
+
+(defun my/update-vertical-borders-for-buffer ()
+  "Update visible frames when the current buffer toggles line numbers."
+  (dolist (frame (frame-list))
+    (when (get-buffer-window (current-buffer) frame)
+      (my/update-vertical-borders frame))))
 
 ;;; Mood-line
 
