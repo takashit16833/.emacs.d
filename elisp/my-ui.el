@@ -60,8 +60,8 @@ any adjacent right window has no line numbers, draw the border."
   (if (cl-some
        (lambda (right)
          (and (my/vertical-border--right-neighbor-p window right)
-              (not (buffer-local-value
-                    'display-line-numbers-mode (window-buffer right)))))
+              (not (with-current-buffer (window-buffer right)
+                     (bound-and-true-p display-line-numbers-mode)))))
        windows)
       ?│
     ?\s))
