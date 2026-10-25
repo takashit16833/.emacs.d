@@ -112,7 +112,9 @@
             (insert "history\n"))
           (with-temp-file ignored-file (insert "ignored"))
           (with-temp-file ordinary-file (insert "regular"))
-          (setq buf (dired-noselect root))
+          ;; 「..」が表示されるDired一覧でもGit判定が失敗しないこと。
+          (let ((dired-listing-switches "-al"))
+            (setq buf (dired-noselect root)))
           (with-current-buffer buf
             ;; テスト時にDirvishセッションがある状態を模擬する。
             (cl-letf (((symbol-function 'dirvish-curr) (lambda () t)))
