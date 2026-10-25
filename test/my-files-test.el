@@ -1,7 +1,7 @@
 ;;; my-files-test.el --- Tests for my-files -*- lexical-binding: t; -*-
 
 ;;; Commentary:
-;; Dirvishプレビューのウィンドウ選択を確認する。
+;; Dirvishプレビューの配置と、Git ignoredのファイル名装飾を確認する。
 
 ;;; Code:
 
