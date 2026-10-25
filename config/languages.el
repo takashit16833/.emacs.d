@@ -129,4 +129,13 @@
               "s-e" #'my/markdown-toggle-mode))
 
 
+;; Go
+
+(use-package go-ts-mode
+  :ensure nil
+  :mode "\\.go\\'"
+  :custom
+  (go-ts-indent-offset 4))
+
+
 ;;; languages.el ends here
