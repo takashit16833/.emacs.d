@@ -33,6 +33,7 @@
   (require 'diff-hl-margin)
 
   ;; 差分を1文字の縦線で表示する。
+  ;; ignoredの「i」は余白に表示せず、Dirvish側でファイル名を暗くする。
   (setopt diff-hl-margin-symbols-alist
           '((insert . "│")
             (change . "│")
