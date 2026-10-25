@@ -37,7 +37,11 @@
             (cl-letf (((symbol-function 'my/tab-context-directory)
                        (lambda () root))
                       ((symbol-function 'dirvish)
-                       (lambda (_root) (switch-to-buffer dirvish-buf)))
+                       (lambda (_root) nil))  ; セッション復元時の症状を再現
+                      ((symbol-function 'dirvish--get-session)
+                       (lambda (&rest _) 'mock-session))
+                      ((symbol-function 'dv-index)
+                       (lambda (_session) (cons root dirvish-buf)))
                       ((symbol-function 'dired-get-filename)
                        (lambda (&rest _args)
                          (pcase (buffer-substring-no-properties
@@ -88,6 +92,38 @@
         (should (= expansions 1))))))
 
 
+
+
+(ert-deftest my/dirvish-select-session-prefers-visible-window ()
+  "既に表示されているDirvish一覧ウィンドウを選択する。"
+  (save-window-excursion
+    (delete-other-windows)
+    (let ((buf (generate-new-buffer " *my-dirvish-visible*")))
+      (unwind-protect
+          (let ((win (split-window-right)))
+            (set-window-buffer win buf)
+            (cl-letf (((symbol-function 'dirvish--get-session)
+                       (lambda (&rest _) 'mock-session))
+                      ((symbol-function 'dv-index)
+                       (lambda (_session) (cons default-directory buf))))
+              (my/tab-context--dirvish-select-session)
+              (should (eq (selected-window) win))
+              (should (eq (current-buffer) buf))))
+        (kill-buffer buf)))))
+
+
+(ert-deftest my/dirvish-select-session-reopens-hidden-buffer ()
+  "Dirvishの一覧が非表示の場合でもセッションバッファへ移動する。"
+  (save-window-excursion
+    (let ((buf (generate-new-buffer " *my-dirvish-hidden*")))
+      (unwind-protect
+          (cl-letf (((symbol-function 'dirvish--get-session)
+                     (lambda (&rest _) 'mock-session))
+                    ((symbol-function 'dv-index)
+                     (lambda (_session) (cons default-directory buf))))
+            (my/tab-context--dirvish-select-session)
+            (should (eq (current-buffer) buf)))
+        (kill-buffer buf)))))
 
 
 ;;; my-tab-context-test.el ends here
