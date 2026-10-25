@@ -3,6 +3,7 @@
 ;;; Commentary:
 ;; Tab Router が現在のTabに保存している基準ディレクトリを使って、
 ;; Project・Magit・Diredなどのコマンドを実行する。
+;; Dirvishのファイル追従では、再利用時のバッファ選択にも対応する。
 
 ;;; Code:
 
@@ -57,6 +58,8 @@ Tabに基準ディレクトリが設定されていない場合は、
 
 (defun my/tab-context--dirvish-visible-file (file)
   "現在のDirvishツリーに表示されているFILEの位置を返す。"
+  ;; 展開済みのsubtreeも同じDiredバッファ内にあるため、
+  ;; ディレクトリを開き直さず、絶対パスで一覧全体を探す。
   (save-excursion
     (goto-char (point-min))
     (catch 'found
@@ -82,6 +85,10 @@ FILEが非表示なら親ディレクトリを展開して移動する。"
 
 (defun my/tab-context--dirvish-select-session ()
   "既存Dirvishセッションの一覧バッファを選択する。"
+  ;; dirvish-reuse-sessionがtだと、dirvishを呼んでも
+  ;; 編集バッファが選択されたままになるケースがあった。
+  ;; Dirvish内部APIから保存済みindexバッファを取得して選択する。
+  ;; Dirvish更新時はこの内部APIの互換性を確認すること。
   (when-let* ((dv (dirvish--get-session 'type 'default))
               (buf (cdr (dv-index dv)))
               ((buffer-live-p buf)))
@@ -93,6 +100,7 @@ FILEが非表示なら親ディレクトリを展開して移動する。"
 (defun my/project-dirvish ()
   "現在のTabを基準にDirvishを開き、編集中のファイルに追従する。"
   (interactive)
+  ;; dirvishがバッファを切り替える前に追従先を保存する。
   (let ((file (and buffer-file-name
                    (expand-file-name buffer-file-name)))
         (root (expand-file-name
@@ -110,8 +118,8 @@ FILEが非表示なら親ディレクトリを展開して移動する。"
        (t
         (if (my/tab-context--dirvish-goto-file file)
             (progn
+              ;; Dirvishの表示も更新してから、選択行を画面内へ移動する。
               (dirvish--redisplay)
-              ;; 再利用した一覧でも選択行を画面内へ移動する。
               (when (eq (current-buffer) (window-buffer))
                 (recenter)))
           (message "Dirvish: ファイルへの追従に失敗しました: %s"
