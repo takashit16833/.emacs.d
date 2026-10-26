@@ -23,8 +23,10 @@
              (delete-other-windows)
              (switch-to-buffer editing)
              (my/fullscreen-clear 'my/clutch-fullscreen)
+             (my/fullscreen-clear 'my/clutch-layout)
              ,@body)
          (my/fullscreen-clear 'my/clutch-fullscreen)
+         (my/fullscreen-clear 'my/clutch-layout)
          (dolist (buffer (list editing other clutch))
            (when (buffer-live-p buffer)
              (kill-buffer buffer)))))))
@@ -65,7 +67,16 @@
             (should (= (length (window-list)) 2))
             (my/clutch-fullscreen--around-switch #'switch-to-buffer editing)
             (should (= (length (window-list)) 2))
-            (should (eq (window-buffer (next-window)) other)))
+            (should (eq (window-buffer (next-window)) other))
+            ;; tab-lineからClutchへ戻るとSQL結果を含む上下分割が復元する。
+            (my/clutch-fullscreen--around-switch #'switch-to-buffer clutch)
+            (should (= (length (window-list)) 2))
+            (should (eq (window-buffer (selected-window)) clutch))
+            (should (memq result (mapcar #'window-buffer (window-list))))
+            ;; 繰り返し切り替えても配置を保持する。
+            (my/clutch-fullscreen--around-switch #'switch-to-buffer editing)
+            (my/clutch-fullscreen--around-switch #'switch-to-buffer clutch)
+            (should (memq result (mapcar #'window-buffer (window-list)))))
         (kill-buffer result)))))
 
 (ert-deftest my/clutch-fullscreen-keeps-internal-buffer-transition ()
