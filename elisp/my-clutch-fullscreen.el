@@ -21,6 +21,17 @@
              (derived-mode-p 'clutch-repl-mode)
              (derived-mode-p 'clutch-record-mode)))))
 
+(defun my/clutch-fullscreen--restore-layout (buffer)
+  "Clutchの保存済み配置を戻し、BUFFERのウィンドウを選択する。"
+  (when-let* ((layout (my/fullscreen-get 'my/clutch-layout)))
+    (set-window-configuration layout)
+    ;; 結果表示など他のClutchウィンドウを置き換えない。
+    (if-let* ((window (get-buffer-window buffer)))
+        (select-window window)
+      (let ((my/clutch-fullscreen--inhibit t))
+        (switch-to-buffer buffer)))
+    t))
+
 (defun my/clutch-fullscreen--around-switch (original buffer &rest args)
   "Clutch と通常の編集画面を切り替え、ORIGINAL を呼ぶ。"
   (if my/clutch-fullscreen--inhibit
@@ -34,13 +45,17 @@
            (configuration (and entering (current-window-configuration))))
       ;; Clutch内のクエリ→結果の切り替えでは元の分割へ戻さない。
       (when leaving
+        ;; SQL結果を含むClutch内部のウィンドウ配置を保存する。
+        (setf (alist-get 'my/clutch-layout (cdr (my/fullscreen--tab)))
+              (current-window-configuration))
         (my/fullscreen-restore 'my/clutch-fullscreen t))
       (let ((result (let ((my/clutch-fullscreen--inhibit t))
                       (apply original buffer args))))
         (when entering
-          (my/fullscreen-clear 'my/clutch-fullscreen)
-          (my/fullscreen-enter 'my/clutch-fullscreen
-                               (current-buffer) configuration))
+          (unless (my/clutch-fullscreen--restore-layout target)
+            (my/fullscreen-clear 'my/clutch-fullscreen)
+            (my/fullscreen-enter 'my/clutch-fullscreen
+                                 (current-buffer) configuration)))
         result))))
 
 (defun my/clutch-fullscreen-open (open)
@@ -49,6 +64,8 @@
     (let ((my/clutch-fullscreen--inhibit t))
       (funcall open))
     (when (my/clutch-fullscreen--buffer-p (current-buffer))
+      ;; 新しく開いたコンソールは以前のClutch画面の配置を引き継がない。
+      (my/fullscreen-clear 'my/clutch-layout)
       (my/fullscreen-clear 'my/clutch-fullscreen)
       (my/fullscreen-enter 'my/clutch-fullscreen
                            (current-buffer) configuration))))
