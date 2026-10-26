@@ -97,8 +97,8 @@
   (global-tab-line-mode 1))
 
 
-;; 通常は標準tab-line切り替え。Clutchからだけは編集画面の
-;; 最新のウィンドウ配置へ戻し、最後に選択したペインも復元する。
+;; 通常は標準tab-line切り替え。Clutchからの巡回では、先に
+;; tab-lineの順序から移動先を決め、編集画面と選択ペインを復元する。
 (global-set-key (kbd "C-<tab>") #'my/clutch-fullscreen-tab-line-next)
 (global-set-key (kbd "C-S-<tab>") #'my/clutch-fullscreen-tab-line-prev)
 
