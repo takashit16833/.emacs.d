@@ -17,6 +17,9 @@
 (setq interprogram-cut-function nil)
 
 
+;; term/xterm.elで定義される変数をコンパイラへ宣言する。
+(defvar xterm-store-paste-on-kill-ring)
+
 ;; OSのクリップボード貼り付け時にキルリングを更新しないようにする。
 (setq xterm-store-paste-on-kill-ring nil)
 
