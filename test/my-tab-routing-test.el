@@ -14,9 +14,11 @@
 (ert-deftest my/tab-routing-org-directory-takes-priority ()
   "Org リポジトリ内では拡張子を問わず Org Tab を選ぶ。"
   (dolist (name '("notes.org" "README.md" "data.txt"))
-    (let ((file (expand-file-name name "~/org/")))
+    (let ((file (expand-file-name name "~/org/"))
+          (root (file-name-as-directory (expand-file-name "~/org"))))
+      ;; Org Tab は s-d などで使う基準ディレクトリを保持する。
       (should (equal (my/route-org file)
-                     '(:id org :name "Org" :directory nil))))))
+                     `(:id org :name "Org" :directory ,root))))))
 
 
 (ert-deftest my/tab-routing-org-directory-boundary ()
