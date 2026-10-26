@@ -296,11 +296,18 @@
 (ert-deftest my/clutch-fullscreen-tab-line-cycles-through-every-buffer ()
   "Clutchを含む表示順にC-<tab>で巡回し、2バッファ間で往復しない。"
   (my/clutch-fullscreen-test--with-buffers
-    (let ((migrate (generate-new-buffer "clutch-test-migrate")))
+    (let ((migrate (generate-new-buffer "clutch-test-migrate"))
+          (already-installed
+           (advice-member-p #'my/clutch-fullscreen--around-switch
+                            'switch-to-buffer)))
       (unwind-protect
           (let ((tab-line-tabs-function
                  (lambda () (list editing other migrate clutch)))
                 (tab-line-switch-cycling t))
+            ;; navigation.elと同じadviceを有効にした状態で実際の
+            ;; tab-lineコマンドを呼ぶ。元のバッファを直に置換しない。
+            (unless already-installed
+              (my/clutch-fullscreen-setup))
             (my/clutch-fullscreen-open (lambda () (switch-to-buffer clutch)))
             ;; Clutchは最後のタブ: 次は先頭のediting。
             (my/clutch-fullscreen-tab-line-next)
@@ -318,6 +325,8 @@
             (should (eq (current-buffer) clutch))
             (my/clutch-fullscreen-tab-line-prev)
             (should (eq (current-buffer) migrate)))
+        (unless already-installed
+          (advice-remove 'switch-to-buffer #'my/clutch-fullscreen--around-switch))
         (kill-buffer migrate)))))
 
 
