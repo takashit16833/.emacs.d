@@ -7,6 +7,10 @@
 
 (require 'my-tab-line)
 
+;; Clutchのtab-line移動は元のウィンドウ配置へ復帰させる。
+(require 'my-clutch-fullscreen)
+(my/clutch-fullscreen-setup)
+
 ;; tab-line は use-package の :demand t で読み込む。
 ;; バイトコンパイル時は関数の定義元を明示する。
 (declare-function tab-line-tabs-non-excluded "tab-line")
