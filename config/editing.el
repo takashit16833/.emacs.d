@@ -121,11 +121,9 @@
   :bind ("S-s-l" . er/expand-region))
 
 
-;; Undo / Redo: Command（Super）とOption（Meta）のZを割り当てる。
-(use-package undo-fu
-  :ensure t
-  :bind (("s-z" . undo-fu-only-undo)
-         ("S-s-z" . undo-fu-only-redo)))
+;; Undo / Redo: Emacs標準の操作をCommand（Super）+Zに割り当てる。
+(keymap-global-set "s-z" #'undo-only)
+(keymap-global-set "S-s-z" #'undo-redo)
 
 
 ;;; editing.el ends here

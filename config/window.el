@@ -17,8 +17,8 @@
 (keymap-global-set "M-z" #'my/toggle-window-zoom)
 
 
-;; VS Code と同じ Command+Option+0 で分割方向を切り替える。
-(keymap-global-set "M-s-0" #'my/toggle-window-split-direction)
+;; Emacs 31.1標準のコマンドで分割方向を縦横に切り替える。
+(keymap-global-set "M-s-0" #'window-layout-transpose)
 
 
 ;; 矢印方向へバッファの表示先を移動する。
