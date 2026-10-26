@@ -2,10 +2,13 @@
 
 ;;; Commentary:
 ;; Tab-lineの表示、並び順、Git差分状態を管理する。
+;; 並び順はウィンドウ単位ではなくtab-barタブ単位に保持する。
+;; Clutchがウィンドウ構成を入れ替えても、同じタブ内の順序は不変。
 
 ;;; Code:
 
 (require 'seq)
+(require 'tab-bar)
 (require 'vc-hooks)
 (require 'my-ui)
 
@@ -171,8 +174,9 @@ CURRENT-BUFFERS にないbufferは除外する。"
 
 
 (defun my/tab-line-tabs-bufferlo-buffers ()
-  "現在のTabに属するBufferloのbufferを安定した順番で返す。"
-  (let* ((window (selected-window))
+  "現在のtab-barタブに属するBufferloのbufferを安定した順番で返す。
+並び順はtab-barタブに保存し、分割ウィンドウ間で共有する。"
+  (let* ((tab (assq 'current-tab (tab-bar-tabs)))
          (buffers
           (tab-line-tabs-non-excluded
            (seq-filter
@@ -182,11 +186,12 @@ CURRENT-BUFFERS にないbufferは除外する。"
             (bufferlo-buffer-list))))
          (ordered-buffers
           (my/tab-line--stable-buffer-order
-           (window-parameter window 'tab-line-buffers)
+           (alist-get 'my/tab-line-buffers (cdr tab))
            buffers)))
-    (set-window-parameter window 'tab-line-buffers ordered-buffers)
+    ;; window-parameter はClutchの配置復元に伴って別々に複製される。
+    ;; タブ側を正とし、どのペインのtab-lineも同じ順序に揃える。
+    (setf (alist-get 'my/tab-line-buffers (cdr tab)) ordered-buffers)
     ordered-buffers))
-
 
 (provide 'my-tab-line)
 
