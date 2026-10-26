@@ -99,7 +99,7 @@
 
 
 (ert-deftest my/clutch-fullscreen-keeps-editing-layout-across-switches ()
-  "Clutchとの往復で編集画面の保存状態を破棄しない。"
+  "編集画面の保存状態はClutchへ戻るたびに更新し、離れても消さない。"
   (my/clutch-fullscreen-test--with-buffers
     (set-window-buffer (split-window-right) other)
     (my/clutch-fullscreen-open (lambda () (switch-to-buffer clutch)))
@@ -111,9 +111,13 @@
       (should (window-configuration-p
                (my/fullscreen-get 'my/clutch-layout)))
       (my/clutch-fullscreen--around-switch #'switch-to-buffer clutch)
-      (should (eq saved (my/fullscreen-get 'my/clutch-fullscreen)))
-      (my/clutch-fullscreen--around-switch #'switch-to-buffer editing)
-      (should (eq saved (my/fullscreen-get 'my/clutch-fullscreen))))))
+      (let ((latest (my/fullscreen-get 'my/clutch-fullscreen)))
+        ;; 同じ分割でも、切り替え直前の配置を新しく保存する。
+        (should-not (eq saved latest))
+        (should (eq (car latest) clutch))
+        (should (window-configuration-p (cdr latest)))
+        (my/clutch-fullscreen--around-switch #'switch-to-buffer editing)
+        (should (eq latest (my/fullscreen-get 'my/clutch-fullscreen)))))))
 
 
 (ert-deftest my/clutch-fullscreen-fresh-open-discards-old-clutch-layout ()
@@ -175,6 +179,40 @@
     (my/clutch-fullscreen--around-switch #'switch-to-buffer editing)
     (should (one-window-p t))
     (should (eq (window-buffer) editing))))
+
+
+(ert-deftest my/clutch-fullscreen-updates-edited-window-splits ()
+  "編集画面で削除・追加した分割を復元し、SQL結果の分割は独立に維持する。"
+  (my/clutch-fullscreen-test--with-buffers
+    ;; 最初は編集中のファイルを横に2分割している。
+    (set-window-buffer (split-window-right) other)
+    (my/clutch-fullscreen-open (lambda () (switch-to-buffer clutch)))
+    (let ((result (generate-new-buffer "clutch-test-result")))
+      (unwind-protect
+          (progn
+            (with-current-buffer result (setq major-mode 'clutch-result-mode))
+            (set-window-buffer (split-window-below) result)
+            ;; 編集画面に戻って右のウィンドウを閉じる。
+            (my/clutch-fullscreen--around-switch #'switch-to-buffer editing)
+            (should (= (length (window-list)) 2))
+            (delete-other-windows)
+            (should (one-window-p t))
+            (my/clutch-fullscreen--around-switch #'switch-to-buffer clutch)
+            (should (= (length (window-list)) 2))
+            (should (memq result (mapcar #'window-buffer (window-list))))
+            ;; 往復しても、閉じた右ウィンドウが復活しない。
+            (my/clutch-fullscreen--around-switch #'switch-to-buffer editing)
+            (should (one-window-p t))
+            (should (eq (window-buffer) editing))
+            ;; 今度は右のウィンドウを作り直す。
+            (set-window-buffer (split-window-right) other)
+            (my/clutch-fullscreen--around-switch #'switch-to-buffer clutch)
+            (should (memq result (mapcar #'window-buffer (window-list))))
+            (my/clutch-fullscreen--around-switch #'switch-to-buffer editing)
+            (should (= (length (window-list)) 2))
+            (should (eq (window-buffer) editing))
+            (should (eq (window-buffer (next-window)) other)))
+        (kill-buffer result)))))
 
 
 (provide 'my-clutch-fullscreen-test)
