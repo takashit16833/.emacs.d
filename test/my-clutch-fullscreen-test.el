@@ -137,6 +137,46 @@
         (kill-buffer result)))))
 
 
+
+(ert-deftest my/clutch-fullscreen-one-window-editor-preserves-result-split ()
+  "単一ウィンドウから起動してもClutchのSQL結果を編集画面に混ぜない。"
+  (my/clutch-fullscreen-test--with-buffers
+    (should (one-window-p t))
+    (my/clutch-fullscreen-open (lambda () (switch-to-buffer clutch)))
+    (let ((saved (my/fullscreen-get 'my/clutch-fullscreen))
+          (result (generate-new-buffer "clutch-test-result")))
+      (unwind-protect
+          (progn
+            ;; 起動後はClutchだけの1ウィンドウでも、編集画面は保存済み。
+            (should (eq (car saved) clutch))
+            (should (window-configuration-p (cdr saved)))
+            (with-current-buffer result
+              (setq major-mode 'clutch-result-mode))
+            (set-window-buffer (split-window-below) result)
+            ;; 報告された操作: SQL実行後のC-<tab>を3往復。
+            (dotimes (_ 3)
+              (my/clutch-fullscreen--around-switch #'switch-to-buffer editing)
+              (should (one-window-p t))
+              (should (eq (window-buffer) editing))
+              (should (eq saved (my/fullscreen-get 'my/clutch-fullscreen)))
+              (my/clutch-fullscreen--around-switch #'switch-to-buffer clutch)
+              (should (= (length (window-list)) 2))
+              (should (eq (window-buffer (selected-window)) clutch))
+              (should (memq result (mapcar #'window-buffer (window-list))))))
+        (kill-buffer result)))))
+
+
+(ert-deftest my/clutch-fullscreen-one-window-tab-line-entry ()
+  "既存のClutchバッファへ直接切り替えた場合も編集画面を保存する。"
+  (my/clutch-fullscreen-test--with-buffers
+    (my/clutch-fullscreen--around-switch #'switch-to-buffer clutch)
+    (should (one-window-p t))
+    (should (my/fullscreen-get 'my/clutch-fullscreen))
+    (my/clutch-fullscreen--around-switch #'switch-to-buffer editing)
+    (should (one-window-p t))
+    (should (eq (window-buffer) editing))))
+
+
 (provide 'my-clutch-fullscreen-test)
 
 ;;; my-clutch-fullscreen-test.el ends here
