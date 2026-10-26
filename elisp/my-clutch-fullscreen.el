@@ -48,7 +48,9 @@
         ;; SQL結果を含むClutch内部のウィンドウ配置を保存する。
         (setf (alist-get 'my/clutch-layout (cdr (my/fullscreen--tab)))
               (current-window-configuration))
-        (my/fullscreen-restore 'my/clutch-fullscreen t))
+        ;; Clutchに戻った後の次の切り替えでも必要なので、
+        ;; 編集画面の保存状態は消さずに復元する。
+        (set-window-configuration (cdr saved)))
       (let ((result (let ((my/clutch-fullscreen--inhibit t))
                       (apply original buffer args))))
         (when entering
