@@ -1,0 +1,49 @@
+;;; my-fullscreen-buffer.el --- Tab-local fullscreen buffer layouts -*- lexical-binding: t; -*-
+
+;;; Commentary:
+;; vterm と Clutch で使う、タブ単位の配置保存・復元の共通部分。
+;; Clutch の SQL 結果表示による分割は通常のウィンドウ操作に任せる。
+
+;;; Code:
+
+(require 'tab-bar)
+
+(defun my/fullscreen--tab ()
+  "現在の tab-bar タブを返す。"
+  (assq 'current-tab (tab-bar-tabs)))
+
+(defun my/fullscreen-get (key)
+  "現在のタブの KEY に保存された全面表示状態を返す。"
+  (alist-get key (cdr (my/fullscreen--tab))))
+
+(defun my/fullscreen-clear (key)
+  "現在のタブの KEY に保存された状態を破棄する。"
+  (setf (alist-get key (cdr (my/fullscreen--tab))) nil))
+
+(defun my/fullscreen-enter (key buffer &optional configuration)
+  "BUFFER を全面表示し、KEY に元の配置を保存する。
+CONFIGURATION があれば、バッファ表示前に保存した配置を使う。
+既に単一ウィンドウなら復元用状態は作らない。"
+  (let ((window (get-buffer-window buffer)))
+    (when window
+      (select-window window)
+      (unless (one-window-p t)
+        (let ((saved (or configuration (current-window-configuration))))
+          (delete-other-windows window)
+          (setf (alist-get key (cdr (my/fullscreen--tab)))
+                (cons buffer saved))))
+      (selected-window))))
+
+(defun my/fullscreen-restore (key &optional allow-split)
+  "KEY の元のウィンドウ配置を復元する。
+ALLOW-SPLIT が非 nil なら、全面表示中の一時的な分割も許可する。
+状態がなければ何もしない。"
+  (when-let* ((saved (my/fullscreen-get key)))
+    (when (or allow-split (one-window-p t))
+      (my/fullscreen-clear key)
+      (set-window-configuration (cdr saved))
+      t)))
+
+(provide 'my-fullscreen-buffer)
+
+;;; my-fullscreen-buffer.el ends here
