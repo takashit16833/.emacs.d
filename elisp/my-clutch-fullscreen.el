@@ -111,6 +111,37 @@ vtermの起動やtab-lineの除外条件には介入しない。"
     (advice-add 'switch-to-buffer :around
                 #'my/clutch-fullscreen--around-switch)))
 
+;; ClutchからC-<tab>で戻るときは、通常のswitch-to-bufferを通さない。
+;; tab-lineのコマンドは内部でwith-selected-windowを使うため、
+;; その内側でウィンドウ配置を復元すると選択ペインが上書きされる。
+;; 編集画面の最新配置には、切り替え直前に選択したペインも含まれる。
+(declare-function tab-line-switch-to-next-tab "tab-line" (&optional event arg))
+(declare-function tab-line-switch-to-prev-tab "tab-line" (&optional event arg))
+
+(defun my/clutch-fullscreen--tab-line-return ()
+  "Clutch表示中なら、最後に選択した編集画面のペインへ戻る。
+復元した場合は t を返し、通常のtab-line切り替えは実行しない。"
+  (let ((saved (my/fullscreen-get 'my/clutch-fullscreen)))
+    (when (and (my/clutch-fullscreen--buffer-p (current-buffer))
+               (consp saved)
+               (window-configuration-p (cdr saved)))
+      ;; switch-to-bufferで表示先を変更すると、他の編集ペインの
+      ;; バッファを置き換えたり、選択ペインをずらしたりしてしまう。
+      (my/clutch-fullscreen--leave saved)
+      t)))
+
+(defun my/clutch-fullscreen-tab-line-next ()
+  "通常は次のtab-lineバッファへ移動し、Clutchでは編集画面へ戻る。"
+  (interactive)
+  (unless (my/clutch-fullscreen--tab-line-return)
+    (call-interactively #'tab-line-switch-to-next-tab)))
+
+(defun my/clutch-fullscreen-tab-line-prev ()
+  "通常は前のtab-lineバッファへ移動し、Clutchでは編集画面へ戻る。"
+  (interactive)
+  (unless (my/clutch-fullscreen--tab-line-return)
+    (call-interactively #'tab-line-switch-to-prev-tab)))
+
 (provide 'my-clutch-fullscreen)
 
 ;;; my-clutch-fullscreen.el ends here
