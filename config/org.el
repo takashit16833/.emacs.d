@@ -24,6 +24,10 @@
   ;; Orgリンク先のファイルを現在のウィンドウで開く。
   (setf (alist-get 'file org-link-frame-setup) 'find-file)
 
+  ;; コードブロックをシンタックスハイライトする。
+  (add-to-list 'org-src-lang-modes '("yml" . yaml-ts))
+  (add-to-list 'org-src-lang-modes '("yaml" . yaml-ts))
+
   :custom
   ;; *bold* や /italic/ の記号を通常時は隠す。
   (org-hide-emphasis-markers t)
