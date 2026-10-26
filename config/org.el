@@ -43,7 +43,7 @@
 
   :bind
   (("<f13>" . my/org-capture-inbox)
-   ("M-D" . my/org-home-toggle)
+   ("M-d" . my/org-home-toggle)
    ("<f14>" . org-agenda)
 
    :map org-mode-map
