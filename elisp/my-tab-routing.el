@@ -1,7 +1,8 @@
 ;;; my-tab-routing.el --- Personal tab routing rules -*- lexical-binding: t; -*-
 
 ;;; Commentary:
-;; Tab Router で使用する個人用のルーティングルールを定義する。
+;; 優先順: ~/org/ 配下 -> 文書ファイル -> 各プロジェクト。
+;; Tab Router は最初に non-nil を返したルールを採用する。
 
 ;;; Code:
 
@@ -9,22 +10,21 @@
 
 
 (defun my/route-org (file)
-  "Org ファイル FILE を Org Tab へルーティングする。"
-  (when (string-equal
-         (downcase (or (file-name-extension file) ""))
-         "org")
+  "FILE が ~/org/ 配下なら Org Tab へルーティングする。"
+  (when (string-prefix-p
+         (file-name-as-directory (expand-file-name "~/org"))
+         (expand-file-name file))
     '(:id org
       :name "Org"
       :directory nil)))
 
 
-(defun my/route-markdown (file)
-  "Markdown ファイル FILE を md Tab へルーティングする。"
-  (when (string-equal
-         (downcase (or (file-name-extension file) ""))
-         "md")
-    '(:id md
-      :name "Markdown"
+(defun my/route-document (file)
+  "Org / Markdown ファイル FILE を Document Tab へルーティングする。"
+  (when (member (downcase (or (file-name-extension file) ""))
+                '("org" "md"))
+    '(:id document
+      :name "Document"
       :directory nil)))
 
 
