@@ -293,6 +293,16 @@
         (should (equal calls '(prev next)))))))
 
 
+(defun my/clutch-fullscreen-test--invoke-tab-line (command)
+  "COMMANDを実行し、キー入力後のEmacsコマンドループの状態を再現する。
+Emacs 31.1のtab-line切り替えは`with-selected-window'を使う。
+その`save-current-buffer'によりLispから直接連続呼び出しすると
+current-bufferだけが直前のバッファのままになることがある。
+通常のキー操作では選択ウィンドウのバッファに同期される。"
+  (funcall command)
+  (set-buffer (window-buffer (selected-window))))
+
+
 (ert-deftest my/clutch-fullscreen-tab-line-cycles-through-every-buffer ()
   "Clutchを含む表示順にC-<tab>で巡回し、2バッファ間で往復しない。"
   (my/clutch-fullscreen-test--with-buffers
@@ -305,25 +315,33 @@
                  (lambda () (list editing other migrate clutch)))
                 (tab-line-switch-cycling t))
             ;; navigation.elと同じadviceを有効にした状態で実際の
-            ;; tab-lineコマンドを呼ぶ。元のバッファを直に置換しない。
+            ;; tab-lineコマンドを呼ぶ。キー操作のコマンドループに合わせ、
+            ;; 各コマンド後にcurrent-bufferを選択ウィンドウへ同期する。
             (unless already-installed
               (my/clutch-fullscreen-setup))
             (my/clutch-fullscreen-open (lambda () (switch-to-buffer clutch)))
             ;; Clutchは最後のタブ: 次は先頭のediting。
-            (my/clutch-fullscreen-tab-line-next)
+            (my/clutch-fullscreen-test--invoke-tab-line
+             #'my/clutch-fullscreen-tab-line-next)
             (should (eq (current-buffer) editing))
-            (my/clutch-fullscreen-tab-line-next)
+            (my/clutch-fullscreen-test--invoke-tab-line
+             #'my/clutch-fullscreen-tab-line-next)
             (should (eq (current-buffer) other))
-            (my/clutch-fullscreen-tab-line-next)
+            (my/clutch-fullscreen-test--invoke-tab-line
+             #'my/clutch-fullscreen-tab-line-next)
             (should (eq (current-buffer) migrate))
-            (my/clutch-fullscreen-tab-line-next)
+            (my/clutch-fullscreen-test--invoke-tab-line
+             #'my/clutch-fullscreen-tab-line-next)
             (should (eq (current-buffer) clutch))
-            (my/clutch-fullscreen-tab-line-next)
+            (my/clutch-fullscreen-test--invoke-tab-line
+             #'my/clutch-fullscreen-tab-line-next)
             (should (eq (current-buffer) editing))
             ;; 逆方向にも表示順どおりに戻れる。
-            (my/clutch-fullscreen-tab-line-prev)
+            (my/clutch-fullscreen-test--invoke-tab-line
+             #'my/clutch-fullscreen-tab-line-prev)
             (should (eq (current-buffer) clutch))
-            (my/clutch-fullscreen-tab-line-prev)
+            (my/clutch-fullscreen-test--invoke-tab-line
+             #'my/clutch-fullscreen-tab-line-prev)
             (should (eq (current-buffer) migrate)))
         (unless already-installed
           (advice-remove 'switch-to-buffer #'my/clutch-fullscreen--around-switch))
