@@ -11,12 +11,11 @@
 
 (defun my/route-org (file)
   "FILE が ~/org/ 配下なら Org Tab へルーティングする。"
-  (when (string-prefix-p
-         (file-name-as-directory (expand-file-name "~/org"))
-         (expand-file-name file))
-    '(:id org
-      :name "Org"
-      :directory nil)))
+  (let ((root (file-name-as-directory (expand-file-name "~/org"))))
+    (when (string-prefix-p root (expand-file-name file))
+      `(:id org
+            :name "Org"
+            :directory ,root))))
 
 
 (defun my/route-document (file)
@@ -24,8 +23,8 @@
   (when (member (downcase (or (file-name-extension file) ""))
                 '("org" "md"))
     '(:id document
-      :name "Document"
-      :directory nil)))
+	  :name "Document"
+	  :directory nil)))
 
 
 (defun my/route-project (file)
@@ -38,9 +37,9 @@
                 (expand-file-name
                  (project-root project)))))
     `(:id (project . ,root)
-      :name ,(file-name-nondirectory
-              (directory-file-name root))
-      :directory ,root)))
+	  :name ,(file-name-nondirectory
+		  (directory-file-name root))
+	  :directory ,root)))
 
 
 (provide 'my-tab-routing)
