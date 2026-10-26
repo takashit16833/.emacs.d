@@ -6,6 +6,7 @@
 ;;; Code:
 
 (require 'my-tab-context)
+(require 'my-fullscreen-buffer)
 
 (declare-function vterm "vterm" (&optional arg))
 
@@ -40,8 +41,7 @@ windmoveなどの表示先指定があれば、その指定を優先する。"
          (buffer-name (my/vterm--buffer-name directory))
          (buffer (get-buffer buffer-name))
          (window (and buffer (get-buffer-window buffer)))
-         (tab (assq 'current-tab (tab-bar-tabs)))
-         (saved (alist-get 'my/vterm-fullscreen (cdr tab)))
+         (saved (my/fullscreen-get 'my/vterm-fullscreen))
          (directed (my/vterm--directed-display-p)))
     (cond
      ((and window (not directed))
@@ -49,13 +49,13 @@ windmoveなどの表示先指定があれば、その指定を優先する。"
                (eq (car saved) buffer)
                (one-window-p t)
                (eq window (selected-window)))
-          (set-window-configuration (cdr saved))
+          (my/fullscreen-restore 'my/vterm-fullscreen)
         (with-selected-window window
           (previous-buffer)))
-      (setf (alist-get 'my/vterm-fullscreen (cdr tab)) nil))
+      (my/fullscreen-clear 'my/vterm-fullscreen))
      (t
       ;; 分割の保存はタブ単位。異なるタブで同じvtermを使っても混同しない。
-      (setf (alist-get 'my/vterm-fullscreen (cdr tab)) nil)
+      (my/fullscreen-clear 'my/vterm-fullscreen)
       (let ((configuration (unless directed (current-window-configuration)))
             (default-directory directory)
             (vterm-buffer-name buffer-name))
@@ -65,9 +65,8 @@ windmoveなどの表示先指定があれば、その指定を優先する。"
                       (target (get-buffer-window vterm-buffer)))
             (select-window target)
             (unless (one-window-p t)
-              (delete-other-windows target)
-              (setf (alist-get 'my/vterm-fullscreen (cdr tab))
-                    (cons vterm-buffer configuration))))))))))
+              (my/fullscreen-enter 'my/vterm-fullscreen
+                                   vterm-buffer configuration)))))))))
 
 
 (provide 'my-vterm)
