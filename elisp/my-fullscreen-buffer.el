@@ -28,15 +28,20 @@
 (defun my/fullscreen-enter (key buffer &optional configuration)
   "BUFFER を全面表示し、KEY に元の配置を保存する。
 CONFIGURATION があれば、バッファ表示前に保存した配置を使う。
-既に単一ウィンドウなら復元用状態は作らない。"
+CONFIGURATION が明示されていれば、現在が単一ウィンドウでも保存する。
+省略時は分割されている場合だけ保存する（vterm の従来動作）。"
   (let ((window (get-buffer-window buffer)))
     (when window
       (select-window window)
-      (unless (one-window-p t)
-        (let ((saved (or configuration (current-window-configuration))))
-          (delete-other-windows window)
-          (setf (alist-get key (cdr (my/fullscreen--tab)))
-                (cons buffer saved))))
+      (let ((split (not (one-window-p t))))
+        ;; Clutchは起動前の編集画面が単一ウィンドウでも復元する必要がある。
+        ;; 現在の分割だけで判定すると、SQL結果の分割が編集画面に混ざる。
+        (when (or split configuration)
+          (let ((saved (or configuration (current-window-configuration))))
+            (when split
+              (delete-other-windows window))
+            (setf (alist-get key (cdr (my/fullscreen--tab)))
+                  (cons buffer saved)))))
       (selected-window))))
 
 (defun my/fullscreen-restore (key &optional allow-split)
