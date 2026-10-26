@@ -7,6 +7,7 @@
 
 (require 'my-project)
 (require 'seq)
+(require 'my-clutch-fullscreen)
 
 ;; Clutchは実行時にautoloadされるため、
 ;; byte compilerへ関数定義だけを宣言する。
@@ -58,9 +59,11 @@
             ;; 明示された:ssh-hostや:tramp-default-directoryは
             ;; Clutchがそのまま接続経路として使用する。
             (clutch-tramp-context-policy nil))
-        (clutch-query-console
-         (list :name name
-               :params params))))))
+        (my/clutch-fullscreen-open
+         (lambda ()
+           (clutch-query-console
+            (list :name name
+                  :params params))))))))
 
 
 (defun my/project-database-connections-safe-p (connections)
