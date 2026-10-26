@@ -1,9 +1,17 @@
 ;;; my-clutch-fullscreen.el --- Fullscreen Clutch with tab-line -*- lexical-binding: t; -*-
 
 ;;; Commentary:
-;; Clutch は tab-line に残し、通常のバッファへ戻ると編集画面を復元する。
-;; SQL実行結果は clutch-result-mode なので全面表示内部で分割できる。
-;; vterm と配置保存・復元だけを共有する。起動や tab-line 除外条件は共有しない。
+;; vterm と共有するのは全面表示・配置保存の基本処理だけ。
+;; Clutch は tab-line に表示され、バッファの切り替えでも開閉する。
+;;
+;; 現在の tab-bar タブに、用途の異なる2つの状態を保存する。
+;; - my/clutch-fullscreen: (Clutchバッファ . 元の編集画面の配置)
+;; - my/clutch-layout: SQL結果の分割を含むClutch画面の配置
+;;
+;; Clutchを離れるときは後者を保存し、前者を使って編集画面へ戻す。
+;; 編集画面の配置は消さない。消すと2回目以降の往復でSQL結果が
+;; 編集画面へ混ざる。再度Clutchを起動した場合は両方を初期化する。
+;; tab-lineの表示条件は my-tab-line.el が管理する。
 
 ;;; Code:
 
@@ -22,7 +30,9 @@
              (derived-mode-p 'clutch-record-mode)))))
 
 (defun my/clutch-fullscreen--restore-layout (buffer)
-  "Clutchの保存済み配置を戻し、BUFFERのウィンドウを選択する。"
+  "保存済みのClutch画面を復元し、BUFFERのウィンドウを選択する。
+結果ペインなど、BUFFER以外のClutchウィンドウはそのまま維持する。
+復元できれば t、保存済みの配置がなければ nil を返す。"
   (when-let* ((layout (my/fullscreen-get 'my/clutch-layout)))
     (set-window-configuration layout)
     ;; 結果表示など他のClutchウィンドウを置き換えない。
@@ -32,8 +42,28 @@
         (switch-to-buffer buffer)))
     t))
 
+(defun my/clutch-fullscreen--leave (saved)
+  "現在のClutch画面を保存し、SAVEDに記録された編集画面へ戻す。
+SAVED は (Clutchバッファ . 編集画面の配置) の組。
+ここでは `my/fullscreen-restore' を使わない。あちらは復元後に
+保存状態を消すため、Clutchへの往復を繰り返せなくなる。"
+  (setf (alist-get 'my/clutch-layout (cdr (my/fullscreen--tab)))
+        (current-window-configuration))
+  (set-window-configuration (cdr saved)))
+
+(defun my/clutch-fullscreen--enter (buffer configuration)
+  "BUFFERのClutch画面を表示する。
+保存済みのClutch配置を優先する。なければCONFIGURATIONを
+元の編集画面として保存し、BUFFERを全面表示する。"
+  (unless (my/clutch-fullscreen--restore-layout buffer)
+    (my/fullscreen-clear 'my/clutch-fullscreen)
+    (my/fullscreen-enter 'my/clutch-fullscreen
+                         (current-buffer) configuration)))
+
 (defun my/clutch-fullscreen--around-switch (original buffer &rest args)
-  "Clutch と通常の編集画面を切り替え、ORIGINAL を呼ぶ。"
+  "Clutch と通常の編集画面を切り替え、ORIGINAL を呼ぶ。
+Clutchに戻るときはORIGINALの後でClutch配置を復元する。
+先に復元するとORIGINALがクエリ表示を別バッファで上書きする。"
   (if my/clutch-fullscreen--inhibit
       (apply original buffer args)
     (let* ((target (if (bufferp buffer) buffer (get-buffer buffer)))
@@ -43,25 +73,18 @@
            (entering (and to-clutch (not from-clutch)))
            (leaving (and from-clutch (not to-clutch) saved))
            (configuration (and entering (current-window-configuration))))
-      ;; Clutch内のクエリ→結果の切り替えでは元の分割へ戻さない。
+      ;; クエリと結果の間だけの移動は、Clutch内部の操作として扱う。
       (when leaving
-        ;; SQL結果を含むClutch内部のウィンドウ配置を保存する。
-        (setf (alist-get 'my/clutch-layout (cdr (my/fullscreen--tab)))
-              (current-window-configuration))
-        ;; Clutchに戻った後の次の切り替えでも必要なので、
-        ;; 編集画面の保存状態は消さずに復元する。
-        (set-window-configuration (cdr saved)))
+        (my/clutch-fullscreen--leave saved))
       (let ((result (let ((my/clutch-fullscreen--inhibit t))
                       (apply original buffer args))))
         (when entering
-          (unless (my/clutch-fullscreen--restore-layout target)
-            (my/fullscreen-clear 'my/clutch-fullscreen)
-            (my/fullscreen-enter 'my/clutch-fullscreen
-                                 (current-buffer) configuration)))
+          (my/clutch-fullscreen--enter target configuration))
         result))))
 
 (defun my/clutch-fullscreen-open (open)
-  "OPEN を実行して Clutch を表示し、元の編集配置を保存する。"
+  "OPEN を実行してClutchを表示し、編集画面の配置を保存する。
+新しく起動する際は以前のClutch画面・編集画面の保存状態を破棄する。"
   (let ((configuration (current-window-configuration)))
     (let ((my/clutch-fullscreen--inhibit t))
       (funcall open))
@@ -73,7 +96,8 @@
                            (current-buffer) configuration))))
 
 (defun my/clutch-fullscreen-setup ()
-  "Clutchを通常のbuffer切り替えでも全面表示する。"
+  "Clutchを通常のバッファ切り替えでも全面表示する。
+vtermの起動やtab-lineの除外条件には介入しない。"
   (unless (advice-member-p #'my/clutch-fullscreen--around-switch
                            'switch-to-buffer)
     (advice-add 'switch-to-buffer :around
