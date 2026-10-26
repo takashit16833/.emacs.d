@@ -159,14 +159,17 @@
             (set-window-buffer (split-window-below) result)
             ;; 報告された操作: SQL実行後のC-<tab>を3往復。
             (dotimes (_ 3)
-              (my/clutch-fullscreen--around-switch #'switch-to-buffer editing)
-              (should (one-window-p t))
-              (should (eq (window-buffer) editing))
-              (should (eq saved (my/fullscreen-get 'my/clutch-fullscreen)))
-              (my/clutch-fullscreen--around-switch #'switch-to-buffer clutch)
-              (should (= (length (window-list)) 2))
-              (should (eq (window-buffer (selected-window)) clutch))
-              (should (memq result (mapcar #'window-buffer (window-list))))))
+              ;; 編集画面の保存状態はClutchへ入るたびに更新される。
+              ;; 戻るときに保存状態が失われないことを各往復で確認する。
+              (let ((snapshot (my/fullscreen-get 'my/clutch-fullscreen)))
+                (my/clutch-fullscreen--around-switch #'switch-to-buffer editing)
+                (should (one-window-p t))
+                (should (eq (window-buffer) editing))
+                (should (eq snapshot (my/fullscreen-get 'my/clutch-fullscreen)))
+                (my/clutch-fullscreen--around-switch #'switch-to-buffer clutch)
+                (should (= (length (window-list)) 2))
+                (should (eq (window-buffer (selected-window)) clutch))
+                (should (memq result (mapcar #'window-buffer (window-list)))))))
         (kill-buffer result)))))
 
 
@@ -213,6 +216,74 @@
             (should (eq (window-buffer) editing))
             (should (eq (window-buffer (next-window)) other)))
         (kill-buffer result)))))
+
+
+
+(ert-deftest my/clutch-fullscreen-tab-line-restores-last-selected-editor-pane ()
+  "編集側で選択したペインを変えるたび、Clutchからそのペインへ戻る。"
+  (my/clutch-fullscreen-test--with-buffers
+    (let ((lower (split-window-below)))
+      (set-window-buffer lower other)
+      ;; 下からClutchを開いた場合、下を選択して戻る。
+      (select-window lower)
+      (my/clutch-fullscreen-open (lambda () (switch-to-buffer clutch)))
+      (my/clutch-fullscreen-tab-line-next)
+      (should (= (length (window-list)) 2))
+      (should (eq (window-buffer) other))
+      (should (eq (window-buffer (next-window)) editing))
+      ;; 上からClutchへ入り直した場合、上を選択して戻る。
+      (select-window (get-buffer-window editing))
+      (my/clutch-fullscreen--around-switch #'switch-to-buffer clutch)
+      (my/clutch-fullscreen-tab-line-next)
+      (should (= (length (window-list)) 2))
+      (should (eq (window-buffer) editing))
+      (should (eq (window-buffer (next-window)) other))
+      ;; 再び下から入っても、古い選択状態へ戻らない。
+      (select-window (get-buffer-window other))
+      (my/clutch-fullscreen--around-switch #'switch-to-buffer clutch)
+      (my/clutch-fullscreen-tab-line-prev)
+      (should (eq (window-buffer) other))
+      (should (= (length (window-list)) 2)))))
+
+
+(ert-deftest my/clutch-fullscreen-tab-line-keeps-query-result-split ()
+  "編集ペインの選択を変えてもSQL結果用のClutch内分割は維持する。"
+  (my/clutch-fullscreen-test--with-buffers
+    (set-window-buffer (split-window-below) other)
+    (my/clutch-fullscreen-open (lambda () (switch-to-buffer clutch)))
+    (let ((result (generate-new-buffer "clutch-test-result")))
+      (unwind-protect
+          (progn
+            (with-current-buffer result
+              (setq major-mode 'clutch-result-mode))
+            (set-window-buffer (split-window-below) result)
+            (my/clutch-fullscreen-tab-line-next)
+            (should (= (length (window-list)) 2))
+            ;; 下の編集ペインから入り直す。
+            (select-window (get-buffer-window other))
+            (my/clutch-fullscreen--around-switch #'switch-to-buffer clutch)
+            (should (memq result (mapcar #'window-buffer (window-list))))
+            (my/clutch-fullscreen-tab-line-prev)
+            (should (eq (window-buffer) other))
+            (should (= (length (window-list)) 2)))
+        (kill-buffer result)))))
+
+
+(ert-deftest my/clutch-fullscreen-tab-line-delegates-outside-clutch ()
+  "通常バッファではC-<tab>とC-S-<tab>が標準関数を使う。"
+  (my/clutch-fullscreen-test--with-buffers
+    (let (calls)
+      (cl-letf (((symbol-function 'tab-line-switch-to-next-tab)
+                 (lambda (&optional _event _arg)
+                   (interactive)
+                   (push 'next calls)))
+                ((symbol-function 'tab-line-switch-to-prev-tab)
+                 (lambda (&optional _event _arg)
+                   (interactive)
+                   (push 'prev calls))))
+        (my/clutch-fullscreen-tab-line-next)
+        (my/clutch-fullscreen-tab-line-prev)
+        (should (equal calls '(prev next)))))))
 
 
 (provide 'my-clutch-fullscreen-test)
