@@ -118,5 +118,73 @@
                               (current-buffer))))))
 
 
+
+(ert-deftest my/tab-line-order-shared-across-split-windows ()
+  "同じtab-barタブなら、上下のペインでtab-lineの並び順を共有する。"
+  (save-window-excursion
+    (let ((a (generate-new-buffer "tab-line-test-a"))
+          (b (generate-new-buffer "tab-line-test-b"))
+          (c (generate-new-buffer "tab-line-test-c"))
+          (tab (list 'current-tab))
+          buffer-list-for-test)
+      (unwind-protect
+          (progn
+            (delete-other-windows)
+            (let ((lower (split-window-below)))
+              (setq buffer-list-for-test (list a b c))
+              (cl-letf (((symbol-function 'tab-bar-tabs)
+                         (lambda () (list tab)))
+                        ((symbol-function 'bufferlo-buffer-list)
+                         (lambda (&rest _) buffer-list-for-test))
+                        ((symbol-function 'tab-line-tabs-non-excluded)
+                         (lambda (buffers) buffers)))
+                (should (equal (my/tab-line-tabs-bufferlo-buffers)
+                               (list a b c)))
+                ;; 反対側のペインではBufferloの提示順を逆転させる。
+                ;; それでも表示順は最初のペインと一致する。
+                (select-window lower)
+                (setq buffer-list-for-test (list c b a))
+                (should (equal (my/tab-line-tabs-bufferlo-buffers)
+                               (list a b c)))
+                (should (equal (alist-get 'my/tab-line-buffers (cdr tab))
+                               (list a b c))))))
+        (dolist (buffer (list a b c))
+          (when (buffer-live-p buffer)
+            (kill-buffer buffer)))))))
+
+
+(ert-deftest my/tab-line-order-is-independent-between-tab-bar-tabs ()
+  "tab-barタブが異なる場合はバッファ並び順を共有しない。"
+  (let ((a (generate-new-buffer "tab-line-test-a"))
+        (b (generate-new-buffer "tab-line-test-b"))
+        (tab-a (list 'current-tab))
+        (tab-b (list 'current-tab))
+        tab
+        buffers)
+    (unwind-protect
+        (progn
+          (setq tab tab-a
+                buffers (list a b))
+          (cl-letf (((symbol-function 'tab-bar-tabs)
+                     (lambda () (list tab)))
+                    ((symbol-function 'bufferlo-buffer-list)
+                     (lambda (&rest _) buffers))
+                    ((symbol-function 'tab-line-tabs-non-excluded)
+                     (lambda (items) items)))
+            (should (equal (my/tab-line-tabs-bufferlo-buffers)
+                           (list a b)))
+            (setq tab tab-b
+                  buffers (list b a))
+            (should (equal (my/tab-line-tabs-bufferlo-buffers)
+                           (list b a)))
+            ;; 元のtab-barタブの順序は変更されない。
+            (setq tab tab-a)
+            (should (equal (my/tab-line-tabs-bufferlo-buffers)
+                           (list a b)))))
+      (dolist (buffer (list a b))
+        (when (buffer-live-p buffer)
+          (kill-buffer buffer))))))
+
+
 (provide 'my-tab-line-test)
 ;;; my-tab-line-test.el ends here
