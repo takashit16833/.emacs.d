@@ -9,8 +9,10 @@
 ;; - my/clutch-layout: SQL結果の分割を含むClutch画面の配置
 ;;
 ;; Clutchを離れるときは後者を保存し、前者を使って編集画面へ戻す。
-;; 編集画面の配置は消さない。消すと2回目以降の往復でSQL結果が
-;; 編集画面へ混ざる。再度Clutchを起動した場合は両方を初期化する。
+;; 編集画面の配置はClutchへ入る直前の最新状態に更新する。
+;; 初回の保存内容を使い回すと、ユーザーが閉じた分割が復活する。
+;; 編集画面の保存状態自体は消さない。消すとClutchから戻れない。
+;; 再度Clutchを起動した場合は両方を初期化する。
 ;; tab-lineの表示条件は my-tab-line.el が管理する。
 
 ;;; Code:
@@ -53,9 +55,15 @@ SAVED は (Clutchバッファ . 編集画面の配置) の組。
 
 (defun my/clutch-fullscreen--enter (buffer configuration)
   "BUFFERのClutch画面を表示する。
-保存済みのClutch配置を優先する。なければCONFIGURATIONを
-元の編集画面として保存し、BUFFERを全面表示する。"
-  (unless (my/clutch-fullscreen--restore-layout buffer)
+CONFIGURATIONは切り替え直前の最新の編集画面配置。
+保存済みのClutch配置があれば復元し、なければ全面表示する。"
+  ;; Clutch側の配置が存在しても編集画面側は毎回更新する。
+  ;; 初回起動時の配置を使い回すと、後で閉じた分割が復活してしまう。
+  (if (my/fullscreen-get 'my/clutch-layout)
+      (progn
+        (setf (alist-get 'my/clutch-fullscreen (cdr (my/fullscreen--tab)))
+              (cons buffer configuration))
+        (my/clutch-fullscreen--restore-layout buffer))
     (my/fullscreen-clear 'my/clutch-fullscreen)
     (my/fullscreen-enter 'my/clutch-fullscreen
                          (current-buffer) configuration)))
