@@ -97,6 +97,46 @@
             (should (my/fullscreen-get 'my/clutch-fullscreen)))
         (kill-buffer result)))))
 
+
+(ert-deftest my/clutch-fullscreen-keeps-editing-layout-across-switches ()
+  "Clutchとの往復で編集画面の保存状態を破棄しない。"
+  (my/clutch-fullscreen-test--with-buffers
+    (set-window-buffer (split-window-right) other)
+    (my/clutch-fullscreen-open (lambda () (switch-to-buffer clutch)))
+    (let ((saved (my/fullscreen-get 'my/clutch-fullscreen)))
+      (should (eq (car saved) clutch))
+      (should (window-configuration-p (cdr saved)))
+      (my/clutch-fullscreen--around-switch #'switch-to-buffer editing)
+      (should (eq saved (my/fullscreen-get 'my/clutch-fullscreen)))
+      (should (window-configuration-p
+               (my/fullscreen-get 'my/clutch-layout)))
+      (my/clutch-fullscreen--around-switch #'switch-to-buffer clutch)
+      (should (eq saved (my/fullscreen-get 'my/clutch-fullscreen)))
+      (my/clutch-fullscreen--around-switch #'switch-to-buffer editing)
+      (should (eq saved (my/fullscreen-get 'my/clutch-fullscreen))))))
+
+
+(ert-deftest my/clutch-fullscreen-fresh-open-discards-old-clutch-layout ()
+  "Clutchを新たに起動すると以前のSQL結果の分割を引き継がない。"
+  (my/clutch-fullscreen-test--with-buffers
+    (set-window-buffer (split-window-right) other)
+    (my/clutch-fullscreen-open (lambda () (switch-to-buffer clutch)))
+    (let ((result (generate-new-buffer "clutch-test-result")))
+      (unwind-protect
+          (progn
+            (with-current-buffer result (setq major-mode 'clutch-result-mode))
+            (set-window-buffer (split-window-below) result)
+            (my/clutch-fullscreen--around-switch #'switch-to-buffer editing)
+            (should (window-configuration-p
+                     (my/fullscreen-get 'my/clutch-layout)))
+            (my/clutch-fullscreen-open (lambda () (switch-to-buffer clutch)))
+            (should-not (my/fullscreen-get 'my/clutch-layout))
+            (should (my/fullscreen-get 'my/clutch-fullscreen))
+            (should (one-window-p t))
+            (should (eq (window-buffer) clutch)))
+        (kill-buffer result)))))
+
+
 (provide 'my-clutch-fullscreen-test)
 
 ;;; my-clutch-fullscreen-test.el ends here
