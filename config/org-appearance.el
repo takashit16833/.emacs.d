@@ -120,16 +120,6 @@
   ;; nil: 無効 / t: 有効
   (org-modern-table nil)
 
-  ;; 表の縦線の幅をピクセル単位で指定する。
-  ;; nil: 縦線なし / 非負整数: 線の幅
-  ;; CLIではピクセル単位の幅を正確に表現できない。
-  (org-modern-table-vertical 0.1)
-
-  ;; 表の横線の装飾を指定する。
-  ;; nil: 無効 / 数値: 横線の装飾
-  ;; CLIでは文字の高さを細かく変更できない。
-  (org-modern-table-horizontal 0.1)
-
   ;; ブロック
 
   ;; 「#+begin_src」などのブロック名を装飾する。

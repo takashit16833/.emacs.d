@@ -60,14 +60,6 @@
 
 (add-hook 'org-agenda-mode-hook #'my/org-agenda-set-tags-column)
 
-;; 予定時刻は残し、時刻の後ろに表示される点線だけをなくす。
-;; 時刻ごとの補助線は org-agenda-use-time-grid で無効化済み。
-(setq org-agenda-time-grid
-      '((daily today require-timed)
-        (800 1000 1200 1400 1600 1800 2000)
-        ""
-        "----------------"))
-
 ;; 予定・期限の状態を短い英語で表示する。%d は回数または日数。
 (setq org-agenda-scheduled-leaders '("SCHED " "SCHED %dx "))
 (setq org-agenda-deadline-leaders '("DUE " "DUE IN %dD " "%dD OVERDUE "))
