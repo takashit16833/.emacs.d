@@ -2,7 +2,12 @@
 
 ;;; Commentary:
 ;; vterm と Clutch で使う、タブ単位の配置保存・復元の共通部分。
-;; Clutch の SQL 結果表示による分割は通常のウィンドウ操作に任せる。
+;; KEY ごとに (対象バッファ . 元のウィンドウ配置) を保持する。
+;;
+;; `my/fullscreen-restore' は復元時に KEY の保存状態を消す（vterm向け）。
+;; Clutch は複数回の往復で編集画面の配置を使い続けるため、
+;; my-clutch-fullscreen.el から保存済み配置を直接復元する。
+;; ここではClutch内部のSQL結果ペインやtab-lineの表示条件は扱わない。
 
 ;;; Code:
 
