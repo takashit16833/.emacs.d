@@ -7,6 +7,7 @@
 
 (require 'cl-lib)
 (require 'ert)
+(require 'seq)
 (require 'my-tab-routing)
 
 
