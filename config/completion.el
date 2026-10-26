@@ -71,7 +71,11 @@
    ("C-h B" . embark-bindings))
   :init
   ;; プレフィックスキーのヘルプをEmbarkで表示する。
-  (setq prefix-help-command #'embark-prefix-help-command))
+  (setq prefix-help-command #'embark-prefix-help-command)
+  
+  :custom
+  ;; アクションメニューを待ち時間なしで表示
+  (embark-mixed-indicator-delay 0))
 
 
 ;; Consultの検索結果をEmbarkからexportできるようにする。
