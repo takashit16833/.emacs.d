@@ -147,7 +147,7 @@
   :custom
   (tab-router-functions
    '(my/route-org
-     my/route-markdown
+     my/route-document
      my/route-project))
   :config
   (tab-router-mode 1))
