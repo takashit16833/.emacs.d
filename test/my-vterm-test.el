@@ -79,6 +79,8 @@
   (my/vterm-test--with-buffers
     (my/vterm-toggle)
     (should (one-window-p t))
+    ;; Clutchと異なり、vtermは単一ウィンドウの復元状態を作らない。
+    (should-not (my/fullscreen-get 'my/vterm-fullscreen))
     (my/vterm-toggle)
     (should (one-window-p t))
     (should (eq (window-buffer) buffer-a))))
