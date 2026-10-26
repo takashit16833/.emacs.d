@@ -220,54 +220,61 @@
 
 
 (ert-deftest my/clutch-fullscreen-tab-line-restores-last-selected-editor-pane ()
-  "編集側で選択したペインを変えるたび、Clutchからそのペインへ戻る。"
+  "巡回先を表示しつつ、Clutchへ入る直前の編集ペインを選択する。"
   (my/clutch-fullscreen-test--with-buffers
-    (let ((lower (split-window-below)))
-      (set-window-buffer lower other)
-      ;; 下からClutchを開いた場合、下を選択して戻る。
-      (select-window lower)
-      (my/clutch-fullscreen-open (lambda () (switch-to-buffer clutch)))
-      (my/clutch-fullscreen-tab-line-next)
-      (should (= (length (window-list)) 2))
-      (should (eq (window-buffer) other))
-      (should (eq (window-buffer (next-window)) editing))
-      ;; 上からClutchへ入り直した場合、上を選択して戻る。
-      (select-window (get-buffer-window editing))
-      (my/clutch-fullscreen--around-switch #'switch-to-buffer clutch)
-      (my/clutch-fullscreen-tab-line-next)
-      (should (= (length (window-list)) 2))
-      (should (eq (window-buffer) editing))
-      (should (eq (window-buffer (next-window)) other))
-      ;; 再び下から入っても、古い選択状態へ戻らない。
-      (select-window (get-buffer-window other))
-      (my/clutch-fullscreen--around-switch #'switch-to-buffer clutch)
-      (my/clutch-fullscreen-tab-line-prev)
-      (should (eq (window-buffer) other))
-      (should (= (length (window-list)) 2)))))
-
+    (let ((tab-line-tabs-function (lambda () (list editing other clutch)))
+          (tab-line-switch-cycling t))
+      (let ((lower (split-window-below)))
+        (set-window-buffer lower other)
+        ;; 下からClutchへ移動したら、前のタブotherが下ペインで選択される。
+        (select-window lower)
+        (my/clutch-fullscreen-open (lambda () (switch-to-buffer clutch)))
+        (my/clutch-fullscreen-tab-line-prev)
+        (should (= (length (window-list)) 2))
+        (should (eq (window-buffer) other))
+        (should (window-in-direction 'above))
+        ;; 上から入り直したら、次のタブeditingが上で選択される。
+        (select-window (get-buffer-window editing))
+        (my/clutch-fullscreen--around-switch #'switch-to-buffer clutch)
+        (my/clutch-fullscreen-tab-line-next)
+        (should (= (length (window-list)) 2))
+        (should (eq (window-buffer) editing))
+        (should (window-in-direction 'below))
+        ;; 再び下から切り替えても、古い上側の選択状態に戻らない。
+        (select-window (get-buffer-window other))
+        (my/clutch-fullscreen--around-switch #'switch-to-buffer clutch)
+        (my/clutch-fullscreen-tab-line-prev)
+        (should (eq (window-buffer) other))
+        (should (window-in-direction 'above))
+        (should (= (length (window-list)) 2))))))
 
 (ert-deftest my/clutch-fullscreen-tab-line-keeps-query-result-split ()
-  "編集ペインの選択を変えてもSQL結果用のClutch内分割は維持する。"
+  "巡回順序を守りつつSQL結果用のClutch内分割も維持する。"
   (my/clutch-fullscreen-test--with-buffers
-    (set-window-buffer (split-window-below) other)
-    (my/clutch-fullscreen-open (lambda () (switch-to-buffer clutch)))
-    (let ((result (generate-new-buffer "clutch-test-result")))
-      (unwind-protect
-          (progn
-            (with-current-buffer result
-              (setq major-mode 'clutch-result-mode))
-            (set-window-buffer (split-window-below) result)
-            (my/clutch-fullscreen-tab-line-next)
-            (should (= (length (window-list)) 2))
-            ;; 下の編集ペインから入り直す。
-            (select-window (get-buffer-window other))
-            (my/clutch-fullscreen--around-switch #'switch-to-buffer clutch)
-            (should (memq result (mapcar #'window-buffer (window-list))))
-            (my/clutch-fullscreen-tab-line-prev)
-            (should (eq (window-buffer) other))
-            (should (= (length (window-list)) 2)))
-        (kill-buffer result)))))
-
+    (let ((tab-line-tabs-function (lambda () (list editing other clutch)))
+          (tab-line-switch-cycling t))
+      (set-window-buffer (split-window-below) other)
+      (my/clutch-fullscreen-open (lambda () (switch-to-buffer clutch)))
+      (let ((result (generate-new-buffer "clutch-test-result")))
+        (unwind-protect
+            (progn
+              (with-current-buffer result
+                (setq major-mode 'clutch-result-mode))
+              (set-window-buffer (split-window-below) result)
+              ;; Clutchの次は一覧の先頭editing。
+              (my/clutch-fullscreen-tab-line-next)
+              (should (= (length (window-list)) 2))
+              (should (eq (window-buffer) editing))
+              ;; 下の編集ペインから入り直しても結果ペインが残る。
+              (select-window (get-buffer-window other))
+              (my/clutch-fullscreen--around-switch #'switch-to-buffer clutch)
+              (should (memq result (mapcar #'window-buffer (window-list))))
+              ;; Clutchの前はotherであり、元の選択ペインも下。
+              (my/clutch-fullscreen-tab-line-prev)
+              (should (eq (window-buffer) other))
+              (should (window-in-direction 'above))
+              (should (= (length (window-list)) 2)))
+          (kill-buffer result))))))
 
 (ert-deftest my/clutch-fullscreen-tab-line-delegates-outside-clutch ()
   "通常バッファではC-<tab>とC-S-<tab>が標準関数を使う。"
@@ -284,6 +291,45 @@
         (my/clutch-fullscreen-tab-line-next)
         (my/clutch-fullscreen-tab-line-prev)
         (should (equal calls '(prev next)))))))
+
+
+(ert-deftest my/clutch-fullscreen-tab-line-cycles-through-every-buffer ()
+  "Clutchを含む表示順にC-<tab>で巡回し、2バッファ間で往復しない。"
+  (my/clutch-fullscreen-test--with-buffers
+    (let ((migrate (generate-new-buffer "clutch-test-migrate")))
+      (unwind-protect
+          (let ((tab-line-tabs-function
+                 (lambda () (list editing other migrate clutch)))
+                (tab-line-switch-cycling t))
+            (my/clutch-fullscreen-open (lambda () (switch-to-buffer clutch)))
+            ;; Clutchは最後のタブ: 次は先頭のediting。
+            (my/clutch-fullscreen-tab-line-next)
+            (should (eq (current-buffer) editing))
+            (my/clutch-fullscreen-tab-line-next)
+            (should (eq (current-buffer) other))
+            (my/clutch-fullscreen-tab-line-next)
+            (should (eq (current-buffer) migrate))
+            (my/clutch-fullscreen-tab-line-next)
+            (should (eq (current-buffer) clutch))
+            (my/clutch-fullscreen-tab-line-next)
+            (should (eq (current-buffer) editing))
+            ;; 逆方向にも表示順どおりに戻れる。
+            (my/clutch-fullscreen-tab-line-prev)
+            (should (eq (current-buffer) clutch))
+            (my/clutch-fullscreen-tab-line-prev)
+            (should (eq (current-buffer) migrate)))
+        (kill-buffer migrate)))))
+
+
+(ert-deftest my/clutch-fullscreen-tab-line-respects-no-wrap ()
+  "巡回なしの場合、末尾のClutchから次へ進んでも編集画面へ戻さない。"
+  (my/clutch-fullscreen-test--with-buffers
+    (let ((tab-line-tabs-function (lambda () (list editing other clutch)))
+          (tab-line-switch-cycling nil))
+      (my/clutch-fullscreen-open (lambda () (switch-to-buffer clutch)))
+      (my/clutch-fullscreen-tab-line-next)
+      (should (eq (current-buffer) clutch))
+      (should (one-window-p t)))))
 
 
 (provide 'my-clutch-fullscreen-test)
