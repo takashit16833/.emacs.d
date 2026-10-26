@@ -97,9 +97,10 @@
   (global-tab-line-mode 1))
 
 
-;; アクティブなtab-lineの切り替え
-(global-set-key (kbd "C-<tab>") #'tab-line-switch-to-next-tab)
-(global-set-key (kbd "C-S-<tab>") #'tab-line-switch-to-prev-tab)
+;; 通常は標準tab-line切り替え。Clutchからだけは編集画面の
+;; 最新のウィンドウ配置へ戻し、最後に選択したペインも復元する。
+(global-set-key (kbd "C-<tab>") #'my/clutch-fullscreen-tab-line-next)
+(global-set-key (kbd "C-S-<tab>") #'my/clutch-fullscreen-tab-line-prev)
 
 
 ;; フレーム・タブローカル機能
