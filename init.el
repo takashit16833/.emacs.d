@@ -39,7 +39,7 @@
  '(package-selected-packages
    '(avy browsing-history bufferlo cape clutch embark embark-consult
 	 markdown-indent-mode markdown-ts-appear one-dark-blue-theme
-	 org-appear org-modern org-pomodoro org-super-agenda pgsql
+	 org-modern org-pomodoro org-super-agenda pgsql
 	 retro-hacker-blue-theme tab-router))
  '(package-vc-selected-packages
    '((retro-hacker-blue-theme :url

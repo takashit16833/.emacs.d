@@ -98,18 +98,12 @@
          :padding ""
          ;; 左側に表示する情報。
          :left
-         (;; モーダル編集状態。
-          ((mood-line-segment-modal)                  . " ")
-          ;; バッファの変更・読み取り専用などの状態。
+         (;; バッファの変更・読み取り専用などの状態。
           ((or (mood-line-segment-buffer-status) " ") . " ")
           ;; 開いているファイルのアイコン。
           ((my/mood-line-segment-file-icon)           . " ")
           ;; バッファ名。
           ((mood-line-segment-buffer-name)            . "  ")
-          ;; 検索結果の現在位置と件数。
-          ((mood-line-segment-anzu)                   . "  ")
-          ;; multiple-cursorsの状態。
-          ((mood-line-segment-multiple-cursors)       . "  ")
           ;; カーソルの行・列位置。
           ((mood-line-segment-cursor-position)        . " ")
           ;; バッファ内のスクロール位置。
