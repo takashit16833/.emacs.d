@@ -7,6 +7,12 @@
 
 (require 'my-tab-line)
 
+;; tab-line は use-package の :demand t で読み込む。
+;; バイトコンパイル時は関数の定義元を明示する。
+(declare-function tab-line-tabs-non-excluded "tab-line")
+(declare-function tab-line-switch-to-next-tab "tab-line")
+(declare-function tab-line-switch-to-prev-tab "tab-line")
+
 
 ;; タブを切り替える。
 (keymap-global-set "C-<prior>" #'tab-bar-switch-to-prev-tab)
