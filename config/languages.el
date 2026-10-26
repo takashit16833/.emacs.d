@@ -76,6 +76,11 @@
 
 ;;; JSON / jq
 
+;; JSONではEmacs標準のTree-sitter modeを使用する。
+(use-package json-ts-mode
+  :ensure nil
+  :mode ("\\.json\\'" . json-ts-mode))
+
 (autoload 'my/jq-playground "my-jq" nil t)
 
 ;; jqスクリプトの編集と、JSONに対するjqの対話的実行。
