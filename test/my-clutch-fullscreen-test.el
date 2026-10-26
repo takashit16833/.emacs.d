@@ -75,8 +75,12 @@
             (should (memq result (mapcar #'window-buffer (window-list))))
             ;; 繰り返し切り替えても配置を保持する。
             (my/clutch-fullscreen--around-switch #'switch-to-buffer editing)
+            (should (eq (window-buffer (next-window)) other))
             (my/clutch-fullscreen--around-switch #'switch-to-buffer clutch)
-            (should (memq result (mapcar #'window-buffer (window-list)))))
+            (should (memq result (mapcar #'window-buffer (window-list))))
+            ;; 再び編集側へ戻っても SQL 結果が混ざらない。
+            (my/clutch-fullscreen--around-switch #'switch-to-buffer editing)
+            (should (eq (window-buffer (next-window)) other))))
         (kill-buffer result)))))
 
 (ert-deftest my/clutch-fullscreen-keeps-internal-buffer-transition ()
