@@ -136,6 +136,10 @@
   (set-face-attribute 'markdown-ts-appear-block-quote-marker nil
                       :inherit 'my/org-block-comment-delimiter))
 
+;; 別ファイルに定義した advice の関数をバイトコンパイラへ宣言する。
+(declare-function my/markdown--style-quote-wrap "my-markdown"
+                  (original level indentation &optional wrap-string))
+
 (use-package markdown-indent-mode
   :ensure t
   :hook (markdown-ts-mode . markdown-indent-mode)
