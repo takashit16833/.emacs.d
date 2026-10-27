@@ -102,6 +102,10 @@
 
 ;;; Markdown
 
+;; Visual Line の折り返しで日本語と英語の混在文を自然に扱う。
+;; setopt は kinsoku も読み込む（Emacs 31.1）。
+(setopt word-wrap-by-category t)
+
 (use-package markdown-ts-mode
   :ensure nil
   :mode ("\\.md\\'" . markdown-ts-mode)
