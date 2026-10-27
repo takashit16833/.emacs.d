@@ -148,17 +148,19 @@
     (with-temp-buffer
       (insert "> example line\n")
       (goto-char (point-min))
-      (let ((markdown-ts-appear-mode active)
-            (markdown-ts-appear-block-quote-marker "▎"))
-        (cl-letf (((symbol-function 'derived-mode-p)
-                   (lambda (&rest _) t)))
-          (my/markdown--style-quote-wrap
-           (lambda (_level _indentation wrap)
-             (put-text-property (point) (1+ (point)) 'wrap-prefix wrap)
-             (forward-line))
-           0 0 "> ")
-          (let ((prefix (get-text-property (point-min) 'wrap-prefix)))
-            (should (equal prefix (if active "▎ " "> "))))))
+      ;; 本来のメジャーモード判定とバッファローカルな minor mode 状態を再現。
+      ;; lexical-binding の let と derived-mode-p の差し替えに依存しない。
+      (setq-local major-mode 'markdown-ts-mode
+                  markdown-ts-appear-mode active
+                  markdown-ts-appear-block-quote-marker "▎")
+      (should (derived-mode-p 'markdown-ts-mode))
+      (my/markdown--style-quote-wrap
+       (lambda (_level _indentation wrap)
+         (put-text-property (point) (1+ (point)) 'wrap-prefix wrap)
+         (forward-line))
+       0 0 "> ")
+      (let ((prefix (get-text-property (point-min) 'wrap-prefix)))
+        (should (equal prefix (if active "▎ " "> "))))
       (should (equal (buffer-string) "> example line\n")))))
 
 ;;; my-markdown-test.el ends here
