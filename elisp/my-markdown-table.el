@@ -31,49 +31,49 @@ With prefix ALIGN-CELLS, honor the delimiter row's cell alignment."
               (table (cdr at-table))
               (beg (treesit-node-start table))
               (end (treesit-node-end table))
-              (_ (markdown-ts--table-tick-stale-p beg))
               (rows (treesit-node-children table 'named))
               (delimiter (treesit-search-subtree
                           table "\\`pipe_table_delimiter_row\\'"))
               (aligners (markdown-ts--table-aligners table))
-              (ncols (length (treesit-node-children delimiter 'named)))
-              (widths (make-vector ncols 3))
-              (contents nil))
-    (setq align-cells (or align-cells current-prefix-arg
-                          (memq 'justify-cells markdown-ts-table-align-features)))
-    (without-restriction
-      (cl-loop for row in rows for index from 0 do
-               (let ((cells (treesit-node-children row 'named))
-                     (values nil))
-                 (dotimes (col ncols)
-                   (let ((value (if-let* ((cell (nth col cells)))
-                                    (string-trim-right (treesit-node-text cell t))
-                                  "")))
-                     (push value values)
-                     (unless (= index 1)
-                       (aset widths col
-                             (max (aref widths col) (string-width value))))))
-                 (push (nreverse values) contents)))
-      (setq contents (nreverse contents))
-      (let ((source (current-buffer)))
-        (with-temp-buffer
-          (cl-loop for values in contents for index from 0 do
+              (ncols (length (treesit-node-children delimiter 'named))))
+    ;; nil は when-let* の失敗条件になるため、作業用変数は let で初期化する。
+    (let ((widths (make-vector ncols 3))
+          (contents nil))
+      (setq align-cells (or align-cells current-prefix-arg
+                            (memq 'justify-cells markdown-ts-table-align-features)))
+      (without-restriction
+        (cl-loop for row in rows for index from 0 do
+                 (let ((cells (treesit-node-children row 'named))
+                       (values nil))
                    (dotimes (col ncols)
-                     (let* ((width (aref widths col))
-                            (align (or (plist-get (nth col aligners) :align)
-                                       'unspecified))
-                            (value (nth col values)))
-                       (insert "|"
-                               (if (= index 1)
-                                   (markdown-ts--table-make-aligner width align)
-                                 (my/markdown-table--pad
-                                  value width
-                                  (if align-cells align 'unspecified))))))
-                   (insert "|\n"))
-          (let ((replacement (current-buffer)))
-            (with-current-buffer source
-              (replace-region-contents beg end replacement))))))
-    (markdown-ts--table-tick-update beg)))
+                     (let ((value (if-let* ((cell (nth col cells)))
+                                      (string-trim-right (treesit-node-text cell t))
+                                    "")))
+                       (push value values)
+                       (unless (= index 1)
+                         (aset widths col
+                               (max (aref widths col) (string-width value))))))
+                   (push (nreverse values) contents)))
+        (setq contents (nreverse contents))
+        (let ((source (current-buffer)))
+          (with-temp-buffer
+            (cl-loop for values in contents for index from 0 do
+                     (dotimes (col ncols)
+                       (let* ((width (aref widths col))
+                              (align (or (plist-get (nth col aligners) :align)
+                                         'unspecified))
+                              (value (nth col values)))
+                         (insert "|"
+                                 (if (= index 1)
+                                     (markdown-ts--table-make-aligner width align)
+                                   (my/markdown-table--pad
+                                    value width
+                                    (if align-cells align 'unspecified))))))
+                     (insert "|\n"))
+            (let ((replacement (current-buffer)))
+              (with-current-buffer source
+                (replace-region-contents beg end replacement))))))
+      (markdown-ts--table-tick-update beg))))
 
 (provide 'my-markdown-table)
 ;;; my-markdown-table.el ends here

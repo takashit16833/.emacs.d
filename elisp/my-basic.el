@@ -9,17 +9,21 @@
 ;;; Code:
 
 
-(defun my/byte-compile-config ()
-  "更新された `config/' と `elisp/' のファイルをバイトコンパイルする。"
+(defun my/byte-compile-config (&optional force)
+  "更新された `config/' と `elisp/' のファイルをバイトコンパイルする。
+FORCE が非 nil なら更新日時によらずすべて対象にする。
+警告をエラーとして扱い、問題が残った状態での成功判定を防ぐ。"
   (interactive)
   (require 'bytecomp)
-  (let ((count 0))
+  (let ((count 0)
+        (byte-compile-error-on-warn t))
     (dolist (directory '("elisp" "config"))
       (dolist (file (directory-files
                      (expand-file-name directory user-emacs-directory)
                      t "\\.el\\'"))
         (let ((compiled (byte-compile-dest-file file)))
-          (when (or (not (file-exists-p compiled))
+          (when (or force
+                    (not (file-exists-p compiled))
                     (file-newer-than-file-p file compiled))
             (unless (byte-compile-file file)
               (error "バイトコンパイルに失敗しました: %s" file))
