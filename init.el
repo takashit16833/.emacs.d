@@ -38,11 +38,13 @@
  '(ignored-local-variable-values '((my-haskell-simple-indent-offset . 2)))
  '(package-selected-packages
    '(avy browsing-history bufferlo cape clutch embark embark-consult
-	 markdown-indent-mode markdown-ts-appear one-dark-blue-theme
-	 org-modern org-pomodoro org-super-agenda pgsql
-	 retro-hacker-blue-theme tab-router))
+	 markdown-indent-mode markdown-table-wrap markdown-ts-appear
+	 one-dark-blue-theme org-modern org-pomodoro org-super-agenda
+	 pgsql retro-hacker-blue-theme tab-router))
  '(package-vc-selected-packages
-   '((retro-hacker-blue-theme :url
+   '((markdown-table-wrap :vc-backend Git :url
+			  "https://github.com/dnouri/markdown-table-wrap")
+     (retro-hacker-blue-theme :url
 			      "https://github.com/takashit16833/emacs-retro-hacker-blue-theme.git")))
  '(safe-local-variable-directories
    '("/Users/suzukitakashi/hands-on-llm/"
