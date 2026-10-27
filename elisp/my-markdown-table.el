@@ -7,6 +7,7 @@
 
 ;;; Code:
 
+(require 'cl-lib)
 (require 'markdown-ts-mode)
 (require 'subr-x)
 
