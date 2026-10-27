@@ -106,7 +106,9 @@
   :ensure nil
   :mode ("\\.md\\'" . markdown-ts-mode)
   :custom
-  (markdown-ts-hide-markup t))
+  (markdown-ts-hide-markup t)
+  ;; Org の箇条書きと同じ記号を深さによらず使う。
+  (markdown-ts-unordered-list-marker '(("• " . "• "))))
 
 
 (use-package markdown-ts-appear
@@ -115,8 +117,20 @@
   :custom
   ;; Org と同じ縦線を見出し記号に使う。色はテーマ側の face に任せる。
   (markdown-ts-appear-heading-bullets
-   (list (propertize "┃" 'face 'markdown-ts-delimiter))))
+   (list (propertize "┃" 'face 'markdown-ts-delimiter)))
+  ;; 元の Markdown 表（| と -）を表示し、交互の行背景を無効にする。
+  (markdown-ts-appear-table-style 'raw)
+  (markdown-ts-appear-table-zebra-stripe nil))
 
+
+;; 引用の本文と記号は Org のコメントブロックと配色を共通にする。
+;; 色指定はテーマ側の my/org-block-comment に任せる。
+(with-eval-after-load 'markdown-ts-mode
+  (set-face-attribute 'markdown-ts-block-quote nil
+                      :inherit 'my/org-block-comment))
+(with-eval-after-load 'markdown-ts-appear
+  (set-face-attribute 'markdown-ts-appear-block-quote-marker nil
+                      :inherit 'my/org-block-comment-delimiter))
 
 (use-package markdown-indent-mode
   :ensure t
