@@ -118,8 +118,8 @@
   ;; Org と同じ縦線を見出し記号に使う。色はテーマ側の face に任せる。
   (markdown-ts-appear-heading-bullets
    (list (propertize "┃" 'face 'markdown-ts-delimiter)))
-  ;; 元の Markdown 表（| と -）を表示し、交互の行背景を無効にする。
-  (markdown-ts-appear-table-style 'raw)
+  ;; 表は画面幅に合わせて描画・折り返す。交互の行背景は使わない。
+  (markdown-ts-appear-table-style 'wrapped)
   (markdown-ts-appear-table-zebra-stripe nil))
 
 
@@ -142,9 +142,7 @@
 (autoload 'my/markdown-toggle-mode "my-markdown" nil t)
 (autoload 'my/markdown-table-align "my-markdown-table" nil t)
 (autoload 'my/markdown-table-setup "my-markdown-table")
-(autoload 'my-markdown-table-fontify-setup "my-markdown-table")
 (add-hook 'markdown-ts-mode-hook #'my/markdown-enable-reading 90)
-(add-hook 'markdown-ts-mode-hook #'my-markdown-table-fontify-setup)
 
 ;; 閲覧／編集を同じキーで切り替える。
 (with-eval-after-load 'markdown-ts-mode

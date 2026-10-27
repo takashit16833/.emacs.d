@@ -98,43 +98,5 @@ With prefix ALIGN-CELLS, honor the delimiter row's cell alignment."
     (advice-add 'markdown-ts-table-align-table
                 :override #'my/markdown-table--auto-align)))
 
-
-;; 表のセルは markdown-inline 解析の対象外なので、装飾だけを補う。
-;; マークアップを隠すと表の列幅が変わるため、文字は一切変更しない。
-(defconst my-markdown-table--inline-regexp
-  "`[^`\n]+`\\|\\*\\*[^*\n]+\\*\\*\\|\\*[^*\n]+\\*"
-  "Simple code, bold and italic markup in Markdown table cells.")
-
-(defun my-markdown-table--fontify-cell (node override start end &rest _)
-  "Fontify inline markup inside table cell NODE without changing its width.
-OVERRIDE, START and END are provided by Tree-sitter font lock."
-  (let ((cell-start (treesit-node-start node))
-        (cell-end (treesit-node-end node)))
-    (save-excursion
-      (goto-char cell-start)
-      (while (re-search-forward my-markdown-table--inline-regexp cell-end t)
-        (let* ((beg (match-beginning 0))
-               (finish (match-end 0))
-               (code (eq (char-after beg) ?`))
-               (bold (and (not code) (eq (char-after (1+ beg)) ?*)))
-               (marker-width (if code 0 (if bold 2 1))))
-          ;; エスケープされた開始記号は装飾しない。
-          (unless (and (> beg cell-start) (eq (char-before beg) ?\\))
-            (treesit-fontify-with-override
-             (+ beg marker-width) (- finish marker-width)
-             (cond (code 'markdown-ts-code-span)
-                   (bold 'markdown-ts-bold)
-                   (t 'markdown-ts-emphasis))
-             override start end)))))))
-
-(defun my-markdown-table-fontify-setup ()
-  "Enable inline emphasis and code faces inside Markdown table cells."
-  (treesit-add-font-lock-rules
-   (treesit-font-lock-rules
-    :language 'markdown
-    :feature 'paragraph-inline
-    :override 'prepend
-    '((pipe_table_cell) @my-markdown-table--fontify-cell))))
-
 (provide 'my-markdown-table)
 ;;; my-markdown-table.el ends here
