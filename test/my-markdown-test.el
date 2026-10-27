@@ -123,4 +123,42 @@
         (my/markdown--enable-editing)
         (should (eq (and visual-line-mode t) original))))))
 
+(ert-deftest my/markdown-quote-wrap-prefix-has-rendered-marker ()
+  "引用の折り返し記号と背景は通常の引用表示に合わせる。"
+  (let ((styled (my/markdown--styled-quote-wrap-prefix "  > " "▎")))
+    (should (equal styled "  ▎ "))
+    (should (eq (get-text-property 0 'face styled)
+                'markdown-ts-block-quote))
+    (should (equal (get-text-property 2 'face styled)
+                   '(markdown-ts-appear-block-quote-marker
+                     markdown-ts-block-quote)))
+    (should (eq (get-text-property 3 'face styled)
+                'markdown-ts-block-quote))))
+
+(ert-deftest my/markdown-quote-wrap-prefix-leaves-other-prefixes ()
+  "リストや通常のインデントは変更しない。"
+  (should (equal (my/markdown--styled-quote-wrap-prefix "    " "▎")
+                 "    "))
+  (should (equal (my/markdown--styled-quote-wrap-prefix "  > " nil)
+                 "  > ")))
+
+(ert-deftest my/markdown-quote-wrap-advice-only-while-rendering ()
+  "Markdown の装飾中だけ、生成された引用行の折り返しを補正する。"
+  (dolist (active '(nil t))
+    (with-temp-buffer
+      (insert "> example line\n")
+      (goto-char (point-min))
+      (let ((markdown-ts-appear-mode active)
+            (markdown-ts-appear-block-quote-marker "▎"))
+        (cl-letf (((symbol-function 'derived-mode-p)
+                   (lambda (&rest _) t)))
+          (my/markdown--style-quote-wrap
+           (lambda (_level _indentation wrap)
+             (put-text-property (point) (1+ (point)) 'wrap-prefix wrap)
+             (forward-line))
+           0 0 "> ")
+          (let ((prefix (get-text-property (point-min) 'wrap-prefix)))
+            (should (equal prefix (if active "▎ " "> "))))))
+      (should (equal (buffer-string) "> example line\n")))))
+
 ;;; my-markdown-test.el ends here

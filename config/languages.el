@@ -138,7 +138,13 @@
 
 (use-package markdown-indent-mode
   :ensure t
-  :hook (markdown-ts-mode . markdown-indent-mode))
+  :hook (markdown-ts-mode . markdown-indent-mode)
+  :config
+  ;; markdown-indent-mode の折り返し用 '> ' は appear の装飾対象外。
+  ;; 通常のインデントは維持し、引用の継続行だけ同じ記号・配色にする。
+  (require 'my-markdown)
+  (advice-add 'markdown-indent-set-line-properties :around
+              #'my/markdown--style-quote-wrap))
 
 ;; 閲覧モードではカーソル移動による記号の再表示を止める。
 ;; 他のMarkdown用hookが動いた後に実行する。
