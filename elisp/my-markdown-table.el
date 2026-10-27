@@ -22,15 +22,16 @@
             text
             (make-string (- pad left) ?\s))))
 
-(defun my/markdown-table-align (&optional align-cells)
-  "Align the Markdown table at point using terminal display widths.
-With prefix ALIGN-CELLS, honor the delimiter row's cell alignment."
-  (interactive "P")
+(defun my/markdown-table--align (align-cells automatic)
+  "Align the current table by display width.
+For AUTOMATIC alignment, skip tables without pending changes."
   (markdown-ts--barf-if-not-mode 'my/markdown-table-align)
   (when-let* ((at-table (markdown-ts-at-table-p nil t))
               (table (cdr at-table))
               (beg (treesit-node-start table))
               (end (treesit-node-end table))
+              (_ (or (not automatic)
+                     (markdown-ts--table-tick-stale-p beg)))
               (rows (treesit-node-children table 'named))
               (delimiter (treesit-search-subtree
                           table "\\`pipe_table_delimiter_row\\'"))
@@ -74,6 +75,28 @@ With prefix ALIGN-CELLS, honor the delimiter row's cell alignment."
               (with-current-buffer source
                 (replace-region-contents beg end replacement))))))
       (markdown-ts--table-tick-update beg))))
+
+(defun my/markdown-table-align (&optional align-cells)
+  "Align the Markdown table at point using terminal display widths.
+With prefix ALIGN-CELLS, honor the delimiter row's cell alignment."
+  (interactive "P")
+  (my/markdown-table--align align-cells nil))
+
+(defun my/markdown-table--auto-align (&optional align-cells)
+  "Align automatically, only when the table has changed."
+  (my/markdown-table--align align-cells t))
+
+(defun my/markdown-table-setup ()
+  "Use display widths for manual and automatic Markdown table alignment."
+  ;; 表内の minor mode のキー設定は major mode より優先される。
+  (keymap-set markdown-ts-in-table-mode-map
+              "C-c C-c" #'my/markdown-table-align)
+  ;; TAB 移動などの標準の自動整形も同じ処理を使う。
+  ;; 自動整形の変更検知は --auto-align 側で維持する。
+  (unless (advice-member-p #'my/markdown-table--auto-align
+                           'markdown-ts-table-align-table)
+    (advice-add 'markdown-ts-table-align-table
+                :override #'my/markdown-table--auto-align)))
 
 (provide 'my-markdown-table)
 ;;; my-markdown-table.el ends here

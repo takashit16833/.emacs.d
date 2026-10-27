@@ -141,14 +141,15 @@
 (autoload 'my/markdown-enable-reading "my-markdown")
 (autoload 'my/markdown-toggle-mode "my-markdown" nil t)
 (autoload 'my/markdown-table-align "my-markdown-table" nil t)
+(autoload 'my/markdown-table-setup "my-markdown-table")
 (add-hook 'markdown-ts-mode-hook #'my/markdown-enable-reading 90)
 
 ;; 閲覧／編集を同じキーで切り替える。
 (with-eval-after-load 'markdown-ts-mode
   (keymap-set markdown-ts-mode-map
               "s-e" #'my/markdown-toggle-mode)
-  (keymap-set markdown-ts-mode-map
-              "C-c C-c" #'my/markdown-table-align))
+  ;; C-c C-c は表内だけで変更し、それ以外の標準操作を維持する。
+  (my/markdown-table-setup))
 
 
 ;; Go

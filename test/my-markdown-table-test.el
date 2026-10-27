@@ -60,5 +60,47 @@
         (should (equal (buffer-string)
                        "|名前|Count|\n|----|-----|\n|A   |1    |\n"))))))
 
+(ert-deftest my/markdown-table-setup-uses-table-context-map ()
+  "表の中では独自の整形を使い、それ以外の C-c C-c は維持する。"
+  (let ((markdown-ts-mode-map (make-sparse-keymap))
+        (markdown-ts-in-table-mode-map (make-sparse-keymap))
+        (had-advice (advice-member-p #'my/markdown-table--auto-align
+                                    'markdown-ts-table-align-table)))
+    (keymap-set markdown-ts-mode-map
+                "C-c C-c" #'markdown-ts-toggle-checkbox)
+    (keymap-set markdown-ts-in-table-mode-map
+                "C-c C-c" #'markdown-ts-table-align-table)
+    (unwind-protect
+        (progn
+          (my/markdown-table-setup)
+          (should (eq (lookup-key markdown-ts-in-table-mode-map
+                                  (kbd "C-c C-c"))
+                      #'my/markdown-table-align))
+          (should (eq (lookup-key markdown-ts-mode-map (kbd "C-c C-c"))
+                      #'markdown-ts-toggle-checkbox))
+          (should (advice-member-p #'my/markdown-table--auto-align
+                                   'markdown-ts-table-align-table))
+          (with-temp-buffer
+            (use-local-map markdown-ts-mode-map)
+            (let ((markdown-ts-in-table-mode t)
+                  (minor-mode-map-alist
+                   (cons (cons 'markdown-ts-in-table-mode
+                               markdown-ts-in-table-mode-map)
+                         minor-mode-map-alist)))
+              (should (eq (key-binding (kbd "C-c C-c"))
+                          #'my/markdown-table-align)))))
+      (unless had-advice
+        (advice-remove 'markdown-ts-table-align-table
+                       #'my/markdown-table--auto-align)))))
+
+(ert-deftest my/markdown-table-auto-align-preserves-auto-flag ()
+  "自動整形では変更履歴の確認が有効になる。"
+  (let (seen)
+    (cl-letf (((symbol-function 'my/markdown-table--align)
+               (lambda (align automatic)
+                 (setq seen (list align automatic)))))
+      (my/markdown-table--auto-align 'left)
+      (should (equal seen '(left t))))))
+
 (provide 'my-markdown-table-test)
 ;;; my-markdown-table-test.el ends here
