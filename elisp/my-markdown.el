@@ -43,22 +43,29 @@ Leave PREFIX untouched unless it ends in the blockquote suffix `> '."
 
 (defun my/markdown--style-quote-wrap (original level indentation &optional wrap-string)
   "Around advice for `markdown-indent-set-line-properties'.
-Use the same rendered quote marker on soft-wrapped lines as on
-source quote markers, without changing normal indentation or buffer text."
+Style the quote continuation prefix throughout the logical line.
+The indent mode runs before `markdown-ts-appear-mode' on first entry,
+so the prefix must be styled independently of that mode's state."
   (let ((line-start (line-beginning-position))
         (quote-p (and (stringp wrap-string)
                       (string-suffix-p "> " wrap-string)
-                      (derived-mode-p 'markdown-ts-mode)
-                      (bound-and-true-p markdown-ts-appear-mode))))
+                      (derived-mode-p 'markdown-ts-mode))))
     (prog1 (funcall original level indentation wrap-string)
       (when (and quote-p (< line-start (point-max)))
         (let* ((raw (get-text-property line-start 'wrap-prefix))
-               (styled (my/markdown--styled-quote-wrap-prefix
-                        raw markdown-ts-appear-block-quote-marker)))
+               ;; Appear may not be loaded yet; this is its default marker.
+               (marker (if (boundp 'markdown-ts-appear-block-quote-marker)
+                           markdown-ts-appear-block-quote-marker
+                         "▎"))
+               (styled (my/markdown--styled-quote-wrap-prefix raw marker)))
           (unless (eq raw styled)
             (with-silent-modifications
-              (put-text-property line-start (1+ line-start)
-                                 'wrap-prefix styled))))))))
+              (save-excursion
+                (goto-char line-start)
+                ;; wrap-prefix is consulted where the visual line wraps,
+                ;; not only at the start of the logical line.
+                (put-text-property line-start (line-beginning-position 2)
+                                   'wrap-prefix styled)))))))))
 
 (defun my/markdown-enable-reading ()
   "Enable fixed, read-only Markdown rendering in the current buffer."

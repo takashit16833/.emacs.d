@@ -142,25 +142,51 @@
   (should (equal (my/markdown--styled-quote-wrap-prefix "  > " nil)
                  "  > ")))
 
-(ert-deftest my/markdown-quote-wrap-advice-only-while-rendering ()
-  "Markdown の装飾中だけ、生成された引用行の折り返しを補正する。"
+(ert-deftest my/markdown-quote-wrap-advice-styles-whole-line-before-appear ()
+  "Appear 起動前でも長い引用行の折り返し位置に装飾が残る。"
   (dolist (active '(nil t))
     (with-temp-buffer
-      (insert "> example line\n")
-      (goto-char (point-min))
-      ;; 本来のメジャーモード判定とバッファローカルな minor mode 状態を再現。
-      ;; lexical-binding の let と derived-mode-p の差し替えに依存しない。
-      (setq-local major-mode 'markdown-ts-mode
-                  markdown-ts-appear-mode active
-                  markdown-ts-appear-block-quote-marker "▎")
-      (should (derived-mode-p 'markdown-ts-mode))
-      (my/markdown--style-quote-wrap
-       (lambda (_level _indentation wrap)
-         (put-text-property (point) (1+ (point)) 'wrap-prefix wrap)
-         (forward-line))
-       0 0 "> ")
-      (let ((prefix (get-text-property (point-min) 'wrap-prefix)))
-        (should (equal prefix (if active "▎ " "> "))))
-      (should (equal (buffer-string) "> example line\n")))))
+      (let ((source (concat "> " (make-string 160 ?a) "\n")))
+        (insert source)
+        (set-buffer-modified-p nil)
+        (goto-char (point-min))
+        ;; minor mode の hook は appear より先に実行される場合がある。
+        (setq-local major-mode 'markdown-ts-mode
+                    markdown-ts-appear-mode active
+                    markdown-ts-appear-block-quote-marker "▎")
+        (should (derived-mode-p 'markdown-ts-mode))
+        (with-silent-modifications
+          (my/markdown--style-quote-wrap
+           (lambda (_level _indentation wrap)
+             ;; markdown-indent-set-line-properties と同じ適用範囲。
+             (put-text-property (line-beginning-position)
+                                (line-beginning-position 2)
+                                'wrap-prefix wrap)
+             (forward-line))
+           0 0 "> "))
+        (dolist (offset '(0 10 80 150 162))
+          (let ((prefix (get-text-property (+ (point-min) offset)
+                                           'wrap-prefix)))
+            (should (equal prefix "▎ "))
+            (should (equal (get-text-property 0 'face prefix)
+                           '(markdown-ts-appear-block-quote-marker
+                             markdown-ts-block-quote)))))
+        (should (equal (buffer-string) source))
+        (should-not (buffer-modified-p))))))
+
+(ert-deftest my/markdown-quote-wrap-advice-leaves-ordinary-prefix-unchanged ()
+  "通常の段落・リストは読み込み時にも装飾しない。"
+  (with-temp-buffer
+    (insert "- list entry\n")
+    (setq-local major-mode 'markdown-ts-mode)
+    (my/markdown--style-quote-wrap
+     (lambda (_level _indentation wrap)
+       (put-text-property (line-beginning-position)
+                          (line-beginning-position 2)
+                          'wrap-prefix wrap)
+       (forward-line))
+     0 0 "  ")
+    (should (equal (get-text-property (+ (point-min) 5) 'wrap-prefix)
+                   "  "))))
 
 ;;; my-markdown-test.el ends here
