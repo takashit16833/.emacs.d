@@ -73,7 +73,7 @@ With prefix ALIGN-CELLS, honor the delimiter row's cell alignment."
           (let ((replacement (current-buffer)))
             (with-current-buffer source
               (replace-region-contents beg end replacement)))))
-    (markdown-ts--table-tick-update beg)))
+    (markdown-ts--table-tick-update beg))))
 
 (provide 'my-markdown-table)
 ;;; my-markdown-table.el ends here
