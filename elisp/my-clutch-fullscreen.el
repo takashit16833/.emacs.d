@@ -76,7 +76,9 @@ Clutchに戻るときはORIGINALの後でClutch配置を復元する。
 先に復元するとORIGINALがクエリ表示を別バッファで上書きする。"
   (if my/clutch-fullscreen--inhibit
       (apply original buffer args)
-    (let* ((target (if (bufferp buffer) buffer (get-buffer buffer)))
+    (let* ((target (cond ((bufferp buffer) buffer)
+                         ((null buffer) (other-buffer (current-buffer) t))
+                         (t (get-buffer buffer))))
            (from-clutch (my/clutch-fullscreen--buffer-p (current-buffer)))
            (to-clutch (my/clutch-fullscreen--buffer-p target))
            (saved (my/fullscreen-get 'my/clutch-fullscreen))
