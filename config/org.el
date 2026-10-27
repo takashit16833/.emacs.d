@@ -15,10 +15,14 @@
 
 (require 'my-org-commands)
 
+;; Org は閲覧・編集を分けず、常に中央寄せする。
+(autoload 'my/centered-text-mode "my-centered-text" nil t)
+
 (use-package org
   :ensure nil
   :hook ((org-mode . org-indent-mode)
          (org-mode . visual-line-mode)
+         (org-mode . my/centered-text-mode)
 	 (org-agenda-finalize . org-modern-agenda))
   :config
   ;; Orgリンク先のファイルを現在のウィンドウで開く。
