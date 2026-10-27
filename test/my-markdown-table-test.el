@@ -102,5 +102,63 @@
       (my/markdown-table--auto-align 'left)
       (should (equal seen '(left t))))))
 
+
+(ert-deftest my/markdown-table-fontify-inline-faces ()
+  "太字・斜体・コードを色分けしても、文字列と表幅は変えない。"
+  (with-temp-buffer
+    (insert "outside **no-face**\n"
+            "| **Hello** | *斜体* | `curl` | `**literal**` | \\*escaped* |\n")
+    (let ((before (buffer-string))
+          (cell-start (save-excursion
+                        (goto-char (point-min))
+                        (forward-line 1)
+                        (point))))
+      (cl-letf (((symbol-function 'treesit-node-start)
+                 (lambda (_) cell-start))
+                ((symbol-function 'treesit-node-end)
+                 (lambda (_) (point-max))))
+        (my-markdown-table--fontify-cell
+         'cell 'prepend (point-min) (point-max)))
+      (should (equal (buffer-string) before))
+      (cl-labels ((has-face (word face)
+                    (save-excursion
+                      (goto-char (point-min))
+                      (search-forward word)
+                      (let ((found (get-text-property
+                                    (- (point) (length word)) 'face)))
+                        (memq face (if (listp found) found
+                                     (list found)))))))
+        (should (has-face "Hello" 'markdown-ts-bold))
+        (should (has-face "斜体" 'markdown-ts-emphasis))
+        (should (has-face "curl" 'markdown-ts-code-span))
+        (should-not (has-face "literal" 'markdown-ts-bold))
+        (should (has-face "literal" 'markdown-ts-code-span))
+        (should-not (has-face "escaped" 'markdown-ts-emphasis))
+        (should-not (has-face "no-face" 'markdown-ts-bold))))))
+
+
+(ert-deftest my/markdown-table-fontify-with-real-parser ()
+  "実際の markdown-ts-mode で表セルの強調が適用される。"
+  (skip-unless (and (treesit-ready-p 'markdown t)
+                    (treesit-ready-p 'markdown-inline t)))
+  (with-temp-buffer
+    (insert "| 段階 | 結果 |\n"
+            "| --- | --- |\n"
+            "| test | **Hello Amazon ECS** と `curl` |\n")
+    (markdown-ts-mode)
+    (my-markdown-table-fontify-setup)
+    (font-lock-mode 1)
+    (font-lock-ensure)
+    (cl-labels ((has-face (word face)
+                  (save-excursion
+                    (goto-char (point-min))
+                    (search-forward word)
+                    (let ((value (get-text-property
+                                  (- (point) (length word)) 'face)))
+                      (memq face (if (listp value) value
+                                   (list value)))))))
+      (should (has-face "Hello Amazon ECS" 'markdown-ts-bold))
+      (should (has-face "curl" 'markdown-ts-code-span)))))
+
 (provide 'my-markdown-table-test)
 ;;; my-markdown-table-test.el ends here
