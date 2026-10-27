@@ -104,7 +104,7 @@
                 :after #'my/dirvish-dim-ignored))
 
   :bind
-  (("s-d" . my/project-dirvish)
+  (("s-b" . my/project-dirvish)
    :map dirvish-mode-map
 
    ;; ディレクトリを閉じる。
