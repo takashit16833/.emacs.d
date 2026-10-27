@@ -170,25 +170,4 @@
    (org-agenda-finalize . org-modern-agenda)))
 
 
-;; Org テーブルの長いセルは表示だけ折り返し、元の表は書き換えない。
-;; 装飾中はセルへ直接移動できないので、C-c C-x C-k で戻して編集する。
-(use-package markdown-table-wrap
-  :vc (:url "https://github.com/dnouri/markdown-table-wrap")
-  :defer t)
-
-(use-package markdown-table-wrap-pretty
-  :ensure nil
-  :commands (markdown-table-wrap-pretty-mode
-             markdown-table-wrap-pretty-toggle)
-  :custom
-  ;; Org のみ自動的に装飾表示する。Markdown は markdown-ts-appear を使う。
-  (markdown-table-wrap-pretty-default-on-major-modes '(org-mode))
-  :init
-  ;; org-indent-mode などが表示位置を整えてから表を描画する。
-  (add-hook 'org-mode-hook #'markdown-table-wrap-pretty-mode 90)
-  :bind
-  (:map org-mode-map
-   ("C-c C-x C-k" . markdown-table-wrap-pretty-toggle)))
-
-
 ;;; org-appearance.el ends here
