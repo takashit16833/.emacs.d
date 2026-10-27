@@ -36,7 +36,7 @@ With prefix ALIGN-CELLS, honor the delimiter row's cell alignment."
               (delimiter (treesit-search-subtree
                           table "\\`pipe_table_delimiter_row\\'"))
               (aligners (markdown-ts--table-aligners table))
-              (ncols (length (treesit-node-children delimiter 'named)))
+              (ncols (length (treesit-node-children delimiter 'named))))
               (widths (make-vector ncols 3))
               (contents nil))
     (setq align-cells (or align-cells current-prefix-arg
@@ -73,7 +73,7 @@ With prefix ALIGN-CELLS, honor the delimiter row's cell alignment."
           (let ((replacement (current-buffer)))
             (with-current-buffer source
               (replace-region-contents beg end replacement)))))
-    (markdown-ts--table-tick-update beg))))
+    (markdown-ts--table-tick-update beg)))
 
 (provide 'my-markdown-table)
 ;;; my-markdown-table.el ends here
