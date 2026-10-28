@@ -42,6 +42,9 @@
   ;; Tangle時にコードブロック内のインデントをそのまま保持する。
   (org-src-preserve-indentation t)
 
+  ;; Shift+矢印キーなどをOrg専用操作から解放する。
+  (org-replace-disputed-keys t)
+  
   ;; *bold* や /italic/ の記号を通常時は隠す。
   (org-hide-emphasis-markers t)
 
@@ -66,7 +69,15 @@
    :map org-mode-map
    ("s-," . my/org-insert-created)
    ("M-S-<return>" . org-insert-todo-heading-respect-content)
-   ("M-s-<return>" . my/org-insert-child-task)))
+   ("M-s-<return>" . my/org-insert-child-task)
+
+   ;; 解除
+   ("M-<left>"    . nil)
+   ("M-<right>"   . nil)
+   ("M-S-<left>"  . nil)
+   ("M-S-<right>" . nil)
+   ("M-S-<up>"  . nil)
+   ("M-S-<down>" . nil)))
 
 
 ;; Mermaidのソースコードだけを、Orgバッファを開いたときに折りたたむ。
