@@ -131,7 +131,7 @@ When AFTER-LINE-PREFIX is non-nil, inspect the first code-indent cell."
               (should (equal (my/org-indent-test--wrap-face "StackId" t)
                              colored))
               (dolist (text '("Before example" "After example" "quoted text"))
-                (should (eq (my/org-indent-test--wrap-face text t)
+                (should (eq (my/org-indent-test--wrap-face text)
                             'org-indent)))
               ;; Recreating indentation must preserve the example correction.
               (org-indent-indent-buffer)
@@ -159,7 +159,7 @@ When AFTER-LINE-PREFIX is non-nil, inspect the first code-indent cell."
           (org-indent-add-properties (point) (point-max))
           (should (equal (my/org-indent-test--wrap-face "StackId" t)
                          '(:inherit org-indent :background "#0A1A36")))
-          (should (eq (my/org-indent-test--wrap-face "Outside example" t)
+          (should (eq (my/org-indent-test--wrap-face "Outside example")
                       'org-indent)))
       (org-indent-mode -1))))
 
