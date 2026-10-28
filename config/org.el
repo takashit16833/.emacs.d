@@ -31,8 +31,13 @@
   ;; コードブロックをシンタックスハイライトする。
   (add-to-list 'org-src-lang-modes '("yml" . yaml-ts))
   (add-to-list 'org-src-lang-modes '("yaml" . yaml-ts))
+  (add-to-list 'org-src-lang-modes '("json" . json-ts))
+  (add-to-list 'org-src-lang-modes '("bash" . bash-ts))
 
   :custom
+  ;; コードブロックの初期インデントを0にする。
+  (org-src-content-indentation 0)
+  
   ;; *bold* や /italic/ の記号を通常時は隠す。
   (org-hide-emphasis-markers t)
 
