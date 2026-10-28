@@ -15,7 +15,7 @@
 
 (require 'my-org-commands)
 
-;; ソースブロックの折り返し行頭だけ背景色を補正する（Org読み込み時に有効化）。
+;; src/exampleブロックの折り返し行頭だけ背景色を補正する（遅延読み込み）。
 (with-eval-after-load 'org-indent
   (require 'my-org-indent))
 
