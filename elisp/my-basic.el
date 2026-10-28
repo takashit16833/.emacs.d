@@ -16,7 +16,9 @@ FORCE が非 nil なら更新日時によらずすべて対象にする。
   (interactive)
   (require 'bytecomp)
   (let ((count 0)
-        (byte-compile-error-on-warn t))
+        (byte-compile-error-on-warn t)
+        ;; 依存ファイルの .elc が古い場合も、新しい定義を読み込んでコンパイルする。
+        (load-prefer-newer t))
     (dolist (directory '("elisp" "config"))
       (dolist (file (directory-files
                      (expand-file-name directory user-emacs-directory)
