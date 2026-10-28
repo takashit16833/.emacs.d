@@ -16,6 +16,7 @@
 (defvar with-editor-previous-winconf)
 (defvar with-editor-post-finish-hook)
 (defvar with-editor-post-cancel-hook)
+(defvar with-editor-server-window-alist)
 
 (declare-function magit-file-status "magit-git" (&rest args))
 (declare-function magit-toplevel "magit-git" (&optional directory))
@@ -48,7 +49,11 @@
     (diff-hl-magit-post-refresh)))
 
 
-(provide 'my-git)
+(defun my/magit-register-commit-message-handler ()
+  "Magit の汎用ルール登録後に COMMIT_EDITMSG を Misc に振り分ける。"
+  (add-to-list 'with-editor-server-window-alist
+               '("/\\.git/COMMIT_EDITMSG\\'" . my/magit-display-commit-message)))
+
 
 (defun my/magit--return-to-tab (id)
   "ID の Tab が残っていれば、コミット編集開始前の Tab に戻る。"
@@ -75,5 +80,7 @@
             (add-hook 'with-editor-post-finish-hook return-to-origin nil t)
             (add-hook 'with-editor-post-cancel-hook return-to-origin nil t)))))
     (switch-to-buffer buffer)))
+
+(provide 'my-git)
 
 ;;; my-git.el ends here

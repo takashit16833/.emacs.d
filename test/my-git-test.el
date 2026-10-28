@@ -50,12 +50,31 @@
 
 ;;; my-git-test.el ends here
 
+(ert-deftest my/magit-register-commit-message-handler-precedes-magit ()
+  "Magit の汎用コミット編集ルールより COMMIT_EDITMSG 専用ルールを優先する。"
+  (let ((with-editor-server-window-alist
+         '(("/COMMIT_EDITMSG\\'" . switch-to-buffer))))
+    (my/magit-register-commit-message-handler)
+    (let* ((file "/work/project/.git/COMMIT_EDITMSG")
+           (matched
+            (seq-find (lambda (entry)
+                        (string-match-p (car entry) file))
+                      with-editor-server-window-alist)))
+      (should (eq (cdr matched) #'my/magit-display-commit-message)))
+    (should (= (length with-editor-server-window-alist) 2))
+    ;; 二重登録されても同じルールを重複させない。
+    (my/magit-register-commit-message-handler)
+    (should (= (length with-editor-server-window-alist) 2))))
+
+
 (ert-deftest my/magit-display-commit-message-routes-to-misc-and-returns ()
   "コミット編集は Misc へ移し、完了・取消後は元の Tab に戻る。"
   (let* ((buffer (generate-new-buffer " *my-git-commit-test*"))
          (origin '(project . "/work/project/"))
          (project-tab `(tab (tab-router-id . ,origin)))
          (tabs (list '(current-tab (tab-router-id . misc)) project-tab))
+         (original-finish (lambda () :original-finish))
+         (original-cancel (lambda () :original-cancel))
          destination displayed finish-hook cancel-hook selected)
     (unwind-protect
         (cl-letf (((symbol-function 'tab-router-current-id)
@@ -73,7 +92,10 @@
                   ((symbol-function 'tab-bar-select-tab)
                    (lambda (number) (setq selected number))))
           (with-current-buffer buffer
-            (setq-local with-editor-previous-winconf :project-layout))
+            (setq-local with-editor-previous-winconf :project-layout)
+            ;; Magit/with-editor の既存 hook があっても維持する。
+            (setq-local with-editor-post-finish-hook (list original-finish))
+            (setq-local with-editor-post-cancel-hook (list original-cancel)))
           (my/magit-display-commit-message buffer)
           (should (equal destination '(:id misc :name "Misc" :directory nil)))
           (should (eq displayed buffer))
@@ -81,8 +103,10 @@
                       :misc-layout))
           (setq finish-hook (buffer-local-value 'with-editor-post-finish-hook buffer)
                 cancel-hook (buffer-local-value 'with-editor-post-cancel-hook buffer))
-          (should (= (length finish-hook) 1))
-          (should (= (length cancel-hook) 1))
+          (should (= (length finish-hook) 2))
+          (should (= (length cancel-hook) 2))
+          (should (memq original-finish finish-hook))
+          (should (memq original-cancel cancel-hook))
           ;; with-editor は終了後、一時バッファで post-* hook を呼ぶ。
           (kill-buffer buffer)
           (funcall (car finish-hook))
@@ -107,7 +131,9 @@
                   ((symbol-function 'switch-to-buffer)
                    (lambda (&rest _) nil)))
           (with-current-buffer buffer
-            (setq-local with-editor-previous-winconf :original-layout))
+            (setq-local with-editor-previous-winconf :original-layout)
+            (setq-local with-editor-post-finish-hook nil)
+            (setq-local with-editor-post-cancel-hook nil))
           (my/magit-display-commit-message buffer)
           (should (eq (buffer-local-value 'with-editor-previous-winconf buffer)
                       :original-layout))
