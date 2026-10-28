@@ -11,6 +11,12 @@
 ;; Magitの更新後に呼び出す独自処理は必要になるまで読み込まない。
 (autoload 'my/magit-refresh-tab-line-git-status "my-git")
 (autoload 'my/diff-hl-magit-post-refresh "my-git")
+(autoload 'my/git-editor-setup "my-git")
+
+;; コミット編集を Misc に移した場合、with-editor が元の Tab の
+;; ウィンドウ配置を Misc に復元しないようにする。
+(with-eval-after-load 'with-editor
+  (add-hook 'with-editor-mode-hook #'my/git-editor-setup))
 
 
 ;; 編集中のファイルにGitとの差分を表示する。

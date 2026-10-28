@@ -156,8 +156,10 @@
   :vc (:url "https://github.com/takashit16833/emacs-tab-router.git"
        :rev :newest)
   :custom
+  (tab-router-route-git-internal-files t)
   (tab-router-functions
-   '(my/route-org
+   '(my/route-git-internal
+     my/route-org
      my/route-document
      my/route-project))
   :config

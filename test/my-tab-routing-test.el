@@ -35,14 +35,30 @@
   (should-not (my/route-document "/tmp/main.py")))
 
 
+(ert-deftest my/tab-routing-git-internal ()
+  ".git 配下のファイルだけを Misc へルーティングする。"
+  (dolist (name '("COMMIT_EDITMSG" "config" "README.org"))
+    (should (equal
+             (my/route-git-internal
+              (concat "/tmp/sample-project/.git/" name))
+             '(:id misc :name "Misc" :directory nil))))
+  (dolist (name '("/tmp/sample-project/.gitignore"
+                  "/tmp/sample-project/src/git/config"
+                  "/tmp/sample-project/README.org"))
+    (should-not (my/route-git-internal name))))
+
+
 (ert-deftest my/tab-routing-precedence ()
-  "Org、Document、Project の順に最初の一致を採用する。"
+  ".git、Org、Document、Project の順に最初の一致を採用する。"
   (cl-letf (((symbol-function 'project-current)
              (lambda (&rest _) '(vc Git "/tmp/sample-project/")))
             ((symbol-function 'project-root)
              (lambda (_) "/tmp/sample-project/")))
-    (let ((rules '(my/route-org my/route-document my/route-project)))
-      (dolist (case `((,(expand-file-name "~/org/notes.org") . org)
+    (let ((rules '(my/route-git-internal
+                   my/route-org my/route-document my/route-project)))
+      (dolist (case `(("/tmp/sample-project/.git/COMMIT_EDITMSG" . misc)
+                      ("/tmp/sample-project/.git/README.org" . misc)
+                      (,(expand-file-name "~/org/notes.org") . org)
                       ("/tmp/sample-project/README.md" . document)
                       ("/tmp/sample-project/main.py" . project)))
         (let* ((file (car case))
