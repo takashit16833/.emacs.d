@@ -13,6 +13,9 @@
 (autoload 'my/diff-hl-magit-post-refresh "my-git")
 (autoload 'my/magit-display-commit-message "my-git")
 
+;; with-editor は遅延読み込みするため、コンパイル時に変数を宣言する。
+(defvar with-editor-server-window-alist)
+
 ;; with-editor が開くコミットメッセージだけ Misc Tab に表示する。
 ;; Magit Status / Diff は従来どおり Project Tab に残す。
 (with-eval-after-load 'with-editor
