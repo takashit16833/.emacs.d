@@ -111,6 +111,40 @@
         (should-not called-p)))))
 
 
+(ert-deftest my/navigation--track-org-internal-link ()
+  "Orgの内部リンクをたどると移動元と移動先を記録すること。"
+  (require 'org)
+  (with-temp-buffer
+    (org-mode)
+    (insert "* Notes\n[[jump][移動]]\n\n<<jump>>\n本文\n")
+    (goto-char (point-min))
+    (search-forward "[[jump][")
+    (let ((source (point))
+          positions)
+      (cl-letf (((symbol-function 'browsing-history-location-at-point)
+                 (lambda () (point)))
+                ((symbol-function 'browsing-history-ensure-current)
+                 (lambda () 'history))
+                ((symbol-function 'browsing-history-push)
+                 (lambda (history location)
+                   (should (eq history 'history))
+                   (push location positions))))
+        (my/navigation--track #'org-open-at-point)
+        (should (/= (point) source))
+        (should (equal (nreverse positions) (list source (point))))))))
+
+
+(ert-deftest my/navigation-setup-tracks-org-open-at-point ()
+  "Orgリンクを開くコマンドが履歴記録対象になること。"
+  (require 'org)
+  (let (commands)
+    (cl-letf (((symbol-function 'my/navigation--advise)
+               (lambda (command)
+                 (push command commands))))
+      (my/navigation-setup)
+      (should (memq 'org-open-at-point commands)))))
+
+
 (ert-deftest my/navigation-setup-tracks-org-agenda-switch-to ()
   "Org Agenda の RET による移動を履歴記録対象にすること。"
   (require 'org-agenda)
