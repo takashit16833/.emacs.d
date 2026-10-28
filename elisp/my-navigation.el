@@ -76,6 +76,10 @@
   (with-eval-after-load 'avy
     (my/navigation--advise 'avy-goto-char-timer))
 
+  ;; Org リンクをたどる移動（同じファイル内のリンクを含む）。
+  (with-eval-after-load 'org
+    (my/navigation--advise 'org-open-at-point))
+
   ;; Org Agenda の RET で元項目へ移動する操作。
   (with-eval-after-load 'org-agenda
     (my/navigation--advise 'org-agenda-switch-to)))
