@@ -11,6 +11,16 @@
 (require 'my-org-block-colors)
 (require 'org-modern)
 
+(defun my/org-block-colors-integration--has-face (word expected)
+  "Return non-nil when WORD starts with EXPECTED face."
+  (save-excursion
+    (goto-char (point-min))
+    (when (search-forward word nil t)
+      (let ((face (get-text-property (- (point) (length word)) 'face)))
+        (if (listp face)
+            (memq expected face)
+          (eq face expected))))))
+
 (ert-deftest my/org-block-colors-org-modern-fontifies-delimiters ()
   "org-modern を有効にしても引用・コメントの開始・終了行を色分けする。"
   (with-temp-buffer
@@ -38,10 +48,10 @@
             (body (nth 1 case))
             (body-face (nth 2 case))
             (edge-face (nth 3 case)))
-        (should (my/org-block-colors-test--has-face
+        (should (my/org-block-colors-integration--has-face
                  (concat "#+begin_" kind) edge-face))
-        (should (my/org-block-colors-test--has-face body body-face))
-        (should (my/org-block-colors-test--has-face
+        (should (my/org-block-colors-integration--has-face body body-face))
+        (should (my/org-block-colors-integration--has-face
                  (concat "#+end_" kind) edge-face))))))
 
 (provide 'my-org-block-colors-integration)
