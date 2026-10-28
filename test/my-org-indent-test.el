@@ -1,7 +1,7 @@
 ;;; my-org-indent-test.el --- Tests for Org wrap backgrounds -*- lexical-binding: t; -*-
 
 ;;; Commentary:
-;; Verify that source block wrap prefixes are colored during Org updates.
+;; Verify that source/example wrap prefixes are colored during Org updates.
 
 ;;; Code:
 
@@ -48,8 +48,11 @@ When AFTER-LINE-PREFIX is non-nil, inspect the first code-indent cell."
               (should (equal (my/org-indent-test--wrap-face "nested: long-value" t)
                              colored))
               (dolist (text '("Before block" "#+begin_src" "#+end_src"
-                              "After block" "fake: yaml"))
+                              "After block"))
                 (should (eq (my/org-indent-test--wrap-face text) 'org-indent)))
+              ;; Source delimiters written inside an example are plain text.
+              (should (equal (my/org-indent-test--wrap-face "fake: yaml" t)
+                             colored))
               ;; Org must be able to recreate indentation without losing the fix.
               (org-indent-indent-buffer)
               (should (eq (my/org-indent-test--wrap-face "key: value")
@@ -107,6 +110,58 @@ When AFTER-LINE-PREFIX is non-nil, inspect the first code-indent cell."
                              '(:inherit org-indent :background "#0A1A36")))))
         (org-indent-mode -1)))))
 
+
+(ert-deftest my-org-indent-example-wrap-only ()
+  "Color indented JSON example lines without affecting the surrounding text."
+  (with-temp-buffer
+    (org-mode)
+    (insert "* AWS results\nBefore example\n"
+            "#+begin_example json\n{\n"
+            "      \"StackId\": \"arn:aws:cloudformation:ap-northeast-1:long\"\n"
+            "}\n#+end_example\nAfter example\n"
+            "#+begin_quote\n  quoted text\n#+end_quote\n")
+    (let ((org-indent-indentation-per-level 2))
+      (org-indent-mode 1)
+      (unwind-protect
+          (cl-letf (((symbol-function 'my/org-indent--source-background)
+                     (lambda () "#0A1A36")))
+            (org-indent-indent-buffer)
+            (let ((colored '(:inherit org-indent :background "#0A1A36")))
+              (should (eq (my/org-indent-test--wrap-face "StackId") 'org-indent))
+              (should (equal (my/org-indent-test--wrap-face "StackId" t)
+                             colored))
+              (dolist (text '("Before example" "After example" "quoted text"))
+                (should (eq (my/org-indent-test--wrap-face text t)
+                            'org-indent)))
+              ;; Recreating indentation must preserve the example correction.
+              (org-indent-indent-buffer)
+              (should (equal (my/org-indent-test--wrap-face "StackId" t)
+                             colored))))
+        (org-indent-mode -1)))))
+
+(ert-deftest my-org-indent-example-wrap-partial-refresh ()
+  "A refresh starting inside an example must not color text after its end."
+  (with-temp-buffer
+    (org-mode)
+    (insert "* AWS results\n#+begin_example json\n{\n"
+            "      \"StackId\": \"arn:aws:cloudformation:long\"\n"
+            "  \"Status\": \"complete\"\n}\n#+end_example\n"
+            "Outside example\n")
+    (org-indent-mode 1)
+    (unwind-protect
+        (cl-letf (((symbol-function 'my/org-indent--source-background)
+                   (lambda () "#0A1A36")))
+          (org-indent-indent-buffer)
+          (goto-char (point-min))
+          (search-forward "StackId")
+          (beginning-of-line)
+          (should (eq (my/org-indent--content-block-at-point) 'example-block))
+          (org-indent-add-properties (point) (point-max))
+          (should (equal (my/org-indent-test--wrap-face "StackId" t)
+                         '(:inherit org-indent :background "#0A1A36")))
+          (should (eq (my/org-indent-test--wrap-face "Outside example" t)
+                      'org-indent)))
+      (org-indent-mode -1))))
 
 (provide 'my-org-indent-test)
 
