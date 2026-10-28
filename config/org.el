@@ -15,6 +15,10 @@
 
 (require 'my-org-commands)
 
+;; ソースブロックの折り返し行頭だけ背景色を補正する（Org読み込み時に有効化）。
+(with-eval-after-load 'org-indent
+  (require 'my-org-indent))
+
 ;; Org は閲覧・編集を分けず、常に中央寄せする。
 (autoload 'my/centered-text-mode "my-centered-text" nil t)
 
