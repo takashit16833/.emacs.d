@@ -11,12 +11,6 @@
 ;; Magitの更新後に呼び出す独自処理は必要になるまで読み込まない。
 (autoload 'my/magit-refresh-tab-line-git-status "my-git")
 (autoload 'my/diff-hl-magit-post-refresh "my-git")
-(autoload 'my/magit-register-commit-message-handler "my-git")
-
-;; Magit が登録する汎用のコミット編集ルールより優先して Misc へ表示する。
-;; Magit Status / Diff は従来どおり Project Tab に残す。
-(with-eval-after-load 'magit-commit
-  (my/magit-register-commit-message-handler))
 
 
 ;; 編集中のファイルにGitとの差分を表示する。

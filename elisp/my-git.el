@@ -6,17 +6,6 @@
 ;;; Code:
 
 (require 'my-tab-line)
-(require 'seq)
-(require 'tab-bar)
-
-(declare-function tab-router-current-id "tab-router" ())
-(declare-function tab-router-find-tab-by-id "tab-router" (id))
-(declare-function tab-router--select-destination "tab-router" (destination))
-
-(defvar with-editor-previous-winconf)
-(defvar with-editor-post-finish-hook)
-(defvar with-editor-post-cancel-hook)
-(defvar with-editor-server-window-alist)
 
 (declare-function magit-file-status "magit-git" (&rest args))
 (declare-function magit-toplevel "magit-git" (&optional directory))
@@ -48,38 +37,6 @@
   (let ((diff-hl-disable-on-remote nil))
     (diff-hl-magit-post-refresh)))
 
-
-(defun my/magit-register-commit-message-handler ()
-  "Magit の汎用ルール登録後に COMMIT_EDITMSG を Misc に振り分ける。"
-  (add-to-list 'with-editor-server-window-alist
-               '("/\\.git/COMMIT_EDITMSG\\'" . my/magit-display-commit-message)))
-
-
-(defun my/magit--return-to-tab (id)
-  "ID の Tab が残っていれば、コミット編集開始前の Tab に戻る。"
-  (when-let* ((tab (tab-router-find-tab-by-id id))
-              (index (seq-position (tab-bar-tabs) tab #'eq)))
-    (tab-bar-select-tab (1+ index))))
-
-
-(defun my/magit-display-commit-message (buffer)
-  "コミット編集 BUFFER を Misc Tab に表示する。"
-  (let ((origin (tab-router-current-id)))
-    (tab-router--select-destination '(:id misc :name "Misc" :directory nil))
-    (unless (eq origin 'misc)
-      (with-current-buffer buffer
-        ;; with-editor が元の Project Tab の配置を Misc に復元しないよう、
-        ;; コミット編集前の Misc の配置を保存しておく。
-        (setq-local with-editor-previous-winconf
-                    (current-window-configuration))
-        ;; post-* hooks はバッファ終了後に別の一時バッファで実行される。
-        ;; 元の Tab ID をクロージャに保持して復帰先を失わないようにする。
-        (when origin
-          (let ((return-to-origin
-                 (lambda () (my/magit--return-to-tab origin))))
-            (add-hook 'with-editor-post-finish-hook return-to-origin nil t)
-            (add-hook 'with-editor-post-cancel-hook return-to-origin nil t)))))
-    (switch-to-buffer buffer)))
 
 (provide 'my-git)
 
