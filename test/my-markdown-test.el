@@ -127,12 +127,25 @@
   "引用の折り返し記号と背景は通常の引用表示に合わせる。"
   (let ((styled (my/markdown--styled-quote-wrap-prefix "  > " "▎")))
     (should (equal styled "  ▎ "))
-    (should (eq (get-text-property 0 'face styled)
-                'markdown-ts-block-quote))
+    (should-not (get-text-property 0 'face styled))
+    (should-not (get-text-property 1 'face styled))
     (should (equal (get-text-property 2 'face styled)
                    '(markdown-ts-appear-block-quote-marker
                      markdown-ts-block-quote)))
     (should (eq (get-text-property 3 'face styled)
+                'markdown-ts-block-quote))))
+
+(ert-deftest my/markdown-quote-wrap-prefix-keeps-leading-spaces-unstyled ()
+  "行頭の字下げには引用背景を付けず、引用線には装飾を残す。"
+  (let* ((raw (propertize "    > " 'face 'markdown-indent-mode))
+         (styled (my/markdown--styled-quote-wrap-prefix raw "▎")))
+    (should (equal styled "    ▎ "))
+    (dotimes (i 4)
+      (should-not (get-text-property i 'face styled)))
+    (should (equal (get-text-property 4 'face styled)
+                   '(markdown-ts-appear-block-quote-marker
+                     markdown-ts-block-quote)))
+    (should (eq (get-text-property 5 'face styled)
                 'markdown-ts-block-quote))))
 
 (ert-deftest my/markdown-quote-wrap-prefix-leaves-other-prefixes ()
@@ -178,6 +191,7 @@
   "通常の段落・リストは読み込み時にも装飾しない。"
   (with-temp-buffer
     (insert "- list entry\n")
+    (goto-char (point-min))
     (setq-local major-mode 'markdown-ts-mode)
     (my/markdown--style-quote-wrap
      (lambda (_level _indentation wrap)

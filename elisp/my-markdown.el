@@ -33,8 +33,7 @@ Leave PREFIX untouched unless it ends in the blockquote suffix `> '."
            (string-suffix-p "> " prefix)
            (stringp marker)
            (> (length marker) 0))
-      (concat (propertize (substring prefix 0 -2)
-                          'face 'markdown-ts-block-quote)
+      (concat (substring-no-properties prefix 0 -2)
               (propertize marker
                           'face '(markdown-ts-appear-block-quote-marker
                                   markdown-ts-block-quote))
