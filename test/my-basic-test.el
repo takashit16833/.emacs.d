@@ -12,6 +12,8 @@
 
 (ert-deftest my/byte-compile-config-prefers-newer-sources ()
   "コンパイル中は新しいソースを優先し、終了後は設定値を元に戻す。"
+  ;; コンパイル処理内の require が差し替えた関数を上書きしないようにする。
+  (require 'bytecomp)
   (let ((user-emacs-directory (make-temp-file "my-basic-test-" t))
         (load-prefer-newer nil)
         observed)
