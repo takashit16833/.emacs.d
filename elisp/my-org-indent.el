@@ -34,13 +34,16 @@ Pass DELAY through unchanged so Org's incremental updates still work."
 (defun my/org-indent--color-wrap-prefix (beg)
   "Color the virtual wrap indentation of the source line at BEG."
   (when (stringp my/org-indent--block-background)
-    (let ((prefix (get-text-property beg 'wrap-prefix)))
-      (when (and (stringp prefix) (> (length prefix) 0))
-        ;; Org reuses prefix strings.  Never alter the shared string, and
-        ;; leave `line-prefix' alone to avoid coloring the normal margin.
+    (let ((line (get-text-property beg 'line-prefix))
+          (prefix (get-text-property beg 'wrap-prefix)))
+      (when (and (stringp line) (stringp prefix)
+                 (< (length line) (length prefix)))
+        ;; The wrap prefix starts with the same virtual heading indent as
+        ;; the line prefix.  Keep that part untouched; it is outside the
+        ;; source block's background.  Color only the extra code indent.
         (let ((colored (copy-sequence prefix)))
           (put-text-property
-           0 (length colored) 'face
+           (length line) (length colored) 'face
            `(:inherit org-indent :background ,my/org-indent--block-background)
            colored)
           (with-silent-modifications
