@@ -20,7 +20,7 @@
   ;; 通常のホイールは、推測による加速を使わず一定量にする。
   (setq mouse-wheel-scroll-amount '(2)
         mouse-wheel-progressive-speed nil)
-  ;; Ctrl+ホイールでWezTermが送る専用イベントだけを受信する。
+  ;; 通常ホイールでWezTermが送る専用イベントを受信する。
   (autoload 'my/wezterm-wheel-install "my-terminal")
   (my/wezterm-wheel-install))
 
