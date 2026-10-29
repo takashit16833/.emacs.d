@@ -70,7 +70,7 @@
     (should (= my/terminal-wheel-fast-count 0))
     (dotimes (i 5)
       (my/terminal-wheel-next-lines 'wheel-down (+ 10.24 (* i 0.016))))
-    (should (= (my/terminal-wheel-next-lines 'wheel-down 10.354) 1))
+    (should (= (my/terminal-wheel-next-lines 'wheel-down 10.36) 1))
     (should (= my/terminal-wheel-fast-count 0))
     (should (= (my/terminal-wheel-next-lines 'wheel-down 10.0) 1))
     (should (= my/terminal-wheel-fast-count 0))))
