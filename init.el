@@ -40,9 +40,12 @@
    '(avy browsing-history bufferlo cape clutch embark embark-consult
 	 markdown-indent-mode markdown-table-wrap markdown-ts-appear
 	 one-dark-blue-theme org-modern org-pomodoro org-super-agenda
-	 org-table-wrap pgsql retro-hacker-blue-theme tab-router))
+	 org-table-wrap pgsql phscroll retro-hacker-blue-theme
+	 tab-router))
  '(package-vc-selected-packages
-   '((org-table-wrap :vc-backend Git :url
+   '((phscroll :vc-backend Git :url
+	       "https://github.com/misohena/phscroll")
+     (org-table-wrap :vc-backend Git :url
 		     "https://github.com/benthamite/org-table-wrap")
      (markdown-table-wrap :vc-backend Git :url
 			  "https://github.com/dnouri/markdown-table-wrap")
