@@ -17,12 +17,22 @@
   :hook (after-init . editorconfig-mode))
 
 
-;; プログラムのコード行も折り返さず、領域内を水平スクロールする。
-;; Orgは別途テーブル・ソースブロック単位に処理する。
-(autoload 'my/prog-phscroll-maybe-enable "my-prog-phscroll" nil nil)
-(add-hook 'prog-mode-hook #'my/prog-phscroll-maybe-enable)
-;; yaml-ts-mode derives from text-mode, so prog-mode-hook does not run.
-(add-hook 'yaml-ts-mode-hook #'my/prog-phscroll-maybe-enable)
+;; phscroll の共通設定。ソースファイルと Org 内の領域で共有する。
+;; 端末では左右のはみ出し記号を出さず、WezTerm の水平ホイールに対応する。
+(defvar phscroll-mode-map)
+(declare-function phscroll-mwheel-scroll-left* "phscroll" (event))
+(declare-function phscroll-mwheel-scroll-right* "phscroll" (event))
+(use-package phscroll
+  :vc (:url "https://github.com/misohena/phscroll")
+  :defer t
+  :config
+  (define-key phscroll-mode-map [wheel-left] #'phscroll-mwheel-scroll-left*)
+  (define-key phscroll-mode-map [wheel-right] #'phscroll-mwheel-scroll-right*))
+
+;; find-file-hook は major-mode が確定した後に動く。
+;; prog-mode 系と YAML を 1 か所の判定関数で対象にし、Org/文章は除外する。
+(autoload 'my/prog-phscroll-maybe-enable "my-prog-phscroll")
+(add-hook 'find-file-hook #'my/prog-phscroll-maybe-enable)
 
 
 ;; 括弧を階層ごとに色分けする。

@@ -18,6 +18,21 @@
 (defvar-local my/prog-phscroll-mode nil)
 (defvar-local my/prog-phscroll--area nil)
 
+(declare-function my/prog-phscroll-mode "my-prog-phscroll" (&optional arg))
+
+(defun my/prog-phscroll--before-major-mode-change ()
+  "Remove the old scroll overlays before this buffer changes major mode."
+  (my/prog-phscroll-mode -1))
+
+(defun my/prog-phscroll--eligible-p ()
+  "Return non-nil for files that should use whole-buffer scrolling.
+Most programming languages inherit from prog-mode.  YAML in Emacs 31
+inherits from text-mode (and yaml-mode), so include that family.
+This decision lives here; no mode-specific hook registrations are needed."
+  (and buffer-file-name
+       (or (derived-mode-p 'prog-mode)
+           (derived-mode-p 'yaml-mode))))
+
 (defun my/prog-phscroll--sync (&rest _)
   "Keep the horizontal scroll region aligned with the buffer.
 Called after edits.  Reuse unchanged areas to preserve the scroll position."
@@ -45,16 +60,20 @@ Called after edits.  Reuse unchanged areas to preserve the scroll position."
         (setq-local phscroll-use-fringe t)
         (phscroll-mode 1)
         (add-hook 'after-change-functions #'my/prog-phscroll--sync nil t)
+        (add-hook 'change-major-mode-hook
+                  #'my/prog-phscroll--before-major-mode-change nil t)
         (my/prog-phscroll--sync))
     (remove-hook 'after-change-functions #'my/prog-phscroll--sync t)
+    (remove-hook 'change-major-mode-hook
+                 #'my/prog-phscroll--before-major-mode-change t)
     (when (featurep 'phscroll)
       (phscroll-delete-all)
       (phscroll-mode -1))
     (setq my/prog-phscroll--area nil)))
 
 (defun my/prog-phscroll-maybe-enable ()
-  "Use horizontal scrolling only in source files, not temporary buffers."
-  (when buffer-file-name
+  "Enable whole-buffer scrolling when visiting an eligible source file."
+  (when (my/prog-phscroll--eligible-p)
     (my/prog-phscroll-mode 1)))
 
 (provide 'my-prog-phscroll)

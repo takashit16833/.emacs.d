@@ -27,6 +27,12 @@
 (defvar-local my/org-phscroll-mode nil)
 (defvar-local my/org-phscroll--refresh-timer nil)
 
+(declare-function my/org-phscroll-mode "my-org-phscroll" (&optional arg))
+
+(defun my/org-phscroll--before-major-mode-change ()
+  "Remove Org scroll areas before changing to another major mode."
+  (my/org-phscroll-mode -1))
+
 (defun my/org-phscroll--window-width (original pos window)
   "Use the visible line prefix, not the wrap prefix, for Org scrolling.
 ORIGINAL is phscroll-window-width-at; POS and WINDOW are its arguments.
@@ -130,9 +136,13 @@ Keep an existing area (and its horizontal position) when its bounds match."
         (phscroll-mode 1)
         (add-hook 'after-change-functions
                   #'my/org-phscroll--schedule-refresh nil t)
+        (add-hook 'change-major-mode-hook
+                  #'my/org-phscroll--before-major-mode-change nil t)
         (my/org-phscroll--schedule-refresh))
     (remove-hook 'after-change-functions
                  #'my/org-phscroll--schedule-refresh t)
+    (remove-hook 'change-major-mode-hook
+                 #'my/org-phscroll--before-major-mode-change t)
     (when (timerp my/org-phscroll--refresh-timer)
       (cancel-timer my/org-phscroll--refresh-timer))
     (setq my/org-phscroll--refresh-timer nil)

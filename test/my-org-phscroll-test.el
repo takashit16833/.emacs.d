@@ -90,5 +90,18 @@
         (should (= destroyed 0))
         (should (= (length areas) 1))))))
 
+(ert-deftest my/org-phscroll-major-mode-change-cleans-hook ()
+  "Switching away from Org releases its scroll mode and refresh timer."
+  (with-temp-buffer
+    (org-mode)
+    (setq-local my/org-phscroll-mode t)
+    (add-hook 'change-major-mode-hook
+              #'my/org-phscroll--before-major-mode-change nil t)
+    (my/org-phscroll--before-major-mode-change)
+    (should-not my/org-phscroll-mode)
+    (should-not (memq #'my/org-phscroll--before-major-mode-change
+                      change-major-mode-hook))
+    (should-not my/org-phscroll--refresh-timer)))
+
 (provide 'my-org-phscroll-test)
 ;;; my-org-phscroll-test.el ends here

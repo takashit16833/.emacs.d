@@ -80,19 +80,10 @@
    ("M-S-<down>" . nil)))
 
 
-;; Orgテーブルとsrc/exampleブロックだけを個別に横スクロールする。
-;; ソースファイルには適用しない。端末表示で右端の記号を出さない。
+;; Org では表と src/example ブロックの本文だけを個別に横スクロールする。
+;; phscroll 本体とマウス操作は config/development.el で共通設定する。
 (autoload 'my/org-phscroll-mode "my-org-phscroll" nil t)
-(defvar phscroll-mode-map)
-(declare-function phscroll-mwheel-scroll-left* "phscroll" (event))
-(declare-function phscroll-mwheel-scroll-right* "phscroll" (event))
-(use-package phscroll
-  :vc (:url "https://github.com/misohena/phscroll")
-  :hook (org-mode . my/org-phscroll-mode)
-  :config
-  ;; WezTermが送る水平ホイールイベントをスクロール領域へ渡す。
-  (define-key phscroll-mode-map [wheel-left] #'phscroll-mwheel-scroll-left*)
-  (define-key phscroll-mode-map [wheel-right] #'phscroll-mwheel-scroll-right*))
+(add-hook 'org-mode-hook #'my/org-phscroll-mode)
 
 
 ;; Mermaidのソースコードだけを、Orgバッファを開いたときに折りたたむ。
