@@ -33,8 +33,8 @@
 
 (ert-deftest my/wezterm-wheel-sequence-encodes-direction-and-lines ()
   "専用の入力列が方向とスクロール量を正しく表す。"
-  (should (equal (my/wezterm-wheel-sequence 'up 1) "\\e[902;1;1~"))
-  (should (equal (my/wezterm-wheel-sequence 'down 12) "\\e[902;2;12~")))
+  (should (equal (my/wezterm-wheel-sequence 'up 1) "\e[902;1;1~"))
+  (should (equal (my/wezterm-wheel-sequence 'down 12) "\e[902;2;12~")))
 
 (ert-deftest my/wezterm-wheel-install-decodes-and-dispatches ()
   "入力列が方向と行数に対応したコマンドへ変換される。"
