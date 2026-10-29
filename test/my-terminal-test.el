@@ -29,28 +29,51 @@
     (should (eq seen input))))
 
 
-(ert-deftest my/terminal-wheel-scroll-lines-maps-intervals ()
-  "イベント間隔に応じて1・2・4・8行へ切り替わる。"
-  (should (= (my/terminal-wheel-scroll-lines nil) 1))
-  ;; 実測した高速操作（16〜27ms）でも差がつくようにする。
-  (should (= (my/terminal-wheel-scroll-lines 0.016) 8))
-  (should (= (my/terminal-wheel-scroll-lines 0.027) 4))
-  (should (= (my/terminal-wheel-scroll-lines 0.083) 2))
-  (should (= (my/terminal-wheel-scroll-lines 0.304) 1))
-  ;; 境界値は上位の速度段階に含めない。
-  (should (= (my/terminal-wheel-scroll-lines 0.02) 4))
-  (should (= (my/terminal-wheel-scroll-lines 0.05) 2))
-  (should (= (my/terminal-wheel-scroll-lines 0.15) 1)))
+(ert-deftest my/terminal-wheel-scroll-lines-maps-fast-count ()
+  "連続入力の回数で1・2・4・8・12行へ段階的に増える。"
+  (dolist (case '((0 . 1) (1 . 1) (3 . 1)
+                  (4 . 2) (6 . 2) (7 . 4) (9 . 4)
+                  (10 . 8) (12 . 8) (13 . 12) (30 . 12)))
+    (should (= (my/terminal-wheel-scroll-lines (car case))
+               (cdr case)))))
 
-(ert-deftest my/terminal-wheel-next-lines-resets-on-direction-change ()
-  "向きが変わったときや長時間の間隔では加速を解除する。"
-  (let (my/terminal-wheel-last-time my/terminal-wheel-last-direction)
+(ert-deftest my/terminal-wheel-next-lines-accelerates-sustained-input ()
+  "高速イベントが続いて初めて大きなスクロール量になる。"
+  (let (my/terminal-wheel-last-time my/terminal-wheel-last-direction
+        (my/terminal-wheel-fast-count 0))
     (should (= (my/terminal-wheel-next-lines 'wheel-up 10.0) 1))
-    (should (= (my/terminal-wheel-next-lines 'wheel-up 10.016) 8))
-    (should (= (my/terminal-wheel-next-lines 'wheel-down 10.032) 1))
-    (should (= (my/terminal-wheel-next-lines 'wheel-down 10.10) 2))
-    (should (= (my/terminal-wheel-next-lines 'wheel-down 10.50) 1))
-    (should (= (my/terminal-wheel-next-lines 'wheel-down 9.0) 1))))
+    (dotimes (i 3)
+      (should (= (my/terminal-wheel-next-lines
+                  'wheel-up (+ 10.0 (* (1+ i) 0.016))) 1)))
+    (dotimes (i 3)
+      (should (= (my/terminal-wheel-next-lines
+                  'wheel-up (+ 10.0 (* (+ i 4) 0.016))) 2)))
+    (dotimes (i 3)
+      (should (= (my/terminal-wheel-next-lines
+                  'wheel-up (+ 10.0 (* (+ i 7) 0.016))) 4)))
+    (dotimes (i 3)
+      (should (= (my/terminal-wheel-next-lines
+                  'wheel-up (+ 10.0 (* (+ i 10) 0.016))) 8)))
+    (should (= (my/terminal-wheel-next-lines 'wheel-up
+                                             (+ 10.0 (* 13 0.016))) 12))
+    (should (= (my/terminal-wheel-next-lines 'wheel-up
+                                             (+ 10.0 (* 14 0.016))) 12))))
+
+(ert-deftest my/terminal-wheel-next-lines-resets-on-direction-or-pause ()
+  "向きの変更・50ms以上の間隔・時刻の逆転で1行に戻す。"
+  (let (my/terminal-wheel-last-time my/terminal-wheel-last-direction
+        (my/terminal-wheel-fast-count 0))
+    (dotimes (i 14)
+      (my/terminal-wheel-next-lines 'wheel-up (+ 10.0 (* i 0.016))))
+    (should (= my/terminal-wheel-fast-count 13))
+    (should (= (my/terminal-wheel-next-lines 'wheel-down 10.224) 1))
+    (should (= my/terminal-wheel-fast-count 0))
+    (dotimes (i 5)
+      (my/terminal-wheel-next-lines 'wheel-down (+ 10.24 (* i 0.016))))
+    (should (= (my/terminal-wheel-next-lines 'wheel-down 10.354) 1))
+    (should (= my/terminal-wheel-fast-count 0))
+    (should (= (my/terminal-wheel-next-lines 'wheel-down 10.0) 1))
+    (should (= my/terminal-wheel-fast-count 0))))
 
 (ert-deftest my/terminal-wheel-scroll-binds-amount-only-during-call ()
   "ホイールの処理中だけ行数と標準加速の設定を変更する。"
@@ -58,6 +81,7 @@
         (mouse-wheel-progressive-speed t)
         my/terminal-wheel-last-time
         my/terminal-wheel-last-direction
+        (my/terminal-wheel-fast-count 0)
         seen)
     (my/terminal-wheel-scroll
      (lambda (event arg)
@@ -74,6 +98,7 @@
         (mouse-wheel-progressive-speed t)
         (my/terminal-wheel-last-time 10.0)
         (my/terminal-wheel-last-direction 'wheel-down)
+        (my/terminal-wheel-fast-count 10)
         seen)
     (my/terminal-wheel-scroll
      (lambda (event arg)
@@ -82,6 +107,7 @@
      'wheel-right nil)
     (should (equal seen '(wheel-right nil (2) t)))
     (should (null my/terminal-wheel-last-time))
-    (should (null my/terminal-wheel-last-direction))))
+    (should (null my/terminal-wheel-last-direction))
+    (should (= my/terminal-wheel-fast-count 0))))
 
 ;;; my-terminal-test.el ends here

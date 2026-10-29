@@ -15,28 +15,33 @@
 
 (defvar my/terminal-wheel-last-time nil)
 (defvar my/terminal-wheel-last-direction nil)
+(defvar my/terminal-wheel-fast-count 0)
 
-(defun my/terminal-wheel-scroll-lines (interval)
-  "直前の同方向イベントとの間隔INTERVAL（秒）から移動行数を返す。
-実測で速い操作は主に16〜27ms、遅い操作は主に数百msだった。
-通常の操作が最大速度になりにくいよう、最速の境界を20msにする。"
+(defun my/terminal-wheel-scroll-lines (fast-count)
+  "速い入力が連続した回数FAST-COUNTからスクロール行数を返す。
+実測では速い操作が約16〜27ms間隔だったため、1回の間隔だけで
+最大量にせず、高速入力が続くほど段階的に増やす。"
   (cond
-   ((null interval) 1)
-   ((< interval 0.02) 8)
-   ((< interval 0.05) 4)
-   ((< interval 0.15) 2)
+   ((>= fast-count 13) 12)
+   ((>= fast-count 10) 8)
+   ((>= fast-count 7) 4)
+   ((>= fast-count 4) 2)
    (t 1)))
 
 (defun my/terminal-wheel-next-lines (direction now)
   "DIRECTIONのホイール入力を時刻NOW（秒）に受けたときの移動行数を返す。
-前回と逆方向の場合や時間が逆転した場合は加速をリセットする。"
-  (let ((interval (and (eq direction my/terminal-wheel-last-direction)
-                       my/terminal-wheel-last-time
-                       (>= now my/terminal-wheel-last-time)
-                       (- now my/terminal-wheel-last-time))))
-    (setq my/terminal-wheel-last-direction direction
-          my/terminal-wheel-last-time now)
-    (my/terminal-wheel-scroll-lines interval)))
+同じ方向の入力が50ms未満の間隔で続く場合だけ加速する。
+間隔が空いたり、向きが変わったりした場合は1行から再開する。"
+  (setq my/terminal-wheel-fast-count
+        (if (and (eq direction my/terminal-wheel-last-direction)
+                 my/terminal-wheel-last-time
+                 (>= now my/terminal-wheel-last-time)
+                 (< (- now my/terminal-wheel-last-time) 0.05))
+            (1+ my/terminal-wheel-fast-count)
+          0)
+        my/terminal-wheel-last-direction direction
+        my/terminal-wheel-last-time now)
+  (my/terminal-wheel-scroll-lines my/terminal-wheel-fast-count))
 
 (defun my/terminal-wheel-scroll (orig event &optional arg)
   "端末の上下ホイール操作だけ速度に応じて加速し、ORIGへ渡す。
@@ -49,7 +54,8 @@ EVENTとARGは標準の `mwheel-scroll' に渡す引数。"
           (funcall orig event arg))
       ;; 左右スクロールは変更せず、上下スクロールの連続判定をリセットする。
       (setq my/terminal-wheel-last-direction nil
-            my/terminal-wheel-last-time nil)
+            my/terminal-wheel-last-time nil
+            my/terminal-wheel-fast-count 0)
       (funcall orig event arg))))
 
 (provide 'my-terminal)
