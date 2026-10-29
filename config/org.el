@@ -83,6 +83,9 @@
 ;; Orgテーブルとsrc/exampleブロックだけを個別に横スクロールする。
 ;; ソースファイルには適用しない。端末表示で右端の記号を出さない。
 (autoload 'my/org-phscroll-mode "my-org-phscroll" nil t)
+(defvar phscroll-mode-map)
+(declare-function phscroll-mwheel-scroll-left* "phscroll" (event))
+(declare-function phscroll-mwheel-scroll-right* "phscroll" (event))
 (use-package phscroll
   :vc (:url "https://github.com/misohena/phscroll")
   :hook (org-mode . my/org-phscroll-mode)
