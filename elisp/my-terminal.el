@@ -13,8 +13,9 @@
 
 (defun my/wezterm-wheel-sequence (direction lines)
   "WezTermのDIRECTIONとLINESに対応する端末入力文字列を返す。
-方向はup/down、行数は1〜12。"
-  (format "\e[902;%d;%d~" (if (eq direction 'up) 1 2) lines))
+方向はup/down、行数は1〜12。
+CSIの先頭を0にして、KKPが捕捉するCSI 1〜9の接頭辞を避ける。"
+  (format "\e[0;902;%d;%d~" (if (eq direction 'up) 1 2) lines))
 
 (defun my/wezterm-wheel-scroll (direction lines)
   "DIRECTIONにLINES行だけスクロールする。
