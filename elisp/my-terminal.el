@@ -27,7 +27,7 @@ CSIの先頭を0にして、KKPが捕捉するCSI 1〜9の接頭辞を避ける�
     ((beginning-of-buffer end-of-buffer) nil)))
 
 (defun my/wezterm-wheel-install ()
-  "WezTermのCtrl+ホイール試験用の端末入力を登録する。
+  "WezTermの通常ホイールからの端末入力を登録する。
 通常のホイールイベントやキー入力の処理には変更を加えない。"
   (dolist (direction '(up down))
     (dotimes (i 12)
