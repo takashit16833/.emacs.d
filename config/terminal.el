@@ -11,18 +11,15 @@
 (defvar mouse-wheel-progressive-speed)
 (defvar tramp-remote-path)
 (declare-function my/kkp-jis-colon "my-terminal" (orig input))
-(declare-function my/wezterm-wheel-install "my-terminal" ())
 
 ;; ターミナル版Emacsでマウス操作を有効にする。
 (unless (display-graphic-p)
   (xterm-mouse-mode 1)
   (mouse-wheel-mode 1)
-  ;; 通常のホイールは、推測による加速を使わず一定量にする。
-  (setq mouse-wheel-scroll-amount '(2)
-        mouse-wheel-progressive-speed nil)
-  ;; 通常ホイールでWezTermが送る専用イベントを受信する。
-  (autoload 'my/wezterm-wheel-install "my-terminal")
-  (my/wezterm-wheel-install))
+  ;; 1ノッチで2行動かす。
+  (setq mouse-wheel-scroll-amount '(2))
+  ;; 連続したホイール操作ではスクロール量を加速する。
+  (setq mouse-wheel-progressive-speed t))
 
 
 ;; 端末でKitty Keyboard Protocolを有効にする。
