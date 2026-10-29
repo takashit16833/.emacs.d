@@ -30,11 +30,15 @@
 
 
 (ert-deftest my/terminal-wheel-scroll-lines-maps-intervals ()
-  "イベント間隔に応じて1・2・4行へ切り替わる。"
+  "イベント間隔に応じて1・2・4・8行へ切り替わる。"
   (should (= (my/terminal-wheel-scroll-lines nil) 1))
-  (should (= (my/terminal-wheel-scroll-lines 0.016) 4))
+  ;; 実測した高速操作（16〜27ms）でも差がつくようにする。
+  (should (= (my/terminal-wheel-scroll-lines 0.016) 8))
+  (should (= (my/terminal-wheel-scroll-lines 0.027) 4))
   (should (= (my/terminal-wheel-scroll-lines 0.083) 2))
   (should (= (my/terminal-wheel-scroll-lines 0.304) 1))
+  ;; 境界値は上位の速度段階に含めない。
+  (should (= (my/terminal-wheel-scroll-lines 0.02) 4))
   (should (= (my/terminal-wheel-scroll-lines 0.05) 2))
   (should (= (my/terminal-wheel-scroll-lines 0.15) 1)))
 
@@ -42,7 +46,7 @@
   "向きが変わったときや長時間の間隔では加速を解除する。"
   (let (my/terminal-wheel-last-time my/terminal-wheel-last-direction)
     (should (= (my/terminal-wheel-next-lines 'wheel-up 10.0) 1))
-    (should (= (my/terminal-wheel-next-lines 'wheel-up 10.016) 4))
+    (should (= (my/terminal-wheel-next-lines 'wheel-up 10.016) 8))
     (should (= (my/terminal-wheel-next-lines 'wheel-down 10.032) 1))
     (should (= (my/terminal-wheel-next-lines 'wheel-down 10.10) 2))
     (should (= (my/terminal-wheel-next-lines 'wheel-down 10.50) 1))

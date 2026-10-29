@@ -17,9 +17,12 @@
 (defvar my/terminal-wheel-last-direction nil)
 
 (defun my/terminal-wheel-scroll-lines (interval)
-  "直前の同方向イベントとの間隔INTERVAL（秒）から移動行数を返す。"
+  "直前の同方向イベントとの間隔INTERVAL（秒）から移動行数を返す。
+実測で速い操作は主に16〜27ms、遅い操作は主に数百msだった。
+通常の操作が最大速度になりにくいよう、最速の境界を20msにする。"
   (cond
    ((null interval) 1)
+   ((< interval 0.02) 8)
    ((< interval 0.05) 4)
    ((< interval 0.15) 2)
    (t 1)))
