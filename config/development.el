@@ -17,6 +17,12 @@
   :hook (after-init . editorconfig-mode))
 
 
+;; プログラムのコード行も折り返さず、領域内を水平スクロールする。
+;; Orgは別途テーブル・ソースブロック単位に処理する。
+(autoload 'my/prog-phscroll-maybe-enable "my-prog-phscroll" nil nil)
+(add-hook 'prog-mode-hook #'my/prog-phscroll-maybe-enable)
+
+
 ;; 括弧を階層ごとに色分けする。
 (use-package rainbow-delimiters
   :ensure t
