@@ -11,6 +11,7 @@
 (defvar mouse-wheel-progressive-speed)
 (defvar tramp-remote-path)
 (declare-function my/kkp-jis-colon "my-terminal" (orig input))
+(declare-function my/terminal-wheel-scroll "my-terminal" (orig event &optional arg))
 
 ;; ターミナル版Emacsでマウス操作を有効にする。
 (unless (display-graphic-p)
