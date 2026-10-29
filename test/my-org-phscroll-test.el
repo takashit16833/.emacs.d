@@ -46,6 +46,22 @@
           (should-not (string-match-p "#\\+begin_" raw))
           (should-not (string-match-p "#\\+end_" raw)))))))
 
+(ert-deftest my/org-phscroll-block-delimiters-and-empty-blocks ()
+  "Skip empty blocks and keep affiliated keywords and delimiters out of regions."
+  (with-temp-buffer
+    (insert "#+NAME: example-command\n"
+            "#+BEGIN_SRC shell\n"
+            "echo very-long-command\n"
+            "#+END_SRC\n\n"
+            "#+begin_example\n"
+            "#+end_example\n")
+    (org-mode)
+    (let ((regions (my/org-phscroll--regions)))
+      (should (= (length regions) 1))
+      (should (equal (buffer-substring-no-properties
+                      (caar regions) (cdar regions))
+                     "echo very-long-command\n")))))
+
 (ert-deftest my/org-phscroll-refresh-reuses-unchanged-areas ()
   "Refreshing an unchanged Org file does not recreate scroll areas."
   (with-temp-buffer

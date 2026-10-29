@@ -41,24 +41,40 @@ line-prefix.  Phscroll normally subtracts wrap-prefix, hiding usable space."
                      (length (get-text-property pos 'line-prefix)))))
       width)))
 
+(defun my/org-phscroll--block-region (element)
+  "Return the content range of source/example block ELEMENT.
+Unlike container elements, these block types have no :contents-begin
+or :contents-end properties.  Find the closing delimiter instead.
+Exclude both delimiters and any affiliated #+NAME or #+CAPTION lines."
+  (save-excursion
+    (goto-char (org-element-property :post-affiliated element))
+    (forward-line 1)
+    (let ((beg (point))
+          (case-fold-search t)
+          (closing (if (eq (org-element-type element) 'src-block)
+                       "^[[:blank:]]*#\\+end_src[[:blank:]]*$"
+                     "^[[:blank:]]*#\\+end_example[[:blank:]]*$")))
+      (when (re-search-forward closing (org-element-property :end element) t)
+        (let ((end (line-beginning-position)))
+          (when (< beg end)
+            (cons beg end)))))))
+
 (defun my/org-phscroll--regions ()
   "Return the (BEG . END) ranges to scroll in this Org buffer.
 Include Org pipe tables and the contents of source/example blocks.
 Do not include block delimiter lines or text that only resembles a table."
-  (org-element-map (org-element-parse-buffer)
-      '(table src-block example-block)
-    (lambda (element)
-      (pcase (org-element-type element)
-        ('table
-         (when (eq (org-element-property :type element) 'org)
-           (save-excursion
-             (goto-char (org-element-property :begin element))
-             (cons (org-table-begin) (org-table-end)))))
-        ((or 'src-block 'example-block)
-         (let ((beg (org-element-property :contents-begin element))
-               (end (org-element-property :contents-end element)))
-           (when (and beg end (< beg end))
-             (cons beg end))))))))
+  (delq nil
+        (org-element-map (org-element-parse-buffer)
+            '(table src-block example-block)
+          (lambda (element)
+            (pcase (org-element-type element)
+              ('table
+               (when (eq (org-element-property :type element) 'org)
+                 (save-excursion
+                   (goto-char (org-element-property :begin element))
+                   (cons (org-table-begin) (org-table-end)))))
+              ((or 'src-block 'example-block)
+               (my/org-phscroll--block-region element)))))))
 
 (defun my/org-phscroll--area-bounds (area)
   "Return the buffer bounds of phscroll AREA."
