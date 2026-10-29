@@ -13,6 +13,17 @@
 (require 'org-element)
 (require 'org-table)
 
+;; phscroll is loaded at runtime by the minor mode.  Declare its API here so
+;; byte compilation with byte-compile-error-on-warn does not depend on
+;; whichever functions the installed package happens to autoload.
+(declare-function phscroll-area-begin "phscroll" (&optional area))
+(declare-function phscroll-area-end "phscroll" (&optional area))
+(declare-function phscroll-area-destroy "phscroll" (area))
+(declare-function phscroll-enum-area "phscroll" (&optional beg end))
+(declare-function phscroll-region "phscroll" (beg end))
+(declare-function phscroll-mode "phscroll" (&optional arg))
+(declare-function phscroll-delete-all "phscroll" ())
+
 (defvar-local my/org-phscroll-mode nil)
 (defvar-local my/org-phscroll--refresh-timer nil)
 
