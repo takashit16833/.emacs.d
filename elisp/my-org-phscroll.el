@@ -27,8 +27,6 @@
 (defvar-local my/org-phscroll-mode nil)
 (defvar-local my/org-phscroll--refresh-timer nil)
 
-(declare-function my/org-phscroll-mode "my-org-phscroll" (&optional arg))
-
 (defun my/org-phscroll--before-major-mode-change ()
   "Remove Org scroll areas before changing to another major mode."
   (my/org-phscroll-mode -1))

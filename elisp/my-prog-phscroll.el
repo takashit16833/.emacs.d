@@ -18,8 +18,6 @@
 (defvar-local my/prog-phscroll-mode nil)
 (defvar-local my/prog-phscroll--area nil)
 
-(declare-function my/prog-phscroll-mode "my-prog-phscroll" (&optional arg))
-
 (defun my/prog-phscroll--before-major-mode-change ()
   "Remove the old scroll overlays before this buffer changes major mode."
   (my/prog-phscroll-mode -1))
