@@ -21,6 +21,8 @@
 ;; Orgは別途テーブル・ソースブロック単位に処理する。
 (autoload 'my/prog-phscroll-maybe-enable "my-prog-phscroll" nil nil)
 (add-hook 'prog-mode-hook #'my/prog-phscroll-maybe-enable)
+;; yaml-ts-mode derives from text-mode, so prog-mode-hook does not run.
+(add-hook 'yaml-ts-mode-hook #'my/prog-phscroll-maybe-enable)
 
 
 ;; 括弧を階層ごとに色分けする。
