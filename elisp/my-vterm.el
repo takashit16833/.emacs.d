@@ -8,11 +8,34 @@
 
 (require 'my-tab-context)
 (require 'my-fullscreen-buffer)
+(require 'seq)
 
 (declare-function vterm "vterm" (&optional arg))
 
 (defvar vterm-buffer-name)
 (defvar project-current-directory-override)
+
+(defvar tab-line-tabs-function)
+
+(defvar-local my/vterm-tab-line-group nil
+  "同じtab-lineに並べるvtermのグループ。")
+
+
+(defun my/vterm-tab-line-tabs ()
+  "現在のvtermと同じグループに属するvtermだけを返す。"
+  (let ((group (or my/vterm-tab-line-group (current-buffer))))
+    (seq-filter
+     (lambda (buffer)
+       (with-current-buffer buffer
+         (and (derived-mode-p 'vterm-mode)
+              (equal (or my/vterm-tab-line-group buffer) group))))
+     (buffer-list))))
+
+
+(defun my/vterm-tab-line-setup ()
+  "vtermでは編集バッファと分離したtab-lineを使用する。"
+  (setq-local tab-line-tabs-function #'my/vterm-tab-line-tabs))
+
 
 
 (defun my/vterm--buffer-name (directory)
@@ -60,7 +83,9 @@
   (interactive)
   (unless (derived-mode-p 'vterm-mode)
     (user-error "vtermバッファで実行してください"))
-  (let* ((saved (my/fullscreen-get 'my/vterm-fullscreen))
+  (let* ((source (current-buffer))
+         (group (or my/vterm-tab-line-group source))
+         (saved (my/fullscreen-get 'my/vterm-fullscreen))
          (primary (and saved (car saved)))
          (name (if (buffer-live-p primary)
                    (buffer-name primary)
@@ -74,7 +99,11 @@
         (let ((vterm-buffer-name name)
               (default-directory directory))
           ;; 非数値の引数は、既存バッファを再利用せず新規作成する。
-          (vterm '(4)))
+          (let ((created (vterm '(4))))
+            (with-current-buffer source
+              (setq-local my/vterm-tab-line-group group))
+            (with-current-buffer created
+              (setq-local my/vterm-tab-line-group group))))
       (error
        (when (window-live-p window)
          (delete-window window))
@@ -121,7 +150,9 @@ windmoveなどの表示先指定があれば、その指定を優先する。"
       (let ((configuration (unless directed (current-window-configuration)))
             (default-directory directory)
             (vterm-buffer-name buffer-name))
-        (vterm)
+        (let ((created (vterm)))
+          (with-current-buffer created
+            (setq-local my/vterm-tab-line-group buffer-name)))
         (unless directed
           (when-let* ((vterm-buffer (get-buffer buffer-name))
                       (target (get-buffer-window vterm-buffer)))
