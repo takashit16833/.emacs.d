@@ -41,8 +41,9 @@
                 :around #'my/kkp-jis-colon)))
 
 
-;; TRAMP先でGHCupのコマンドを見つけられるようにする。
+;; TRAMP先で接続先のPATHとGHCupのコマンドを利用する。
 (with-eval-after-load 'tramp
+  (add-to-list 'tramp-remote-path 'tramp-own-remote-path)
   (add-to-list 'tramp-remote-path "/root/.ghcup/bin"))
 
 
