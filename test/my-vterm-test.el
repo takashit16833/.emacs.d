@@ -151,4 +151,62 @@
       (should (eq (current-buffer) first)))))
 
 
+(ert-deftest my/vterm-toggle-restores-surviving-secondary-after-primary-exit ()
+  "最初のvtermを終了しても、編集画面と生きているvtermを往復できる。"
+  (my/vterm-test--with-buffers
+    (my/vterm-toggle)
+    (let ((first (current-buffer)))
+      (cl-letf (((symbol-function 'split-window-sensibly)
+                 (lambda (&optional window)
+                   (split-window window nil 'below))))
+        (my/vterm-split))
+      (let ((second (current-buffer)))
+        (should (not (eq first second)))
+        (kill-buffer first)
+        (should-not (buffer-live-p first))
+        (should (get-buffer-window second))
+        (select-window (get-buffer-window second))
+        (my/vterm-toggle)
+        (should (one-window-p t))
+        (should (eq (current-buffer) buffer-a))
+        (my/vterm-toggle)
+        (should (one-window-p t))
+        (should (eq (current-buffer) second))
+        (should-not (get-buffer buffer-name))
+        (my/vterm-toggle)
+        (should (eq (current-buffer) buffer-a))))))
+
+
+(ert-deftest my/vterm-toggle-restores-primary-after-secondary-exit ()
+  "追加したvtermを終了した場合も、残ったvtermだけが復元される。"
+  (my/vterm-test--with-buffers
+    (my/vterm-toggle)
+    (let ((first (current-buffer)))
+      (cl-letf (((symbol-function 'split-window-sensibly)
+                 (lambda (&optional window)
+                   (split-window window nil 'below))))
+        (my/vterm-split))
+      (let ((second (current-buffer)))
+        (kill-buffer second)
+        (select-window (get-buffer-window first))
+        (my/vterm-toggle)
+        (should (eq (current-buffer) buffer-a))
+        (my/vterm-toggle)
+        (should (one-window-p t))
+        (should (eq (current-buffer) first))))))
+
+
+(ert-deftest my/vterm-toggle-after-last-vterm-exit ()
+  "最後のvtermを終了しても編集画面に戻り、次は新しく起動できる。"
+  (my/vterm-test--with-buffers
+    (my/vterm-toggle)
+    (let ((first (current-buffer)))
+      (kill-buffer first)
+      (should-not (buffer-live-p first))
+      (my/vterm-toggle)
+      (should (eq (current-buffer) buffer-a))
+      (should-not (my/fullscreen-get 'my/vterm-layout))
+      (my/vterm-toggle)
+      (should (equal (buffer-name (current-buffer)) buffer-name)))))
+
 ;;; my-vterm-test.el ends here
