@@ -55,9 +55,12 @@
    '(("ssh" login-shell)
      ("scp" login-shell)
      ("docker" "/bin/bash")))
-  :bind ("s-j" . my/vterm-toggle))
+  :bind (("s-j" . my/vterm-toggle)
+         :map vterm-mode-map
+         ("C-c C-s" . my/vterm-split)))
 
 (autoload 'my/vterm-toggle "my-vterm" nil t)
+(autoload 'my/vterm-split "my-vterm" nil t)
 
 
 ;;; terminal.el ends here
