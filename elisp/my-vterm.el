@@ -8,6 +8,7 @@
 
 (require 'my-tab-context)
 (require 'my-fullscreen-buffer)
+(require 'my-tab-line)
 (require 'seq)
 
 (declare-function vterm "vterm" (&optional arg))
@@ -22,14 +23,24 @@
 
 
 (defun my/vterm-tab-line-tabs ()
-  "現在のvtermと同じグループに属するvtermだけを返す。"
-  (let ((group (or my/vterm-tab-line-group (current-buffer))))
-    (seq-filter
-     (lambda (buffer)
-       (with-current-buffer buffer
-         (and (derived-mode-p 'vterm-mode)
-              (equal (or my/vterm-tab-line-group buffer) group))))
-     (buffer-list))))
+  "現在のvtermと同じグループのvtermを、安定した順番で返す。"
+  (let* ((group (or my/vterm-tab-line-group (current-buffer)))
+         (tab (my/fullscreen--tab))
+         (orders (alist-get 'my/vterm-tab-line-orders (cdr tab)))
+         (buffers
+          (seq-filter
+           (lambda (buffer)
+             (with-current-buffer buffer
+               (and (derived-mode-p 'vterm-mode)
+                    (equal (or my/vterm-tab-line-group buffer) group))))
+           (buffer-list)))
+         (ordered (my/tab-line--stable-buffer-order
+                   (alist-get group orders nil nil #'equal)
+                   buffers)))
+    ;; tab-barタブごと、vtermグループごとに並び順を保持する。
+    (setf (alist-get group orders nil nil #'equal) ordered)
+    (setf (alist-get 'my/vterm-tab-line-orders (cdr tab)) orders)
+    ordered))
 
 
 (defun my/vterm-tab-line-setup ()
