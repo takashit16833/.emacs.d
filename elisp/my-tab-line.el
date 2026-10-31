@@ -22,12 +22,14 @@
   '(or (and "^\\*.*\\*$"
             (not (or "^\\*jq-playground\\*$"
                      (derived-mode . clutch-mode)
-                     (derived-mode . haskell-ts-inferior-mode))))
+                     (derived-mode . haskell-ts-inferior-mode)
+                     (derived-mode . vterm-mode))))
        (derived-mode . magit-mode)
        (derived-mode . dired-mode))
   "tab-lineで非表示にするバッファの条件。
 基本的に *...* の特殊バッファを除外するが、Clutch、Haskell REPL、
-jq Playgroundは通常のバッファと同様に表示する。")
+jq Playground、vtermにはtab-lineを表示する。
+vtermのタブ候補は専用の関数で編集バッファと分離する。")
 
 
 (defvar-local my/tab-line-git-modified-cache 'unknown
@@ -181,8 +183,10 @@ CURRENT-BUFFERS にないbufferは除外する。"
           (tab-line-tabs-non-excluded
            (seq-filter
             (lambda (buffer)
-              ;; " *Minibuf-1*" などの内部bufferは表示しない。
-              (not (string-prefix-p " " (buffer-name buffer))))
+              ;; 内部bufferとvtermは編集用tab-lineに並べない。
+              (and (not (string-prefix-p " " (buffer-name buffer)))
+                   (not (with-current-buffer buffer
+                          (derived-mode-p 'vterm-mode)))))
             (bufferlo-buffer-list))))
          (ordered-buffers
           (my/tab-line--stable-buffer-order
