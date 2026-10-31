@@ -84,8 +84,9 @@
 (use-package verb
   :ensure t
   :after org
-  :config
-  (define-key org-mode-map (kbd "C-c C-r") verb-command-map))
+  :bind-keymap
+  (:map org-mode-map
+   ("C-c C-r" . verb-command-map)))
 
 ;; Org では表と src/example ブロックの本文だけを個別に横スクロールする。
 ;; phscroll 本体とマウス操作は config/development.el で共通設定する。
