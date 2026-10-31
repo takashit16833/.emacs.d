@@ -116,6 +116,25 @@
         (should (get-buffer-window first))
         (should (get-buffer-window second))))))
 
+(ert-deftest my/vterm-new-honors-windmove-display-right ()
+  "windmoveが指定した右ウィンドウに新しいvtermを表示する。"
+  (my/vterm-test--with-buffers
+    (my/vterm-toggle)
+    (let ((first (current-buffer))
+          (left (selected-window)))
+      (let ((exit (windmove-display-right)))
+        (unwind-protect
+            (my/vterm-new)
+          (funcall exit)))
+      (should (= (length (window-list)) 2))
+      (should (eq (window-buffer left) first))
+      (should-not (eq (current-buffer) first))
+      (should (get-buffer-window (current-buffer)))
+      (should (equal my/vterm-tab-line-group
+                     (with-current-buffer first
+                       my/vterm-tab-line-group))))))
+
+
 (ert-deftest my/vterm-new-only-in-vterm ()
   "vterm以外では新規作成コマンドが実行できない。"
   (my/vterm-test--with-buffers
