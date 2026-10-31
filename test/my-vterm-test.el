@@ -255,4 +255,71 @@
         (kill-buffer first)
         (should (equal (my/vterm-tab-line-tabs) (list second)))))))
 
+(ert-deftest my/vterm-tab-line-order-ignores-buffer-list-recency ()
+  "使用順が変わっても既存のvtermタブの順番を維持する。"
+  (let* ((a (generate-new-buffer "*vterm:order-a*"))
+         (b (generate-new-buffer "*vterm:order-b*"))
+         (c (generate-new-buffer "*vterm:order-c*"))
+         (tab (list 'current-tab))
+         (buffers (list a b)))
+    (unwind-protect
+        (progn
+          (dolist (buffer (list a b c))
+            (with-current-buffer buffer
+              (setq major-mode 'vterm-mode)
+              (setq-local my/vterm-tab-line-group "test-group")))
+          (cl-letf (((symbol-function 'tab-bar-tabs)
+                     (lambda () (list tab)))
+                    ((symbol-function 'buffer-list)
+                     (lambda (&optional _frame) buffers)))
+            (with-current-buffer a
+              (should (equal (my/vterm-tab-line-tabs) (list a b)))
+              ;; Cに切り替えた場合も、新しいタブは末尾に追加する。
+              (setq buffers (list c b a))
+              (should (equal (my/vterm-tab-line-tabs) (list a b c)))
+              ;; Bが終了した場合は、並び順を保って候補から外す。
+              (setq buffers (list c a))
+              (should (equal (my/vterm-tab-line-tabs) (list a c))))))
+      (dolist (buffer (list a b c))
+        (when (buffer-live-p buffer)
+          (kill-buffer buffer))))))
+
+
+(ert-deftest my/vterm-tab-line-order-isolated-between-tabs ()
+  "同じvtermグループでもtab-barタブごとに順番を独立させる。"
+  (let* ((a (generate-new-buffer "*vterm:tab-a*"))
+         (b (generate-new-buffer "*vterm:tab-b*"))
+         (other (generate-new-buffer "*vterm:other-group*"))
+         (tab-a (list 'current-tab))
+         (tab-b (list 'current-tab))
+         (active-tab tab-a)
+         (buffers (list a b other)))
+    (unwind-protect
+        (progn
+          (dolist (buffer (list a b))
+            (with-current-buffer buffer
+              (setq major-mode 'vterm-mode)
+              (setq-local my/vterm-tab-line-group "shared")))
+          (with-current-buffer other
+            (setq major-mode 'vterm-mode)
+            (setq-local my/vterm-tab-line-group "other"))
+          (cl-letf (((symbol-function 'tab-bar-tabs)
+                     (lambda () (list active-tab)))
+                    ((symbol-function 'buffer-list)
+                     (lambda (&optional _frame) buffers)))
+            (with-current-buffer a
+              (should (equal (my/vterm-tab-line-tabs) (list a b))))
+            (setq active-tab tab-b
+                  buffers (list b other a))
+            (with-current-buffer b
+              (should (equal (my/vterm-tab-line-tabs) (list b a))))
+            (setq active-tab tab-a)
+            (with-current-buffer a
+              (should (equal (my/vterm-tab-line-tabs) (list a b))))
+            (with-current-buffer other
+              (should (equal (my/vterm-tab-line-tabs) (list other))))))
+      (dolist (buffer (list a b other))
+        (when (buffer-live-p buffer)
+          (kill-buffer buffer))))))
+
 ;;; my-vterm-test.el ends here
