@@ -30,13 +30,30 @@
        (car display-buffer-overriding-action)))
 
 
-(defun my/vterm--save-layout (buffer)
-  "分割中のvterm配置をBUFFERとともに現在のタブへ保存する。"
-  (if (one-window-p t)
-      (my/fullscreen-clear 'my/vterm-layout)
-    (setf (alist-get 'my/vterm-layout (cdr (my/fullscreen--tab)))
-          (cons buffer (current-window-configuration)))))
-
+(defun my/vterm--save-layout ()
+  "生存中のvtermだけを残して、現在のタブに表示配置を保存する。"
+  (let ((windows (window-list))
+        vterm-windows
+        seen-buffers)
+    (dolist (window windows)
+      (let ((buffer (window-buffer window)))
+        (with-current-buffer buffer
+          (when (and (derived-mode-p 'vterm-mode)
+                     (not (memq buffer seen-buffers)))
+            (push buffer seen-buffers)
+            (push window vterm-windows)))))
+    (if (not vterm-windows)
+        (my/fullscreen-clear 'my/vterm-layout)
+      (let ((target (if (memq (selected-window) vterm-windows)
+                        (selected-window)
+                      (car vterm-windows))))
+        ;; 終了したvtermの代わりに表示されたバッファや重複表示を除去する。
+        (dolist (window windows)
+          (unless (memq window vterm-windows)
+            (delete-window window)))
+        (select-window target)
+        (setf (alist-get 'my/vterm-layout (cdr (my/fullscreen--tab)))
+              (cons (window-buffer target) (current-window-configuration)))))))
 
 (defun my/vterm-split ()
   "現在のvtermを自動的な方向に分割し、新しいvtermを起動する。"
@@ -77,24 +94,31 @@ windmoveなどの表示先指定があれば、その指定を優先する。"
          (buffer (get-buffer buffer-name))
          (window (and buffer (get-buffer-window buffer)))
          (saved (my/fullscreen-get 'my/vterm-fullscreen))
+         (layout (my/fullscreen-get 'my/vterm-layout))
          (directed (my/vterm--directed-display-p)))
     (cond
-     ;; 分割先のvtermから実行しても、元の編集画面へ戻す。
-     ((and saved (not directed)
-           (buffer-live-p (car saved))
-           (get-buffer-window (car saved))
-           (derived-mode-p 'vterm-mode))
-      (my/vterm--save-layout (car saved))
+     ;; 最初のvtermが終了していても、元の編集画面を復元する。
+     ((and saved (not directed))
+      (my/vterm--save-layout)
       (my/fullscreen-restore 'my/vterm-fullscreen t))
      ((and window (not directed))
       (with-selected-window window
         (previous-buffer))
       (my/fullscreen-clear 'my/vterm-fullscreen))
+     ;; 前回のvtermの分割配置を復元する。最初のvtermが終了してもよい。
+     ((and (not directed)
+           layout
+           (buffer-live-p (car layout))
+           (window-configuration-p (cdr layout)))
+      (let ((configuration (current-window-configuration)))
+        (set-window-configuration (cdr layout))
+        (setf (alist-get 'my/vterm-fullscreen (cdr (my/fullscreen--tab)))
+              (cons (car layout) configuration))))
      (t
       ;; 分割の保存はタブ単位。異なるタブで同じvtermを使っても混同しない。
       (my/fullscreen-clear 'my/vterm-fullscreen)
+      (my/fullscreen-clear 'my/vterm-layout)
       (let ((configuration (unless directed (current-window-configuration)))
-            (layout (my/fullscreen-get 'my/vterm-layout))
             (default-directory directory)
             (vterm-buffer-name buffer-name))
         (vterm)
@@ -104,12 +128,7 @@ windmoveなどの表示先指定があれば、その指定を優先する。"
             (select-window target)
             ;; 単一ウィンドウからの起動でも編集画面の配置を保存する。
             (my/fullscreen-enter 'my/vterm-fullscreen
-                                 vterm-buffer configuration)
-            (when (and layout
-                       (eq (car layout) vterm-buffer)
-                       (window-configuration-p (cdr layout)))
-              (set-window-configuration (cdr layout))))))))))
-
+                                 vterm-buffer configuration))))))))
 
 (provide 'my-vterm)
 
