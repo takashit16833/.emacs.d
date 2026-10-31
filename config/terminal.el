@@ -58,10 +58,10 @@
      ("docker" "/bin/bash")))
   :bind (("s-j" . my/vterm-toggle)
          :map vterm-mode-map
-         ("C-c C-s" . my/vterm-split)))
+         ("C-c C-s" . my/vterm-new)))
 
 (autoload 'my/vterm-toggle "my-vterm" nil t)
-(autoload 'my/vterm-split "my-vterm" nil t)
+(autoload 'my/vterm-new "my-vterm" nil t)
 (autoload 'my/vterm-tab-line-setup "my-vterm")
 
 
