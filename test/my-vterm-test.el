@@ -209,4 +209,50 @@
       (my/vterm-toggle)
       (should (equal (buffer-name (current-buffer)) buffer-name)))))
 
+(ert-deftest my/vterm-tab-line-only-shows-related-terminals ()
+  "同じvterm画面のターミナルだけをtab-lineに並べる。"
+  (my/vterm-test--with-buffers
+    (my/vterm-toggle)
+    (let ((first (current-buffer))
+          (other (generate-new-buffer "*vterm:unrelated*")))
+      (unwind-protect
+          (progn
+            (with-current-buffer first
+              (my/vterm-tab-line-setup)
+              (should (eq tab-line-tabs-function #'my/vterm-tab-line-tabs)))
+            (with-current-buffer other
+              (setq major-mode 'vterm-mode)
+              (setq-local my/vterm-tab-line-group "unrelated"))
+            (cl-letf (((symbol-function 'split-window-sensibly)
+                       (lambda (&optional window)
+                         (split-window window nil 'below))))
+              (my/vterm-split))
+            (let ((second (current-buffer)))
+              (should-not (eq first second))
+              (dolist (buffer (list first second))
+                (with-current-buffer buffer
+                  (let ((tabs (my/vterm-tab-line-tabs)))
+                    (should (= (length tabs) 2))
+                    (should (memq first tabs))
+                    (should (memq second tabs))
+                    (should-not (memq other tabs)))))
+              (with-current-buffer other
+                (should (equal (my/vterm-tab-line-tabs)
+                               (list other))))))
+        (kill-buffer other)))))
+
+
+(ert-deftest my/vterm-tab-line-drops-closed-terminal ()
+  "終了したvtermは同じグループのtab-lineから消える。"
+  (my/vterm-test--with-buffers
+    (my/vterm-toggle)
+    (let ((first (current-buffer)))
+      (cl-letf (((symbol-function 'split-window-sensibly)
+                 (lambda (&optional window)
+                   (split-window window nil 'below))))
+        (my/vterm-split))
+      (let ((second (current-buffer)))
+        (kill-buffer first)
+        (should (equal (my/vterm-tab-line-tabs) (list second)))))))
+
 ;;; my-vterm-test.el ends here
