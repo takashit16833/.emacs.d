@@ -51,17 +51,11 @@
 ;; HaskellではTree-sitter版のmajor modeを使用する。
 (autoload 'my-haskell-simple-indent-setup "my-haskell-simple-indent")
 
-(defun my/haskell-syntax-faces-setup ()
-  "Haskellのプリプロセッサ指定をコメントと同じ見た目にする。"
-  (face-remap-set-base 'font-lock-preprocessor-face
-                       'font-lock-comment-face))
-
 (use-package haskell-ts-mode
   :vc (:url "https://github.com/dschrempf/haskell-ts-mode")
   :commands haskell-ts-mode
   :hook
-  ((haskell-ts-mode . my-haskell-simple-indent-setup)
-   (haskell-ts-mode . my/haskell-syntax-faces-setup))
+  (haskell-ts-mode . my-haskell-simple-indent-setup)
   :init
   (add-to-list 'major-mode-remap-alist
                '(haskell-mode . haskell-ts-mode)))
