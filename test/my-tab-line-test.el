@@ -186,5 +186,35 @@
           (kill-buffer buffer))))))
 
 
+(ert-deftest my/tab-line-shows-primary-and-split-vterms ()
+  "最初のvtermも追加のvtermもtab-lineを表示できる。"
+  (dolist (name '("*vterm:test*" "*vterm:test*<2>"))
+    (with-temp-buffer
+      (rename-buffer name t)
+      (setq major-mode 'vterm-mode)
+      (should-not (buffer-match-p my/tab-line-exclude-condition
+                                  (current-buffer))))))
+
+
+(ert-deftest my/tab-line-editing-list-excludes-vterms ()
+  "編集用tab-lineにはvtermバッファを混ぜない。"
+  (let ((editing (generate-new-buffer "tab-line-test-editing"))
+        (terminal (generate-new-buffer "*vterm:tab-line-test*"))
+        (tab (list 'current-tab)))
+    (unwind-protect
+        (progn
+          (with-current-buffer terminal
+            (setq major-mode 'vterm-mode))
+          (cl-letf (((symbol-function 'tab-bar-tabs)
+                     (lambda () (list tab)))
+                    ((symbol-function 'bufferlo-buffer-list)
+                     (lambda (&rest _) (list editing terminal)))
+                    ((symbol-function 'tab-line-tabs-non-excluded)
+                     (lambda (buffers) buffers)))
+            (should (equal (my/tab-line-tabs-bufferlo-buffers)
+                           (list editing)))))
+      (kill-buffer editing)
+      (kill-buffer terminal))))
+
 (provide 'my-tab-line-test)
 ;;; my-tab-line-test.el ends here
