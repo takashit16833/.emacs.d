@@ -89,37 +89,23 @@
         (setf (alist-get 'my/vterm-layout (cdr (my/fullscreen--tab)))
               (cons (window-buffer target) (current-window-configuration)))))))
 
-(defun my/vterm-split ()
-  "現在のvtermを自動的な方向に分割し、新しいvtermを起動する。"
+(defun my/vterm-new ()
+  "現在のvtermと同じグループに新しいvtermを作成する。
+ウィンドウ分割は行わず、windmoveによる表示先の指定を尊重する。"
   (interactive)
   (unless (derived-mode-p 'vterm-mode)
     (user-error "vtermバッファで実行してください"))
   (let* ((source (current-buffer))
          (group (or my/vterm-tab-line-group source))
-         (saved (my/fullscreen-get 'my/vterm-fullscreen))
-         (primary (and saved (car saved)))
-         (name (if (buffer-live-p primary)
-                   (buffer-name primary)
-                 (buffer-name)))
-         (directory default-directory)
-         (window (split-window-sensibly)))
-    (unless window
-      (user-error "ウィンドウを分割できません"))
-    (select-window window)
-    (condition-case err
-        (let ((vterm-buffer-name name)
-              (default-directory directory))
-          ;; 非数値の引数は、既存バッファを再利用せず新規作成する。
-          (let ((created (vterm '(4))))
-            (with-current-buffer source
-              (setq-local my/vterm-tab-line-group group))
-            (with-current-buffer created
-              (setq-local my/vterm-tab-line-group group))))
-      (error
-       (when (window-live-p window)
-         (delete-window window))
-       (signal (car err) (cdr err))))))
-
+         (name (if (stringp group) group (buffer-name source)))
+         (default-directory default-directory)
+         (vterm-buffer-name name))
+    ;; 非数値の引数は毎回新しいセッションを作成し、個数に制限はない。
+    (let ((created (vterm '(4))))
+      (with-current-buffer source
+        (setq-local my/vterm-tab-line-group group))
+      (with-current-buffer created
+        (setq-local my/vterm-tab-line-group group)))))
 
 (defun my/vterm-toggle ()
   "現在の文脈に対応するvtermを表示・非表示する。
