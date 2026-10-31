@@ -40,8 +40,8 @@
    '(avy browsing-history bufferlo cape clutch embark embark-consult
 	 markdown-indent-mode markdown-table-wrap markdown-ts-appear
 	 one-dark-blue-theme org-modern org-pomodoro org-super-agenda
-	 org-table-wrap pgsql phscroll retro-hacker-blue-theme
-	 tab-router))
+	 org-table-wrap pgsql phscroll restclient
+	 retro-hacker-blue-theme tab-router verb))
  '(package-vc-selected-packages
    '((phscroll :vc-backend Git :url
 	       "https://github.com/misohena/phscroll")
