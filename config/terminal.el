@@ -49,6 +49,7 @@
 (use-package vterm
   :ensure t
   :commands vterm
+  :hook (vterm-mode . my/vterm-tab-line-setup)
   :custom
   ;; DockerのTRAMP先ではbashを使用する。
   (vterm-tramp-shells
@@ -61,6 +62,7 @@
 
 (autoload 'my/vterm-toggle "my-vterm" nil t)
 (autoload 'my/vterm-split "my-vterm" nil t)
+(autoload 'my/vterm-tab-line-setup "my-vterm")
 
 
 ;;; terminal.el ends here
