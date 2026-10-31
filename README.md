@@ -57,6 +57,7 @@ EmacsでTree-sitterを利用できるか確認する。
 | ファイル | 評価する式 | 文法名 |
 | --- | --- | --- |
 | `.lua` | `(require 'lua-ts-mode)` | `lua` |
+| `Dockerfile` / `Containerfile` | `(require 'dockerfile-ts-mode)` | `dockerfile` |
 | `.py` | `(require 'python)` | `python` |
 | `.ts` / `.tsx` | `(require 'typescript-ts-mode)` | `typescript` / `tsx` |
 | `.yaml` / `.yml` | `(require 'yaml-ts-mode)` | `yaml` |
