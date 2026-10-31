@@ -27,6 +27,12 @@
   "Org の優先度 C に使う face。"
   :group 'org)
 
+;; DOING専用のface。配色はテーマ側で指定し、ほかのテーマではTODOの色を使う。
+(defface my/org-modern-doing
+  '((t :inherit org-modern-todo))
+  "OrgのDOING状態に使うface。"
+  :group 'org)
+
 ;; 見出し記号専用の face。テーマ未指定時は第1レベルの見出し色を継承する。
 (defface my/org-modern-heading-bullet
   '((t :inherit org-level-1))
@@ -74,9 +80,9 @@
   ;; TODO・DONEをラベル風に装飾する。
   (org-modern-todo t)
 
-  ;; TODO・DONEごとの色を指定する。
-  ;; nil: 個別指定なし / 対応表: 状態ごとに色を指定
-  (org-modern-todo-faces nil)
+  ;; DOINGだけ専用faceに割り当て、色はテーマ側で管理する。
+  (org-modern-todo-faces
+   '(("DOING" . my/org-modern-doing)))
 
   ;; 優先度「[#A]」などを装飾する。
   ;; nil: 無効 / t: 標準装飾 / 対応表: 任意の記号に置換
