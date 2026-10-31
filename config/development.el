@@ -17,6 +17,11 @@
   :hook (after-init . editorconfig-mode))
 
 
+;; HTTPリクエストを .http ファイルから送信する。
+(use-package restclient
+  :ensure t
+  :mode ("\\.http\\'" . restclient-mode))
+
 ;; phscroll の共通設定。ソースファイルと Org 内の領域で共有する。
 ;; 端末では左右のはみ出し記号を出さず、WezTerm の水平ホイールに対応する。
 (defvar phscroll-mode-map)

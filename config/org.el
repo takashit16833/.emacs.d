@@ -80,14 +80,6 @@
    ("M-S-<down>" . nil)))
 
 
-;; Org内のHTTPリクエストをVerbで送信する。
-(use-package verb
-  :ensure t
-  :after org
-  :bind-keymap
-  (:map org-mode-map
-   ("C-c C-r" . verb-command-map)))
-
 ;; Org では表と src/example ブロックの本文だけを個別に横スクロールする。
 ;; phscroll 本体とマウス操作は config/development.el で共通設定する。
 (autoload 'my/org-phscroll-mode "my-org-phscroll" nil t)
