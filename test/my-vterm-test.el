@@ -91,20 +91,21 @@
     (should (equal (buffer-name (window-buffer)) buffer-name))))
 
 
-(ert-deftest my/vterm-split-and-toggle-restores-both-layouts ()
-  "vtermを分割した後、s-j相当の切り替えで両方の配置が復元される。"
+(ert-deftest my/vterm-new-respects-manual-split-and-toggle ()
+  "分割先を利用者が指定し、新しいvtermと編集画面を往復できる。"
   (my/vterm-test--with-buffers
     (set-window-buffer (split-window-right) buffer-b)
     (my/vterm-toggle)
-    (let ((first (current-buffer)))
-      (cl-letf (((symbol-function 'split-window-sensibly)
-                 (lambda (&optional window)
-                   (split-window window nil 'below))))
-        (my/vterm-split))
+    (let* ((first (current-buffer))
+           (left (selected-window))
+           (right (split-window-right)))
+      (select-window right)
+      (my/vterm-new)
       (let ((second (current-buffer)))
         (should-not (eq first second))
         (should (= (length (window-list)) 2))
-        (should (get-buffer-window first))
+        (should (eq (window-buffer left) first))
+        (should (eq (window-buffer right) second))
         (my/vterm-toggle)
         (should (= (length (window-list)) 2))
         (should (eq (current-buffer) buffer-a))
@@ -115,53 +116,53 @@
         (should (get-buffer-window first))
         (should (get-buffer-window second))))))
 
-
-(ert-deftest my/vterm-split-only-in-vterm ()
-  "vterm以外では分割コマンドが実行できない。"
+(ert-deftest my/vterm-new-only-in-vterm ()
+  "vterm以外では新規作成コマンドが実行できない。"
   (my/vterm-test--with-buffers
-    (should-error (my/vterm-split) :type 'user-error)
+    (should-error (my/vterm-new) :type 'user-error)
     (should (one-window-p t))))
 
+(ert-deftest my/vterm-new-does-not-split-and-has-no-session-limit ()
+  "分割せず何度でも新しいvtermを作成できる。"
+  (my/vterm-test--with-buffers
+    (my/vterm-toggle)
+    (let ((first (current-buffer))
+          sessions)
+      (cl-letf (((symbol-function 'split-window-sensibly)
+                 (lambda (&optional _window)
+                   (error "新規作成コマンドから分割が呼ばれました"))))
+        (dotimes (_ 3)
+          (my/vterm-new)
+          (push (current-buffer) sessions)
+          (should (one-window-p t))))
+      (should (= (length (delete-dups (cons first sessions))) 4))
+      (with-current-buffer first
+        (let ((tabs (my/vterm-tab-line-tabs)))
+          (should (= (length tabs) 4))
+          (dolist (buffer sessions)
+            (should (memq buffer tabs))))))))
 
-(ert-deftest my/vterm-split-fails-without-space ()
-  "分割できない場合は既存の画面を変更しない。"
+(ert-deftest my/vterm-new-does-not-change-layout-on-startup-error ()
+  "新しいvtermの起動に失敗しても画面を変更しない。"
   (my/vterm-test--with-buffers
     (my/vterm-toggle)
     (let ((first (current-buffer)))
-      (cl-letf (((symbol-function 'split-window-sensibly)
-                 (lambda (&optional _window) nil)))
-        (should-error (my/vterm-split) :type 'user-error))
-      (should (one-window-p t))
-      (should (eq (current-buffer) first)))))
-
-
-(ert-deftest my/vterm-split-rolls-back-on-startup-error ()
-  "新しいvtermの起動失敗時は分割したウィンドウを閉じる。"
-  (my/vterm-test--with-buffers
-    (my/vterm-toggle)
-    (let ((first (current-buffer)))
-      (cl-letf (((symbol-function 'split-window-sensibly)
-                 (lambda (&optional window)
-                   (split-window window nil 'below)))
-                ((symbol-function 'vterm)
+      (cl-letf (((symbol-function 'vterm)
                  (lambda (&optional _arg)
                    (error "Test startup error"))))
-        (should-error (my/vterm-split) :type 'error))
+        (should-error (my/vterm-new) :type 'error))
       (should (one-window-p t))
       (should (eq (current-buffer) first)))))
 
-
 (ert-deftest my/vterm-toggle-restores-surviving-secondary-after-primary-exit ()
-  "最初のvtermを終了しても、編集画面と生きているvtermを往復できる。"
+  "最初のvtermが終了しても、手動分割したvtermへ戻れる。"
   (my/vterm-test--with-buffers
     (my/vterm-toggle)
     (let ((first (current-buffer)))
-      (cl-letf (((symbol-function 'split-window-sensibly)
-                 (lambda (&optional window)
-                   (split-window window nil 'below))))
-        (my/vterm-split))
+      (select-window (split-window-right))
+      (my/vterm-new)
       (let ((second (current-buffer)))
-        (should (not (eq first second)))
+        (should-not (eq first second))
         (kill-buffer first)
         (should-not (buffer-live-p first))
         (should (get-buffer-window second))
@@ -176,16 +177,13 @@
         (my/vterm-toggle)
         (should (eq (current-buffer) buffer-a))))))
 
-
 (ert-deftest my/vterm-toggle-restores-primary-after-secondary-exit ()
-  "追加したvtermを終了した場合も、残ったvtermだけが復元される。"
+  "追加のvtermが終了しても、手動分割した元のvtermへ戻れる。"
   (my/vterm-test--with-buffers
     (my/vterm-toggle)
     (let ((first (current-buffer)))
-      (cl-letf (((symbol-function 'split-window-sensibly)
-                 (lambda (&optional window)
-                   (split-window window nil 'below))))
-        (my/vterm-split))
+      (select-window (split-window-right))
+      (my/vterm-new)
       (let ((second (current-buffer)))
         (kill-buffer second)
         (select-window (get-buffer-window first))
@@ -194,7 +192,6 @@
         (my/vterm-toggle)
         (should (one-window-p t))
         (should (eq (current-buffer) first))))))
-
 
 (ert-deftest my/vterm-toggle-after-last-vterm-exit ()
   "最後のvtermを終了しても編集画面に戻り、次は新しく起動できる。"
@@ -210,7 +207,7 @@
       (should (equal (buffer-name (current-buffer)) buffer-name)))))
 
 (ert-deftest my/vterm-tab-line-only-shows-related-terminals ()
-  "同じvterm画面のターミナルだけをtab-lineに並べる。"
+  "分割なしで作った3個のvtermが同じ専用tab-lineに並ぶ。"
   (my/vterm-test--with-buffers
     (my/vterm-toggle)
     (let ((first (current-buffer))
@@ -223,34 +220,30 @@
             (with-current-buffer other
               (setq major-mode 'vterm-mode)
               (setq-local my/vterm-tab-line-group "unrelated"))
-            (cl-letf (((symbol-function 'split-window-sensibly)
-                       (lambda (&optional window)
-                         (split-window window nil 'below))))
-              (my/vterm-split))
+            (my/vterm-new)
             (let ((second (current-buffer)))
-              (should-not (eq first second))
-              (dolist (buffer (list first second))
-                (with-current-buffer buffer
-                  (let ((tabs (my/vterm-tab-line-tabs)))
-                    (should (= (length tabs) 2))
-                    (should (memq first tabs))
-                    (should (memq second tabs))
-                    (should-not (memq other tabs)))))
-              (with-current-buffer other
-                (should (equal (my/vterm-tab-line-tabs)
-                               (list other))))))
+              (my/vterm-new)
+              (let ((third (current-buffer)))
+                (should (one-window-p t))
+                (dolist (buffer (list first second third))
+                  (with-current-buffer buffer
+                    (let ((tabs (my/vterm-tab-line-tabs)))
+                      (should (= (length tabs) 3))
+                      (should (memq first tabs))
+                      (should (memq second tabs))
+                      (should (memq third tabs))
+                      (should-not (memq other tabs)))))))
+            (with-current-buffer other
+              (should (equal (my/vterm-tab-line-tabs)
+                             (list other)))))
         (kill-buffer other)))))
-
 
 (ert-deftest my/vterm-tab-line-drops-closed-terminal ()
   "終了したvtermは同じグループのtab-lineから消える。"
   (my/vterm-test--with-buffers
     (my/vterm-toggle)
     (let ((first (current-buffer)))
-      (cl-letf (((symbol-function 'split-window-sensibly)
-                 (lambda (&optional window)
-                   (split-window window nil 'below))))
-        (my/vterm-split))
+      (my/vterm-new)
       (let ((second (current-buffer)))
         (kill-buffer first)
         (should (equal (my/vterm-tab-line-tabs) (list second)))))))
