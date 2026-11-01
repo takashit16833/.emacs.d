@@ -60,6 +60,9 @@
   (add-to-list 'major-mode-remap-alist
                '(haskell-mode . haskell-ts-mode)))
 
+;; Tree-sitter の関数定義をコンパイル時に認識させる。
+(eval-when-compile (require 'treesit))
+
 ;; Haskell の LANGUAGE 宣言だけコメント色にする。
 ;; quasiquote も preprocessor face を使うので、共通 face は変更しない。
 ;; 既存の pragma 規則より後で上書きする。
