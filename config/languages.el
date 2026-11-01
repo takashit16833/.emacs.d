@@ -60,8 +60,11 @@
   (add-to-list 'major-mode-remap-alist
                '(haskell-mode . haskell-ts-mode)))
 
-;; Tree-sitter の関数定義をコンパイル時に認識させる。
-(eval-when-compile (require 'treesit))
+;; haskell-ts-mode は treesit を読み込むため、起動時の require は不要。
+;; 遅延読み込みする関数の定義元と引数をコンパイラへ宣言する。
+(declare-function treesit-font-lock-rules "treesit" (&rest query-specs))
+(declare-function treesit-add-font-lock-rules "treesit"
+                  (rules &optional how feature))
 
 ;; Haskell の LANGUAGE 宣言だけコメント色にする。
 ;; quasiquote も preprocessor face を使うので、共通 face は変更しない。
