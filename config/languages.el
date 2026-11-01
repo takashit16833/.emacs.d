@@ -60,6 +60,21 @@
   (add-to-list 'major-mode-remap-alist
                '(haskell-mode . haskell-ts-mode)))
 
+;; Haskell の LANGUAGE 宣言だけコメント色にする。
+;; quasiquote も preprocessor face を使うので、共通 face は変更しない。
+;; 既存の pragma 規則より後で上書きする。
+(defun my/haskell-ts-pragma-comment-face ()
+  "Haskell の pragma をコメント色で表示する。"
+  (treesit-add-font-lock-rules
+   (treesit-font-lock-rules
+    :language 'haskell
+    :feature 'pragma
+    :override t
+    '((pragma) @font-lock-comment-face))
+   :after))
+
+(add-hook 'haskell-ts-mode-hook #'my/haskell-ts-pragma-comment-face)
+
 ;; .editorconfig の indent_size を軽量インデントの幅へ反映する。
 (with-eval-after-load 'editorconfig
   (add-to-list 'editorconfig-indentation-alist
