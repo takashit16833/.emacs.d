@@ -1,9 +1,28 @@
 ;;; formatting.el --- Code formatting configuration -*- lexical-binding: t; -*-
 
 ;;; Commentary:
-;; Apheleiaと各言語の外部フォーマッタを設定する。
+;; LSPとApheleiaを使い分けて、各言語の整形を設定する。
 
 ;;; Code:
+
+;; TRAMP上では外部フォーマッタをApheleia経由で呼ぶと、一時ファイルの
+;; 転送往復が増えて保存が遅くなる場合がある。言語サーバーが十分な整形
+;; 機能を提供する言語はLSP経由を優先し、それ以外はApheleiaを使う。
+;; 現時点では実測で差が確認できたHaskellだけをLSP整形の対象にする。
+(defvar my/eglot-format-on-save-modes '(haskell-ts-mode)
+  "保存時にEglot経由で整形するmajor mode。")
+
+(declare-function eglot-managed-p "eglot" ())
+
+(defun my/eglot-format-on-save-setup ()
+  "対象モードではEglot接続中だけ保存時整形を有効にする。"
+  (when (memq major-mode my/eglot-format-on-save-modes)
+    (if (eglot-managed-p)
+        (add-hook 'before-save-hook #'eglot-format-buffer nil t)
+      (remove-hook 'before-save-hook #'eglot-format-buffer t))))
+
+(with-eval-after-load 'eglot
+  (add-hook 'eglot-managed-mode-hook #'my/eglot-format-on-save-setup))
 
 ;; 外部フォーマッタを非同期で実行する。
 (use-package apheleia
@@ -16,7 +35,6 @@
   ((js-json-mode . apheleia-mode)
    (yaml-ts-mode . apheleia-mode)
    (lua-ts-mode . apheleia-mode)
-   (haskell-ts-mode . apheleia-mode)
    (haskell-cabal-mode . apheleia-mode)
    (php-ts-mode . apheleia-mode)
    (python-ts-mode . apheleia-mode)
@@ -62,15 +80,6 @@
              (if (and local-ruff (file-executable-p local-ruff))
 		 local-ruff
                "ruff")))
-
-  ;; HaskellはFourmoluで整形する。
-  ;; 元ファイルの場所を渡し、Fourmoluの設定やCabal情報を正しく探索させる。
-  (setf (alist-get 'fourmolu apheleia-formatters)
-        '("fourmolu" "--stdin-input-file" filepath))
-
-  ;; haskell-ts-modeでは必ずFourmoluを使用する。
-  (setf (alist-get 'haskell-ts-mode apheleia-mode-alist)
-        'fourmolu)
 
   ;; Cabalファイルはcabal-gildで整形する。
   (setf (alist-get 'cabal-gild apheleia-formatters)

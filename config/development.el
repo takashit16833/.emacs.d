@@ -103,9 +103,17 @@
   :init
   ;; HLSの標準上限40件では、TRAMPでT.unからunpackが候補から漏れた。
   ;; 200件に増やすと候補が表示されることを実機で確認済み。
+  ;;
+  ;; Haskellの整形はHLS経由でFourmoluを使う。
+  ;; TRAMP上でApheleiaから外部フォーマッタを呼ぶと一時ファイル転送が
+  ;; 複数回発生して遅かったため、すでに接続済みのLSP経路を優先する。
+  ;; Fourmolu本体は開発コンテナで版を固定し、HLSから外部実行する。
   ;; default値なので、必要ならプロジェクトの.dir-locals.elで上書きできる。
   (setq-default eglot-workspace-configuration
-                '(:haskell (:maxCompletions 200)))
+                '(:haskell
+                  (:maxCompletions 200
+                   :formattingProvider "fourmolu"
+                   :plugin (:fourmolu (:config (:external t))))))
   :config
   ;; Eglot標準のPHP候補にはintelephenseがないため追加する。
   ;; 他の言語サーバーはEmacs 31.1の標準定義をそのまま使用する。
