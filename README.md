@@ -1,11 +1,19 @@
 # セットアップ
 
-## macOS
+## 設定の取得
 
-HomebrewとXcode Command Line Toolsを用意する。Cコンパイラがなければ `xcode-select --install` を実行する。
+既存の `~/.emacs.d` がある場合は、先に退避する。macOSでGitが使えない場合は、Xcode Command Line Toolsを導入する（`xcode-select --install`）。
 
 ```sh
-brew install emacs git ripgrep jq cmake libvterm coreutil
+git clone https://github.com/takashit16833/.emacs.d.git ~/.emacs.d
+```
+
+## macOS
+
+HomebrewとCコンパイラを用意する。Git・ripgrep・jqはMacの共通ツールとして別途用意する。
+
+```sh
+brew bundle --file ~/.emacs.d/Brewfile --no-upgrade
 emacs --version
 ```
 
@@ -23,12 +31,9 @@ emacs --version
 
 OSのパッケージがEmacs 31.1とは限らないため、バージョンを必ず確認する。Debian trixieでEmacs 31.1をビルドする際の依存パッケージは `docker/debian/Dockerfile` に記載している。
 
-## 設定の配置と起動
-
-既存の `~/.emacs.d` がある場合は、先に退避する。
+## 起動
 
 ```sh
-git clone https://github.com/takashit16833/.emacs.d.git ~/.emacs.d
 emacs -nw
 ```
 
@@ -87,13 +92,7 @@ M-x php-ts-mode-install-parsers
 
 `haskell-ts-mode` では、標準のHaskell文法とは別の `dschrempf/tree-sitter-haskell` を使用する。現在のDocker検証環境と同じリビジョンを使う。
 
-まずTree-sitter CLIを用意する。macOSでは次を実行する。
-
-```sh
-brew install tree-sitter-cli
-```
-
-Debianでは `tree-sitter-cli` パッケージを使用できる環境ならそれをインストールする。
+Tree-sitter CLIはmacOSでは`Brewfile`から導入される。Debianでは `tree-sitter-cli` パッケージを使用できる環境ならそれをインストールする。
 
 ```sh
 sudo apt install -y tree-sitter-cli
